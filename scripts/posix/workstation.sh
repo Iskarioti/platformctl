@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CMD="${1:-help}"
+shift || true
+
+case "$CMD" in
+  validate)
+    if command -v pwsh >/dev/null 2>&1; then
+      exec pwsh -NoLogo -NoProfile -File "$ROOT/scripts/ci/validate.ps1" "$@"
+    fi
+    # Minimal POSIX fallback.
+    python3 -m json.tool "$ROOT/workstation.json" >/dev/null
+    python3 -m json.tool "$ROOT/windows-terminal/settings.json" >/dev/null
+    echo "PASS basic POSIX validation"
+    ;;
+  doctor)
+    if command -v pwsh >/dev/null 2>&1; then
+      exec pwsh -NoLogo -NoProfile -File "$ROOT/scripts/common/doctor.ps1" "$@"
+    fi
+    for x in git gh code oh-my-posh zoxide fzf jq; do
+      command -v "$x" >/dev/null 2>&1 && echo "PASS $x" || echo "MISS $x"
+    done
+    ;;
+  sync)
+    exec "$ROOT/scripts/common/autosync.sh" --once
+    ;;
+  publish)
+    if command -v pwsh >/dev/null 2>&1; then
+      exec pwsh -NoLogo -NoProfile -File "$ROOT/scripts/github/publish.ps1" "$@"
+    fi
+    exec "$ROOT/scripts/github/publish.sh" "$@"
+    ;;
+  autosync)
+    action="${1:-status}"
+    case "$action" in
+      enable) exec "$ROOT/scripts/posix/install-autosync.sh" ;;
+      disable) exec "$ROOT/scripts/posix/uninstall-autosync.sh" ;;
+      once) exec "$ROOT/scripts/common/autosync.sh" --once ;;
+      *) echo "autosync: enable | disable | once" ;;
+    esac
+    ;;
+  update)
+    git -C "$ROOT" pull --rebase --autostash
+    "$ROOT/setup" validate
+    "$ROOT/setup" apply
+    "$ROOT/setup" doctor
+    ;;
+  dry-run)
+    echo "DRY RUN: $(uname -s)"
+    "$ROOT/scripts/posix/workstation.sh" validate
+    ;;
+  *)
+    cat <<'EOF'
+workstation commands:
+  bootstrap
+  apply
+  validate
+  doctor
+  sync
+  autosync enable|disable|once
+  publish [owner/repo]
+  update
+  dry-run
+EOF
+    ;;
+esac

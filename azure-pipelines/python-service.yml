@@ -1,0 +1,40 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - checkout: self
+    fetchDepth: 0
+
+  - script: |
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+      echo "##vso[task.prependpath]$HOME/.local/bin"
+    displayName: Install uv
+
+  - script: uv sync --all-groups
+    displayName: Restore dependencies
+
+  - script: uv run ruff check .
+    displayName: Lint
+
+  - script: uv run mypy app
+    displayName: Type check
+
+  - script: uv run pytest
+    displayName: Tests
+
+  - script: |
+      docker build -t local/service:$(Build.BuildId) .
+    displayName: Build container
+
+  # Add Trivy/SBOM steps using an approved internal task or pinned tool version.
+  # Add registry push only after PR validation and environment authorization.

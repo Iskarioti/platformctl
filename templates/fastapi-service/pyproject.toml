@@ -1,0 +1,42 @@
+[project]
+name = "platform-service"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+  "fastapi",
+  "uvicorn[standard]",
+  "pydantic-settings",
+  "sqlalchemy",
+  "psycopg[binary]",
+  "redis",
+  "httpx",
+  "structlog",
+  "opentelemetry-api",
+  "opentelemetry-sdk",
+  "opentelemetry-instrumentation-fastapi",
+  "opentelemetry-exporter-otlp"
+]
+
+[dependency-groups]
+dev = [
+  "pytest",
+  "pytest-asyncio",
+  "pytest-cov",
+  "ruff",
+  "mypy",
+  "pre-commit"
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --disable-warnings --maxfail=1"
+
+[tool.mypy]
+python_version = "3.13"
+strict = true

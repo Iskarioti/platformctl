@@ -1,0 +1,11 @@
+# STD-001 Linux Baseline
+- Configuration managed through Ansible.
+- SSH keys only where possible.
+- Time sync enabled.
+- Central logging enabled.
+- Monitoring enabled.
+- Unnecessary services disabled.
+- Firewall policy documented.
+- Secrets externalized.
+- Package and security patch ownership defined.
+- Backup and recovery requirements documented.

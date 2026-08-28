@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
+
+OS="$(uname -s)"
+case "$OS" in
+  Darwin)
+    exec "$ROOT/platform/macos/bootstrap.sh" "$@"
+    ;;
+  Linux)
+    exec "$ROOT/platform/linux/bootstrap.sh" "$@"
+    ;;
+  *)
+    echo "Unsupported POSIX platform: $OS" >&2
+    exit 2
+    ;;
+esac

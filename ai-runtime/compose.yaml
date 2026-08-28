@@ -1,0 +1,22 @@
+name: ai-runtime
+
+services:
+  ollama:
+    image: ollama/ollama:${OLLAMA_VERSION:-latest}
+    container_name: ollama-local
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - ai-runtime
+
+volumes:
+  ollama-models:
+    name: ollama-models
+
+networks:
+  ai-runtime:
+    external: true
+    name: ai-runtime

@@ -1,0 +1,18 @@
+[project]
+name = "platformctl"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "typer>=0.16",
+  "rich>=14",
+  "psutil>=7",
+  "httpx>=0.28",
+  "cryptography>=45"
+]
+
+[project.scripts]
+platformctl = "platformctl.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

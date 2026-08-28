@@ -1,0 +1,38 @@
+{
+  "editor.fontFamily": "'JetBrains Mono', Consolas, 'Courier New', monospace",
+  "editor.fontLigatures": true,
+  "editor.fontSize": 14,
+  "editor.lineHeight": 1.55,
+  "editor.minimap.enabled": false,
+  "editor.renderWhitespace": "selection",
+  "editor.rulers": [
+    100,
+    120
+  ],
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.autoSave": "off",
+  "terminal.integrated.fontFamily": "JetBrainsMono Nerd Font Mono",
+  "terminal.integrated.fontSize": 12,
+  "terminal.integrated.lineHeight": 1.2,
+  "terminal.integrated.scrollback": 20000,
+  "terminal.integrated.enablePersistentSessions": true,
+  "terminal.integrated.copyOnSelection": false,
+  "terminal.integrated.rightClickBehavior": "default",
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "git.autofetch": true,
+  "git.confirmSync": true,
+  "git.enableSmartCommit": true,
+  "workbench.startupEditor": "none",
+  "workbench.editor.enablePreview": false,
+  "breadcrumbs.enabled": true,
+  "explorer.confirmDelete": true,
+  "security.workspace.trust.enabled": true,
+  "remote.autoForwardPortsSource": "hybrid"
+}

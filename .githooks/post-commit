@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Autosync commits perform apply/push themselves to avoid recursion.
+if [[ "${WORKSTATION_AUTOSYNC:-0}" == "1" || "${WORKSTATION_NO_POST_COMMIT:-0}" == "1" ]]; then
+  exit 0
+fi
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+if command -v pwsh >/dev/null 2>&1; then
+  pwsh -NoLogo -NoProfile -File "$ROOT/setup.ps1" apply --quiet || true
+else
+  "$ROOT/setup" apply --quiet || true
+fi
+
+if git remote get-url origin >/dev/null 2>&1; then
+  BRANCH="$(git branch --show-current)"
+  if [[ -n "$BRANCH" ]]; then
+    git push -u origin "$BRANCH"
+  fi
+fi

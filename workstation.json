@@ -1,0 +1,82 @@
+{
+  "$schema": "./schema/workstation.schema.json",
+  "name": "system-platform-architect-workstation",
+  "version": "3.0.0",
+  "role": "Systems & Platform Architect",
+  "sourceOfTruth": "git",
+  "repo": {
+    "defaultOwner": "Iskarioti",
+    "defaultName": "system-platform-architect-workstation",
+    "defaultVisibility": "private",
+    "autoPush": true,
+    "autoApply": true,
+    "autoCommit": true,
+    "autosyncIntervalSeconds": 60,
+    "pushCurrentBranch": true,
+    "requireValidationBeforeCommit": true
+  },
+  "copyStrategy": "cp",
+  "fonts": {
+    "editor": {
+      "family": "JetBrains Mono",
+      "source": "https://github.com/JetBrains/JetBrainsMono",
+      "version": "2.304",
+      "ligatures": true
+    },
+    "terminal": {
+      "family": "JetBrainsMono Nerd Font Mono",
+      "nerdFontName": "JetBrainsMono",
+      "variant": "Mono",
+      "source": "https://github.com/ryanoasis/nerd-fonts"
+    }
+  },
+  "features": {
+    "windows": {
+      "windowsTerminalPowerShellOnly": true,
+      "wsl": true,
+      "dockerInsideWSL": true,
+      "npuLab": true
+    },
+    "linux": {
+      "shell": "bash",
+      "docker": true
+    },
+    "macos": {
+      "shell": "zsh",
+      "homebrew": true
+    }
+  },
+  "automation": {
+    "installGitHooks": true,
+    "enableAutosyncByDefault": true,
+    "validateBeforeApply": true,
+    "backupBeforeOverwrite": true,
+    "neverCommitSecrets": true
+  },
+  "safeTrackedRoots": [
+    ".github",
+    ".githooks",
+    "config",
+    "docs",
+    "platform",
+    "schema",
+    "scripts",
+    "shell",
+    "templates",
+    "vscode",
+    "windows",
+    "windows-terminal",
+    "wsl",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "KIMI.md",
+    "README.md",
+    "CHANGELOG.md",
+    "VERSION",
+    "bootstrap",
+    "bootstrap.ps1",
+    "setup",
+    "setup.ps1",
+    "workstation.json"
+  ]
+}

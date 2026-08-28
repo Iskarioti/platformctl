@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+CMD="${1:-help}"
+shift || true
+
+case "$CMD" in
+  bootstrap)
+    case "$(uname -s)" in
+      Darwin) exec "$ROOT/platform/macos/bootstrap.sh" "$@" ;;
+      Linux)  exec "$ROOT/platform/linux/bootstrap.sh" "$@" ;;
+      *) echo "Unsupported platform" >&2; exit 2 ;;
+    esac
+    ;;
+  apply)
+    exec "$ROOT/scripts/posix/apply.sh" "$@"
+    ;;
+  validate|doctor|sync|publish|autosync|update|dry-run|help)
+    exec "$ROOT/scripts/posix/workstation.sh" "$CMD" "$@"
+    ;;
+  *)
+    echo "Unknown command: $CMD" >&2
+    exec "$ROOT/scripts/posix/workstation.sh" help
+    ;;
+esac

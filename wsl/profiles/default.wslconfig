@@ -1,0 +1,12 @@
+[wsl2]
+memory=12GB
+processors=8
+swap=4GB
+networkingMode=mirrored
+dnsTunneling=true
+firewall=true
+autoProxy=true
+
+[experimental]
+autoMemoryReclaim=gradual
+sparseVhd=true
