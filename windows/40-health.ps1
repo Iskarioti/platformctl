@@ -4,8 +4,8 @@ Write-Host "=== Windows workstation health ==="
 Write-Host ("Time: {0}" -f (Get-Date -Format o))
 
 Write-Host "`nWSL:"
-wsl --status
-wsl --list --verbose
+((wsl --status 2>$null) -join "`n") -replace "`0", "" | Write-Host
+((wsl --list --verbose 2>$null) -join "`n") -replace "`0", "" | Write-Host
 
 Write-Host "`nStorage:"
 Get-Volume -DriveLetter C | Select DriveLetter,

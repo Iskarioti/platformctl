@@ -40,4 +40,4 @@ if (Get-Module -ListAvailable -Name NerdFonts) {
 Write-Host ""
 
 Write-Host "WSL:"
-wsl.exe --list --verbose
+((wsl.exe --list --verbose 2>$null) -join "`n") -replace "`0", "" | Write-Host

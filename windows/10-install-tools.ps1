@@ -15,6 +15,7 @@ $packages = @(
     @{ Name = "Wireshark";          Id = "WiresharkFoundation.Wireshark" }
     @{ Name = "Claude Code"; Id = "Anthropic.ClaudeCode" }
     @{ Name = "Codex CLI"; Id = "OpenAI.Codex" }
+    # @{ Name = "Python 3.14"; Id = "Python.Python.3.14" }
 )
 
 $failed = @()

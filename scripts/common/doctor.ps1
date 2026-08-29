@@ -35,7 +35,7 @@ if ($env:OS -eq "Windows_NT") {
 
     if (Get-Command wsl.exe -ErrorAction SilentlyContinue) {
         Write-Host ""
-        wsl.exe --list --verbose
+        ((wsl.exe --list --verbose 2>$null) -join "`n") -replace "`0", "" | Write-Host
     }
 }
 
