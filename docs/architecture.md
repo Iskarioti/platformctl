@@ -1,86 +1,74 @@
-# Workstation Architecture v3
+# Workstation Architecture v3.1
 
 ## Principle
 
-Git is the source of truth. The live machine is a deployment target.
+Git is the source of truth. The live machine is a deployment target. Project
+development environments are separately governed by policy and Dev Containers.
 
 ```text
 GitHub
   ^
-  | push current branch
+  | push current platformctl branch
   |
-Repository source
+platformctl repository
   |
-  +--> validate
-  |
+  +--> validate source
   +--> apply with cp / Copy-Item
+  +--> enforce workstation development policy
   |
-  +--> live Windows / Linux / macOS configuration
+  +--> approved project templates
+          |
+          +--> ~/src/<area>/<project>
+                  |
+                  +--> Dev Container
+                  +--> local project checks
+                  +--> GitHub CI / repository rules
 ```
 
-There is no rsync-based mirroring and no reverse-copying of arbitrary live files into
-the repository.
+## Environment tiers
 
-## One-command bootstrap
-
-Windows:
-
-```powershell
-git clone <repo>
-cd system-platform-architect-workstation
-.\bootstrap.ps1
+```text
+Level 0  Windows/macOS/Linux host
+Level 1  WSL/Linux engineering control plane
+Level 2  Dev Container project toolchain
+Level 3  Docker Compose disposable dependencies
+Level 4  Azure/distributed lab for HA/prod-like validation
 ```
 
-Linux/macOS:
+On Windows, project repositories and Docker workloads belong to WSL/Linux. Windows is
+the corporate/UI/security control plane.
 
-```bash
-git clone <repo>
-cd system-platform-architect-workstation
-./bootstrap
-```
+## Policy boundaries
 
-After bootstrap, use the global logical command:
+`workstation.json` controls the workstation source-of-truth contract.
+
+`policy/development.json` controls approved `~/src` roots, WSL-only development on
+Windows, Docker-inside-WSL, Dev Container requirements, project structure, secret
+handling, container safety, and Git/CI expectations.
+
+Each governed project is created from `templates/projects/*` and receives
+`.platformctl/project.json` metadata.
+
+## Commands
 
 ```text
 workstation validate
-workstation apply
 workstation doctor
-workstation sync
-workstation autosync enable
+workstation enforce [--repair]
+
+workstation project templates
+workstation project init <template> <name>
+workstation project check [path]
+workstation project doctor [path]
+workstation project open [path]
 ```
 
-## Automatic change flow
+`--repair` only repairs safe, non-destructive drift such as missing approved project
+root directories.
 
-Background autosync runs every minute:
+## Git and CI
 
-1. detect a dirty repository;
-2. validate source;
-3. apply source to live locations with cp/Copy-Item;
-4. stage tracked changes plus allowlisted new files;
-5. refuse obvious secret-bearing filenames;
-6. commit;
-7. rebase from the current remote branch;
-8. push the current branch without force.
+Local hooks provide fast feedback but are not a security boundary. GitHub CI and
+repository protection rules are authoritative.
 
-Normal manual/agent commits are also validated by `pre-commit` and automatically
-applied/pushed by `post-commit`.
-
-## Agent-friendly maintenance
-
-All agents read `AGENTS.md`. Claude additionally reads `CLAUDE.md`; Kimi reads
-`KIMI.md`; GitHub Copilot reads `.github/copilot-instructions.md`.
-
-Agents change canonical source, not deployed configuration.
-
-## Platform adapters
-
-- Windows: winget, PowerShell 7, Windows Terminal, WSL, PowerShell profile.
-- Linux: apt/dnf/pacman, bash, native Docker, VS Code when available.
-- macOS: Homebrew, zsh, native tools, VS Code.
-
-Shared user experience:
-- Oh My Posh Tokyo Night theme;
-- official JetBrains Mono for editor text;
-- JetBrainsMono Nerd Font Mono for terminals;
-- zoxide/fzf/Git helpers;
-- GitHub-backed source of truth.
+Application repositories must not inherit platformctl's autosync behavior.

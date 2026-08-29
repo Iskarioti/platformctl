@@ -1,0 +1,59 @@
+{
+  "$schema": "../schema/development-policy.schema.json",
+  "version": "1.0.0",
+  "projectRoots": [
+    "~/src/company",
+    "~/src/platform",
+    "~/src/automation",
+    "~/src/labs",
+    "~/src/tooling"
+  ],
+  "windows": {
+    "developmentInWSL": true,
+    "wslDistribution": "Ubuntu-24.04",
+    "dockerEngine": "wsl",
+    "dockerDesktopAllowed": false,
+    "allowProjectsOnWindowsFilesystem": false
+  },
+  "projects": {
+    "requireGit": true,
+    "requireDevContainer": true,
+    "requireEditorConfig": true,
+    "requireGitignore": true,
+    "requireReadme": true,
+    "requireEnvExample": true,
+    "requirePlatformMetadata": true,
+    "lockfilePolicy": "warn",
+    "allowedTemplates": [
+      "fastapi-service",
+      "react-app",
+      "python-service",
+      "terraform",
+      "research-python"
+    ]
+  },
+  "git": {
+    "defaultBranch": "main",
+    "directPushToMain": false,
+    "forcePush": false,
+    "requirePullRequest": true,
+    "requireStatusChecks": true
+  },
+  "security": {
+    "forbidTrackedEnvFiles": true,
+    "forbidPrivateKeys": true,
+    "forbidSecrets": true,
+    "requireDependencyScanning": true,
+    "requireSecretScanning": true
+  },
+  "containers": {
+    "requireNonRootDevContainer": true,
+    "forbidLatestTag": true,
+    "publishPortsToLocalhostByDefault": true
+  },
+  "ci": {
+    "required": true,
+    "authority": "github",
+    "localHooksAreAdvisory": true
+  }
+}

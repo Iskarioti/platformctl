@@ -1,9 +1,15 @@
 # Systems & Platform Architect Workstation
 
-A GitHub-first, fully automated, adaptive workstation for Windows, Linux and macOS.
+A GitHub-first, fully automated, adaptive workstation for Windows, Linux and macOS,
+with policy-as-code enforcement for development environments.
 
-The repository is the source of truth. Clone it on a new laptop, run one bootstrap
-command, and the machine installs/adapts itself.
+The repository is the source of truth. After bootstrap:
+
+- workstation configuration is governed by `workstation.json`;
+- development behavior is governed by `policy/development.json`;
+- project runtimes live in Dev Containers;
+- GitHub CI/rules remain the authoritative merge boundary.
+
 
 ## New machine
 
@@ -11,7 +17,7 @@ command, and the machine installs/adapts itself.
 
 ```powershell
 git clone <repo-url>
-cd system-platform-architect-workstation
+cd platformctl
 .\bootstrap.ps1
 ```
 
@@ -19,65 +25,77 @@ cd system-platform-architect-workstation
 
 ```bash
 git clone <repo-url>
-cd system-platform-architect-workstation
+cd platformctl
 ./bootstrap
 ```
 
-After bootstrap:
+## Core commands
 
 ```text
 workstation validate
 workstation apply
 workstation doctor
+workstation enforce
+workstation enforce --repair
+
+workstation project templates
+workstation project init fastapi-service my-api --area company
+workstation project check
+workstation project doctor
+workstation project open
+
 workstation sync
 workstation update
 workstation autosync enable
 ```
 
-## What is automated
+## Development model
 
-- platform detection;
-- package installation;
-- PowerShell / bash / zsh shell setup;
-- Oh My Posh Tokyo Night prompt;
-- official JetBrains Mono for VS Code editor text;
-- JetBrainsMono Nerd Font Mono for terminal text;
-- Windows Terminal PowerShell-only configuration;
-- VS Code settings and extensions;
-- WSL and Docker-inside-WSL on Windows;
-- Git hooks;
-- validation;
-- cp/Copy-Item configuration deployment;
-- background commit/push synchronization to GitHub;
-- AI-agent maintenance contract.
+```text
+Windows host
+  -> WSL2 Ubuntu engineering plane
+     -> ~/src/company|platform|automation|labs|tooling
+        -> approved project template
+           -> VS Code Dev Container
+              -> project runtime/toolchain
+                 -> local checks
+                    -> GitHub CI
+                       -> protected PR
+```
 
-## GitHub source of truth
+Project repositories should not live under `/mnt/c`, OneDrive, Desktop, Downloads, or
+other Windows-mounted paths when developing on Windows.
 
-Normal commits are validated, applied and pushed automatically.
+`platformctl` autosync only manages this workstation repository. It never auto-commits
+or auto-pushes application repositories.
 
-Uncommitted repository changes are picked up by the platform autosync service every
-minute. Autosync validates first, applies with cp/Copy-Item, commits safe repository
-changes and pushes the current branch. It never force-pushes.
+## Approved project templates
 
-## AI agents
+- `fastapi-service`
+- `react-app`
+- `python-service`
+- `terraform`
+- `research-python`
 
-Read:
+Create one with:
 
-- `AGENTS.md`
-- `CLAUDE.md`
-- `KIMI.md`
-- `docs/ai-agent-maintenance.md`
+```bash
+workstation project init <template> <name> --area company
+```
 
-The repository is designed to be maintained by Claude Code, Codex, Kimi and other
-coding agents without giving them permission to weaken endpoint security or commit
-secrets.
+## Security model
+
+The setup never weakens App Control, WDAC, ConstrainedLanguage, execution policy,
+Secure Boot, endpoint controls, or installer verification.
+
+Project policy forbids tracked secret files/private keys, Docker `:latest` base
+images, root Dev Container users, and Windows-filesystem development when WSL is the
+required engineering plane.
 
 ## Documentation
 
 - `docs/architecture.md`
+- `docs/development-enforcement.md`
 - `docs/new-machine.md`
 - `docs/autosync.md`
 - `docs/ai-agent-maintenance.md`
-- `docs/fonts.md`
-- `docs/windows-terminal.md`
-- `docs/powershell-profile.md`

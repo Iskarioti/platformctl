@@ -1,0 +1,8 @@
+{
+  "name": "__PROJECT_NAME__",
+  "build": {"dockerfile":"Dockerfile","context":".."},
+  "remoteUser": "node",
+  "forwardPorts": [5173],
+  "postCreateCommand": "npm install",
+  "customizations": {"vscode":{"extensions":["dbaeumer.vscode-eslint","esbenp.prettier-vscode"]}}
+}

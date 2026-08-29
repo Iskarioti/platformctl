@@ -1,0 +1,7 @@
+{
+  "name": "__PROJECT_NAME__",
+  "build": {"dockerfile":"Dockerfile","context":".."},
+  "remoteUser": "vscode",
+  "postCreateCommand": "python -m pip install -r requirements-dev.txt",
+  "customizations": {"vscode":{"extensions":["ms-python.python","ms-python.vscode-pylance","charliermarsh.ruff"]}}
+}

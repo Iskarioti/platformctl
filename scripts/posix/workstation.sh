@@ -9,8 +9,8 @@ case "$CMD" in
     if command -v pwsh >/dev/null 2>&1; then
       exec pwsh -NoLogo -NoProfile -File "$ROOT/scripts/ci/validate.ps1" "$@"
     fi
-    # Minimal POSIX fallback.
     python3 -m json.tool "$ROOT/workstation.json" >/dev/null
+    python3 -m json.tool "$ROOT/policy/development.json" >/dev/null
     python3 -m json.tool "$ROOT/windows-terminal/settings.json" >/dev/null
     echo "PASS basic POSIX validation"
     ;;
@@ -22,9 +22,9 @@ case "$CMD" in
       command -v "$x" >/dev/null 2>&1 && echo "PASS $x" || echo "MISS $x"
     done
     ;;
-  sync)
-    exec "$ROOT/scripts/common/autosync.sh" --once
-    ;;
+  enforce) exec "$ROOT/scripts/posix/enforce.sh" "$@" ;;
+  project) exec "$ROOT/scripts/posix/project.sh" "$@" ;;
+  sync) exec "$ROOT/scripts/common/autosync.sh" --once ;;
   publish)
     if command -v pwsh >/dev/null 2>&1; then
       exec pwsh -NoLogo -NoProfile -File "$ROOT/scripts/github/publish.ps1" "$@"
@@ -57,6 +57,12 @@ workstation commands:
   apply
   validate
   doctor
+  enforce [--repair]
+  project init <template> <name> [--area company|platform|automation|labs|tooling]
+  project check [path]
+  project doctor [path]
+  project open [path]
+  project templates
   sync
   autosync enable|disable|once
   publish [owner/repo]

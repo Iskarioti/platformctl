@@ -1,0 +1,9 @@
+{
+  "name": "__PROJECT_NAME__",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers/features/terraform:1": {"version":"1.13"}
+  },
+  "customizations": {"vscode":{"extensions":["hashicorp.terraform"]}}
+}

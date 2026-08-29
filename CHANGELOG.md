@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.1.0
+
+- Added policy-as-code development-environment enforcement.
+- Added `policy/development.json` and schema.
+- Added `workstation enforce` with safe `--repair`.
+- Added governed project lifecycle commands: templates, init, check, doctor and open.
+- Added Dev Container templates for FastAPI, React, Python services, Terraform and research Python.
+- Enforced WSL/Linux project roots on Windows and Docker-inside-WSL policy.
+- Added project checks for required files, non-root Dev Containers, tracked `.env`
+  files, private-key-like filenames and Docker `:latest`.
+- Added project metadata under `.platformctl/project.json`.
+- Added development-policy validation to platformctl CI.
+- Added `policy` to platformctl autosync safe tracked roots.
+- Clarified that platformctl autosync never applies to application repositories.
+- Updated AI-agent contract for project policy and CI/security invariants.
+
 ## 3.0.0
 
 - Rebuilt the workstation as a GitHub-first source-of-truth repository.
@@ -69,4 +85,3 @@
 - Fixed Sysinternals package handling by using the Microsoft Store package instead of bypassing hash validation.
 - Improved Windows package installation verification and failure reporting.
 - Improved `platformctl doctor` with per-command timeouts, explicit TIMEOUT state, and separate Azure authentication status.
-

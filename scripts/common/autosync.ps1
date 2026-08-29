@@ -22,7 +22,7 @@ try {
     git add -u
 
     $Safe = @(
-        ".github",".githooks","config","docs","platform","schema","scripts","shell",
+        ".github",".githooks","config","docs","platform","policy","schema","scripts","shell",
         "templates","vscode","windows","windows-terminal","wsl",
         "AGENTS.md","CLAUDE.md","KIMI.md","README.md","CHANGELOG.md","VERSION",
         "bootstrap","bootstrap.ps1","setup","setup.ps1","workstation.json"
@@ -35,6 +35,10 @@ try {
 
     $Names = git diff --cached --name-only
     foreach ($Name in $Names) {
+        if ($Name -match '(^|/)\.env\.example$') {
+            continue
+        }
+
         if ($Name -match '(^|/)(\.env(\..*)?|id_rsa|id_ed25519|secrets?|credentials?)(/|$)|\.(pem|key|pfx|p12|kdbx)$') {
             git reset
             throw "Autosync refused: staged file looks secret-bearing: $Name"
