@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: platform-lab-kafka-kraft-3
+resources:
+  - kafka-1.yaml
+  - kafka-2.yaml
+  - kafka-3.yaml

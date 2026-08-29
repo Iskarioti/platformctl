@@ -1,0 +1,97 @@
+{
+  "version": "2.0.0",
+  "project": "platform-dev",
+  "network": "platform-dev",
+  "bindAddress": "127.0.0.1",
+  "servicesRoot": "development/services",
+  "secretsRoot": "~/.config/workstation/services",
+  "profiles": {
+    "core": [
+      "postgres",
+      "redis"
+    ],
+    "messaging": [
+      "kafka",
+      "rabbitmq"
+    ],
+    "search": [
+      "opensearch"
+    ],
+    "data": [
+      "postgres",
+      "pgbouncer",
+      "mongodb"
+    ],
+    "integration": [
+      "minio",
+      "mailpit"
+    ],
+    "ui": [
+      "dev-dashboard",
+      "pgadmin",
+      "redisinsight",
+      "kafbat-ui",
+      "opensearch-dashboards"
+    ],
+    "all": [
+      "postgres",
+      "pgbouncer",
+      "pgadmin",
+      "redis",
+      "redisinsight",
+      "kafka",
+      "kafbat-ui",
+      "opensearch",
+      "opensearch-dashboards",
+      "rabbitmq",
+      "mongodb",
+      "minio",
+      "mailpit",
+      "dev-dashboard"
+    ]
+  },
+  "services": {
+    "postgres": {
+      "path": "development/services/postgres"
+    },
+    "pgbouncer": {
+      "path": "development/services/pgbouncer"
+    },
+    "pgadmin": {
+      "path": "development/services/pgadmin"
+    },
+    "redis": {
+      "path": "development/services/redis"
+    },
+    "redisinsight": {
+      "path": "development/services/redisinsight"
+    },
+    "kafka": {
+      "path": "development/services/kafka"
+    },
+    "kafbat-ui": {
+      "path": "development/services/kafbat-ui"
+    },
+    "opensearch": {
+      "path": "development/services/opensearch"
+    },
+    "opensearch-dashboards": {
+      "path": "development/services/opensearch-dashboards"
+    },
+    "rabbitmq": {
+      "path": "development/services/rabbitmq"
+    },
+    "mongodb": {
+      "path": "development/services/mongodb"
+    },
+    "minio": {
+      "path": "development/services/minio"
+    },
+    "mailpit": {
+      "path": "development/services/mailpit"
+    },
+    "dev-dashboard": {
+      "path": "development/services/dev-dashboard"
+    }
+  }
+}

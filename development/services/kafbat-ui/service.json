@@ -1,0 +1,24 @@
+{
+  "id": "kafbat-ui",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": null,
+  "secretKeys": [],
+  "dependsOn": [
+    "kafka"
+  ],
+  "volumes": [],
+  "hostEndpoints": [
+    {
+      "label": "Kafbat UI",
+      "endpoint": "http://127.0.0.1:${KAFBAT_UI_HOST_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "Kafbat UI",
+      "endpoint": "dev-kafbat-ui:8080"
+    }
+  ]
+}

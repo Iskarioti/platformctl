@@ -1,0 +1,45 @@
+- Data:
+    - PostgreSQL:
+        icon: postgres.png
+        href: http://localhost:5050
+        description: pgAdmin 4
+        siteMonitor: http://dev-pgadmin
+    - Redis:
+        icon: redis.png
+        href: http://localhost:5540
+        description: Redis Insight
+        siteMonitor: http://dev-redisinsight:5540/api/health/
+    - MongoDB:
+        icon: mongodb.png
+        description: MongoDB service on localhost:27017
+
+- Messaging:
+    - Kafka:
+        icon: kafka.png
+        href: http://localhost:8080
+        description: Kafbat UI
+        siteMonitor: http://dev-kafbat-ui:8080/actuator/health
+    - RabbitMQ:
+        icon: rabbitmq.png
+        href: http://localhost:15672
+        description: RabbitMQ Management
+        siteMonitor: http://dev-rabbitmq:15672
+
+- Search:
+    - OpenSearch:
+        icon: opensearch.png
+        href: http://localhost:5601
+        description: OpenSearch Dashboards
+        siteMonitor: http://dev-opensearch-dashboards:5601
+
+- Integration:
+    - MinIO:
+        icon: minio.png
+        href: http://localhost:9001
+        description: MinIO Console
+        siteMonitor: http://dev-minio:9001
+    - Mailpit:
+        icon: mailpit.png
+        href: http://localhost:8025
+        description: Mailpit
+        siteMonitor: http://dev-mailpit:8025

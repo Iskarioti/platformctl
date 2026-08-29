@@ -1,6 +1,6 @@
 {
   "$schema": "../schema/development-policy.schema.json",
-  "version": "1.1.0",
+  "version": "1.2.1",
   "projectRoots": [
     "~/src/company",
     "~/src/platform",
@@ -53,20 +53,25 @@
   },
   "developmentServices": {
     "enabled": true,
-    "catalog": "development/services/compose.yaml",
+    "catalog": "development/catalog.json",
     "network": "platform-dev",
-    "credentialsFile": "~/.config/workstation/dev-services.env",
+    "credentialsFile": "~/.config/workstation/services",
     "autoStartAfterBootstrap": false,
     "allowedServices": [
       "postgres",
       "pgbouncer",
+      "pgadmin",
       "redis",
+      "redisinsight",
       "kafka",
+      "kafbat-ui",
       "opensearch",
+      "opensearch-dashboards",
       "rabbitmq",
       "mongodb",
       "minio",
-      "mailpit"
+      "mailpit",
+      "dev-dashboard"
     ],
     "profiles": {
       "core": ["postgres", "redis"],
@@ -74,18 +79,33 @@
       "search": ["opensearch"],
       "data": ["postgres", "pgbouncer", "mongodb"],
       "integration": ["minio", "mailpit"],
+      "ui": ["dev-dashboard", "pgadmin", "redisinsight", "kafbat-ui", "opensearch-dashboards"],
       "all": [
         "postgres",
         "pgbouncer",
+        "pgadmin",
         "redis",
+        "redisinsight",
         "kafka",
+        "kafbat-ui",
         "opensearch",
+        "opensearch-dashboards",
         "rabbitmq",
         "mongodb",
         "minio",
-        "mailpit"
+        "mailpit",
+        "dev-dashboard"
       ]
     }
+  },
+  "labs": {
+    "enabled": true,
+    "catalog": "labs/catalog.json",
+    "stateRoot": "~/.local/state/platformctl/labs",
+    "defaultRuntime": "docker",
+    "kubernetesProvider": "k3d",
+    "kubernetesCluster": "platform-labs",
+    "productionPromotion": "iac-only"
   },
   "ci": {
     "required": true,

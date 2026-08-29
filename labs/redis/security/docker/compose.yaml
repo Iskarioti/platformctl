@@ -1,0 +1,45 @@
+services:
+  redis-security:
+    image: redis:7.4.11-bookworm
+    container_name: lab-redis-security
+    hostname: redis-security
+    command:
+      - redis-server
+      - --port
+      - "0"
+      - --tls-port
+      - "6379"
+      - --tls-cert-file
+      - /certs/server.crt
+      - --tls-key-file
+      - /certs/server.key
+      - --tls-ca-cert-file
+      - /certs/ca.crt
+      - --tls-auth-clients
+      - "yes"
+      - --aclfile
+      - /config/users.acl
+      - --protected-mode
+      - "yes"
+    ports:
+      - "127.0.0.1:16379:6379"
+    volumes:
+      - ${LAB_STATE_DIR}/certs:/certs:ro
+      - ${LAB_STATE_DIR}/users.acl:/config/users.acl:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          redis-cli --tls --cacert /certs/ca.crt
+          --cert /certs/client.crt --key /certs/client.key
+          --user admin --pass "$${REDIS_ADMIN_PASSWORD}" ping | grep -q PONG
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    environment:
+      REDIS_ADMIN_PASSWORD: ${REDIS_ADMIN_PASSWORD}
+    networks: [lab]
+
+networks:
+  lab:
+    name: platform-lab-redis-security

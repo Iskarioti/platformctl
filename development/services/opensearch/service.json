@@ -1,0 +1,26 @@
+{
+  "id": "opensearch",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": "~/.config/workstation/services/opensearch.env",
+  "secretKeys": [
+    "OPENSEARCH_INITIAL_ADMIN_PASSWORD"
+  ],
+  "dependsOn": [],
+  "volumes": [
+    "platform-opensearch-data"
+  ],
+  "hostEndpoints": [
+    {
+      "label": "OpenSearch",
+      "endpoint": "https://127.0.0.1:${OPENSEARCH_HOST_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "OpenSearch",
+      "endpoint": "https://dev-opensearch:9200"
+    }
+  ]
+}

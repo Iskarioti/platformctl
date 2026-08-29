@@ -5,12 +5,19 @@ $Root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 
 Write-Host "Validating workstation repository..."
 
+function Assert-File {
+    param([Parameter(Mandatory)][string]$Path,[Parameter(Mandatory)][string]$Message)
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw $Message }
+}
+
+function Assert-Directory {
+    param([Parameter(Mandatory)][string]$Path,[Parameter(Mandatory)][string]$Message)
+    if (-not (Test-Path -LiteralPath $Path -PathType Container)) { throw $Message }
+}
+
 Get-ChildItem $Root -Recurse -File -Filter *.json | ForEach-Object {
-    try {
-        Get-Content $_.FullName -Raw | ConvertFrom-Json | Out-Null
-    } catch {
-        throw "Invalid JSON: $($_.FullName)`n$($_.Exception.Message)"
-    }
+    try { Get-Content $_.FullName -Raw | ConvertFrom-Json | Out-Null }
+    catch { throw "Invalid JSON: $($_.FullName)`n$($_.Exception.Message)" }
 }
 
 $Config = Get-Content (Join-Path $Root "workstation.json") -Raw | ConvertFrom-Json
@@ -25,11 +32,9 @@ if ($WT.defaultProfile -ne $ExpectedGuid) { throw "Unexpected Windows Terminal d
 if ($WT.profiles.list.Count -ne 1) { throw "Windows Terminal must expose exactly one explicit profile." }
 
 $PolicyPath = Join-Path $Root $Config.developmentPolicy
-if (-not (Test-Path -LiteralPath $PolicyPath -PathType Leaf)) {
-    throw "Development policy does not exist: $PolicyPath"
-}
-
+Assert-File -Path $PolicyPath -Message "Development policy does not exist: $PolicyPath"
 $Policy = Get-Content $PolicyPath -Raw | ConvertFrom-Json
+
 if (-not $Policy.windows.developmentInWSL) { throw "Windows development must remain inside WSL." }
 if ($Policy.windows.dockerEngine -ne "wsl") { throw "Docker Engine on Windows must remain inside WSL." }
 if ($Policy.windows.dockerDesktopAllowed) { throw "Docker Desktop must not be enabled by development policy." }
@@ -42,9 +47,7 @@ if (-not $Policy.containers.forbidLatestTag) { throw "Docker :latest must remain
 
 foreach ($Template in $Policy.projects.allowedTemplates) {
     $TemplateRoot = Join-Path $Root "templates\projects\$Template"
-    if (-not (Test-Path -LiteralPath $TemplateRoot -PathType Container)) {
-        throw "Approved project template is missing: $Template"
-    }
+    Assert-Directory -Path $TemplateRoot -Message "Approved project template is missing: $Template"
 
     foreach ($Required in @(
         ".devcontainer\devcontainer.json",
@@ -98,48 +101,139 @@ foreach ($DockerFile in $DockerFiles) {
     }
 }
 
-
-# Development service catalog invariants.
-$ServiceRoot = Join-Path $Root "development\services"
-foreach ($Required in @("compose.yaml","versions.env",".env.example")) {
-    $Path = Join-Path $ServiceRoot $Required
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
-        throw "Development service catalog file is missing: $Required"
-    }
-}
-
+# Modular development service catalog.
 $ServicePolicy = $Policy.developmentServices
 if (-not $ServicePolicy.enabled) { throw "Development service catalog must remain enabled." }
 if ($ServicePolicy.autoStartAfterBootstrap) { throw "Development services must remain opt-in after bootstrap." }
 if ($ServicePolicy.network -ne "platform-dev") { throw "Development service network invariant failed." }
-
-$ComposeText = Get-Content (Join-Path $ServiceRoot "compose.yaml") -Raw
-if ($ComposeText -match '(?im)^\s*image:\s*[^\r\n]+:latest\s*$') {
-    throw "Development service images must not use :latest."
+if ($ServicePolicy.catalog -ne "development/catalog.json") {
+    throw "developmentServices.catalog must point to development/catalog.json."
 }
 
-$PortLines = $ComposeText -split "`n" | Where-Object { $_ -match '^\s*-\s*["'']?[^\r\n]*:\d+:\d+["'']?\s*$' }
-foreach ($Line in $PortLines) {
-    if ($Line -notmatch '127\.0\.0\.1:') {
-        throw "Published development-service ports must bind to 127.0.0.1: $Line"
+$CatalogPath = Join-Path $Root $ServicePolicy.catalog
+Assert-File -Path $CatalogPath -Message "Modular development service catalog is missing: $CatalogPath"
+
+$Catalog = Get-Content $CatalogPath -Raw | ConvertFrom-Json
+if ($Catalog.network -ne "platform-dev") { throw "Modular service catalog network invariant failed." }
+if ($Catalog.bindAddress -ne "127.0.0.1") { throw "Development services must bind to 127.0.0.1." }
+
+$CatalogServiceNames = @($Catalog.services.PSObject.Properties.Name)
+
+foreach ($Service in $ServicePolicy.allowedServices) {
+    if ($CatalogServiceNames -notcontains $Service) {
+        throw "Allowed development service is missing from development/catalog.json: $Service"
+    }
+
+    $Entry = $Catalog.services.$Service
+    if (-not $Entry.path) { throw "Catalog service '$Service' has no path." }
+
+    $ServiceRoot = Join-Path $Root $Entry.path
+    Assert-Directory -Path $ServiceRoot -Message "Service directory is missing: $ServiceRoot"
+
+    foreach ($Required in @(
+        "service.json","versions.env","defaults.env",".env.example","compose.yaml","README.md"
+    )) {
+        Assert-File -Path (Join-Path $ServiceRoot $Required) `
+            -Message "Service '$Service' is missing required file: $Required"
+    }
+
+    $Meta = Get-Content (Join-Path $ServiceRoot "service.json") -Raw | ConvertFrom-Json
+    if ($Meta.id -ne $Service) { throw "Service metadata id mismatch for '$Service': $($Meta.id)" }
+
+    foreach ($Dependency in @($Meta.dependsOn)) {
+        if ($CatalogServiceNames -notcontains $Dependency) {
+            throw "Service '$Service' depends on unknown service '$Dependency'."
+        }
+    }
+
+    $VersionsText = Get-Content (Join-Path $ServiceRoot "versions.env") -Raw
+    if ($VersionsText -match '(?im)_VERSION\s*=\s*latest\s*$') {
+        throw "Service '$Service' uses a latest version tag."
+    }
+
+    $ComposeText = Get-Content (Join-Path $ServiceRoot "compose.yaml") -Raw
+    if ($ComposeText -match '(?im)^\s*image:\s*[^\r\n]+:latest\s*$') {
+        throw "Service '$Service' uses Docker :latest."
+    }
+
+    foreach ($Line in ($ComposeText -split "`n")) {
+        if ($Line -match '^\s*-\s*["'']?[^"'']*:\d+:\d+["'']?\s*$' -and $Line -notmatch '127\.0\.0\.1:') {
+            throw "Published port for '$Service' must bind to 127.0.0.1: $Line"
+        }
     }
 }
 
-$VersionsText = Get-Content (Join-Path $ServiceRoot "versions.env") -Raw
-if ($VersionsText -match '(?im)_VERSION\s*=\s*latest\s*$') {
-    throw "versions.env must not contain latest tags."
-}
-
-foreach ($Service in $ServicePolicy.allowedServices) {
-    if ($ComposeText -notmatch "(?m)^  $([regex]::Escape($Service)):\s*$") {
-        throw "Allowed development service is missing from compose.yaml: $Service"
+foreach ($ProfileProperty in $Catalog.profiles.PSObject.Properties) {
+    foreach ($Service in @($ProfileProperty.Value)) {
+        if ($CatalogServiceNames -notcontains $Service) {
+            throw "Profile '$($ProfileProperty.Name)' references unknown service '$Service'."
+        }
     }
 }
 
 foreach ($Script in @("scripts\posix\services.sh","scripts\common\services.ps1")) {
-    if (-not (Test-Path -LiteralPath (Join-Path $Root $Script) -PathType Leaf)) {
-        throw "Development service dispatcher is missing: $Script"
+    Assert-File -Path (Join-Path $Root $Script) -Message "Development service dispatcher is missing: $Script"
+}
+
+foreach ($Legacy in @(
+    "development\services\compose.yaml",
+    "development\services\versions.env",
+    "development\services\.env.example"
+)) {
+    if (Test-Path -LiteralPath (Join-Path $Root $Legacy) -PathType Leaf) {
+        throw "Legacy monolithic service catalog file must remain retired: $Legacy"
     }
+}
+
+# Architecture labs.
+if (-not $Policy.labs.enabled) { throw "Architecture labs must remain enabled." }
+if ($Policy.labs.productionPromotion -ne "iac-only") { throw "Lab promotion boundary must remain iac-only." }
+if ($Policy.labs.kubernetesProvider -ne "k3d") { throw "Local Kubernetes lab provider must remain k3d." }
+
+$LabsCatalogPath = Join-Path $Root $Policy.labs.catalog
+Assert-File -Path $LabsCatalogPath -Message "Labs catalog is missing: $LabsCatalogPath"
+
+$LabsCatalog = Get-Content $LabsCatalogPath -Raw | ConvertFrom-Json
+
+foreach ($LabProperty in $LabsCatalog.labs.PSObject.Properties) {
+    $LabName = $LabProperty.Name
+    $Lab = $LabProperty.Value
+    $LabRoot = Join-Path $Root $Lab.path
+
+    Assert-Directory -Path $LabRoot -Message "Lab directory is missing: $LabName"
+    Assert-File -Path (Join-Path $LabRoot "lab.json") -Message "Lab '$LabName' is missing lab.json."
+
+    foreach ($Runtime in @($Lab.runtimes)) {
+        switch ($Runtime) {
+            "docker" {
+                Assert-File -Path (Join-Path $LabRoot "docker\compose.yaml") `
+                    -Message "Lab '$LabName' is missing Docker compose.yaml."
+            }
+            "kubernetes" {
+                Assert-File -Path (Join-Path $LabRoot "kubernetes\kustomization.yaml") `
+                    -Message "Lab '$LabName' is missing Kubernetes kustomization.yaml."
+            }
+            default { throw "Lab '$LabName' declares unsupported runtime '$Runtime'." }
+        }
+    }
+
+    $LabYamlFiles = Get-ChildItem $LabRoot -Recurse -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Extension -in @(".yml",".yaml") }
+
+    foreach ($LabYaml in $LabYamlFiles) {
+        $Text = Get-Content $LabYaml.FullName -Raw
+        if ($Text -match '(?im)^\s*image:\s*[^\r\n]+:latest\s*$') {
+            throw "Lab '$LabName' contains Docker/Kubernetes :latest image: $($LabYaml.FullName)"
+        }
+    }
+}
+
+foreach ($Script in @(
+    "scripts\posix\labs.sh",
+    "scripts\posix\install-lab-toolchain.sh",
+    "scripts\common\labs.ps1"
+)) {
+    Assert-File -Path (Join-Path $Root $Script) -Message "Lab component is missing: $Script"
 }
 
 Write-Host "PASS repository validation" -ForegroundColor Green

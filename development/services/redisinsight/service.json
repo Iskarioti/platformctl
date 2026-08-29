@@ -1,0 +1,28 @@
+{
+  "id": "redisinsight",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": "~/.config/workstation/services/redisinsight.env",
+  "secretKeys": [
+    "REDISINSIGHT_ENCRYPTION_KEY"
+  ],
+  "dependsOn": [
+    "redis"
+  ],
+  "volumes": [
+    "platform-redisinsight-data"
+  ],
+  "hostEndpoints": [
+    {
+      "label": "Redis Insight",
+      "endpoint": "http://127.0.0.1:${REDISINSIGHT_HOST_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "Redis Insight",
+      "endpoint": "dev-redisinsight:5540"
+    }
+  ]
+}

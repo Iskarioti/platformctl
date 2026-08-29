@@ -12,6 +12,9 @@ $packages = @(
     @{ Name = "jq";                 Id = "jqlang.jq" },
     @{ Name = "7-Zip";              Id = "7zip.7zip" },
     @{ Name = "Wireshark";          Id = "WiresharkFoundation.Wireshark" }
+    @{ Name = "Wireshark";          Id = "WiresharkFoundation.Wireshark" }
+    @{ Name = "Claude Code"; Id = "Anthropic.ClaudeCode" }
+    @{ Name = "Codex CLI"; Id = "OpenAI.Codex" }
 )
 
 $failed = @()

@@ -1,0 +1,30 @@
+{
+  "id": "rabbitmq",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": "~/.config/workstation/services/rabbitmq.env",
+  "secretKeys": [
+    "RABBITMQ_DEFAULT_PASS"
+  ],
+  "dependsOn": [],
+  "volumes": [
+    "platform-rabbitmq-data"
+  ],
+  "hostEndpoints": [
+    {
+      "label": "RabbitMQ",
+      "endpoint": "amqp://127.0.0.1:${RABBITMQ_AMQP_HOST_PORT}"
+    },
+    {
+      "label": "RabbitMQ UI",
+      "endpoint": "http://127.0.0.1:${RABBITMQ_UI_HOST_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "RabbitMQ",
+      "endpoint": "dev-rabbitmq:5672"
+    }
+  ]
+}

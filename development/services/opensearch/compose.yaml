@@ -1,0 +1,38 @@
+services:
+  opensearch:
+    image: ${OPENSEARCH_IMAGE}:${OPENSEARCH_VERSION}
+    container_name: dev-opensearch
+    hostname: dev-opensearch
+    environment:
+      discovery.type: single-node
+      bootstrap.memory_lock: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "127.0.0.1:${OPENSEARCH_HOST_PORT:-9200}:9200"
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -ksS -u admin:\"$${OPENSEARCH_INITIAL_ADMIN_PASSWORD}\" https://localhost:9200/_cluster/health >/dev/null"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 45s
+    networks: [platform-dev]
+    mem_limit: 2g
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev
+
+volumes:
+  opensearch-data:
+    name: platform-opensearch-data

@@ -1,0 +1,24 @@
+{
+  "id": "kafka",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": null,
+  "secretKeys": [],
+  "dependsOn": [],
+  "volumes": [
+    "platform-kafka-data"
+  ],
+  "hostEndpoints": [
+    {
+      "label": "Kafka",
+      "endpoint": "127.0.0.1:${KAFKA_HOST_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "Kafka",
+      "endpoint": "dev-kafka:29092"
+    }
+  ]
+}

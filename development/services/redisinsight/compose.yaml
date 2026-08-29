@@ -1,0 +1,33 @@
+services:
+  redisinsight:
+    image: ${REDISINSIGHT_IMAGE}:${REDISINSIGHT_VERSION}
+    container_name: dev-redisinsight
+    hostname: dev-redisinsight
+    environment:
+      RI_APP_HOST: 0.0.0.0
+      RI_APP_PORT: 5540
+      RI_REDIS_HOST: dev-redis
+      RI_REDIS_PORT: 6379
+      RI_REDIS_ALIAS: platform-dev
+      RI_REDIS_USERNAME: default
+      RI_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      RI_ENCRYPTION_KEY: ${REDISINSIGHT_ENCRYPTION_KEY}
+      RI_ACCEPT_TERMS_AND_CONDITIONS: "true"
+    ports:
+      - "127.0.0.1:${REDISINSIGHT_HOST_PORT:-5540}:5540"
+    volumes:
+      - redisinsight-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks: [platform-dev]
+    mem_limit: 512m
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev
+
+volumes:
+  redisinsight-data:
+    name: platform-redisinsight-data

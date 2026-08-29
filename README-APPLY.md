@@ -1,29 +1,77 @@
-# platformctl Editor Management v3.3.0
+# platformctl v3.5.1 — Modular Services + Labs Repair
 
-This overlay adds a governed editor layer to the existing `platformctl` setup without
-replacing the current development-enforcement, Docker-services, shell or WSL work.
+This release fixes two issues in v3.5.0:
 
-## What is added
+1. the corporate Windows endpoint can block a downloaded `apply-to-platformctl.ps1`
+   under RemoteSigned/App Control because the downloaded archive/script carries
+   Mark-of-the-Web;
+2. the old `scripts/ci/validate.ps1` still expected the retired monolithic files
+   `development/services/compose.yaml`, `versions.env`, and `.env.example`.
 
-- Neovim 0.12.4, installed user-locally in WSL/Linux.
-- Primary `platform` profile based on LazyVim.
-- Alternate isolated NvChad v2.5 profile.
-- Plugin-free minimal Neovim profile.
-- Plugin-free Vim rescue configuration.
-- Tokyo Night primary Neovim theme.
-- Infrastructure-aware editor integration for Ansible, Docker, Terraform, YAML/JSON,
-  Python, TypeScript, SQL, Markdown, Go and Rust.
-- `NVIM_APPNAME` isolation between Neovim profiles.
-- `workstation editor ...` lifecycle commands.
-- Windows `workstation editor ...` delegation into Ubuntu-24.04.
-- Linux bootstrap integration.
-- No secrets, tokens, SSH keys or database passwords in editor configuration.
-- No project-local Neovim config execution by default.
-- `cp` / `Copy-Item` only. No rsync.
+v3.5.1 includes a validator for the modular service catalog and a fully functional
+WSL/Bash installer. On the corporate endpoint, the WSL installer is the preferred path
+because it does not require weakening PowerShell execution policy.
 
-## Apply from PowerShell
+## Preferred repair path: WSL
 
-Extract the archive outside the repository, then:
+First disable autosync while the repository is partially migrated:
+
+```bash
+workstation autosync disable
+```
+
+Extract this package outside the `platformctl` repository.
+
+Then from WSL:
+
+```bash
+bash /path/to/platformctl-modular-services-labs-v3.5.1/apply-to-platformctl.sh \
+  "/mnt/c/Users/AndrewKariuki/OneDrive - WIOCC/Documents/platformctl"
+```
+
+Validate:
+
+```bash
+cd "/mnt/c/Users/AndrewKariuki/OneDrive - WIOCC/Documents/platformctl"
+
+pwsh.exe -NoLogo -NoProfile -File ./setup.ps1 validate
+```
+
+Then:
+
+```bash
+workstation services list
+workstation services doctor
+workstation lab list
+workstation lab toolchain doctor
+```
+
+Once validation passes:
+
+```bash
+workstation autosync enable
+```
+
+## PowerShell alternative
+
+Do not use `-ExecutionPolicy Bypass`.
+
+Verify the downloaded ZIP hash first, then unblock the trusted extracted update files:
+
+```powershell
+Get-FileHash .\platformctl-modular-services-labs-v3.5.1.zip -Algorithm SHA256
+
+Get-ChildItem `
+  -LiteralPath .\platformctl-modular-services-labs-v3.5.1 `
+  -Recurse `
+  -Force `
+  -File |
+ForEach-Object {
+    Unblock-File -LiteralPath $_.FullName
+}
+```
+
+Then run:
 
 ```powershell
 pwsh.exe `
@@ -33,77 +81,27 @@ pwsh.exe `
   -RepoPath "C:\Users\AndrewKariuki\OneDrive - WIOCC\Documents\platformctl"
 ```
 
-The installer backs up every existing file it edits under:
+The update is idempotent and repairs a partially applied v3.5.0 repository.
+
+## Validation changes
+
+The validator now expects:
 
 ```text
-platformctl\.state\editor-upgrade-backup-YYYYMMDD-HHMMSS\
+development/catalog.json
+development/services/<service>/
+  service.json
+  versions.env
+  defaults.env
+  .env.example
+  compose.yaml
+  README.md
 ```
 
-Then validate:
+and validates the architecture-lab catalog under:
 
-```powershell
-cd "C:\Users\AndrewKariuki\OneDrive - WIOCC\Documents\platformctl"
-
-pwsh.exe -NoLogo -NoProfile -File ".\setup.ps1" validate
+```text
+labs/catalog.json
 ```
 
-## Install inside WSL
-
-```powershell
-wsl.exe -d Ubuntu-24.04 --cd ~
-```
-
-Then:
-
-```bash
-workstation editor install
-workstation editor doctor
-workstation editor list
-```
-
-The default editor profile is `platform`.
-
-Switch profile:
-
-```bash
-workstation editor profile nvchad
-nvim
-```
-
-Return to the main profile:
-
-```bash
-workstation editor profile platform
-nvim
-```
-
-Direct launchers are always available:
-
-```bash
-nvim-platform
-nvim-chad
-nvim-minimal
-vim
-```
-
-Pre-warm the primary plugin set:
-
-```bash
-workstation editor sync platform
-```
-
-## Bootstrap behavior
-
-After this update, future Linux/WSL bootstrap runs automatically install the pinned
-Neovim binary and deploy all editor profiles. Plugin synchronization is still lazy:
-the first editor launch (or `workstation editor sync`) downloads plugins.
-
-## Notes
-
-LazyVim currently requires Neovim >= 0.11.2. The overlay pins Neovim 0.12.4.
-
-NvChad uses a separate `NVIM_APPNAME=nvim-nvchad` profile and does not overwrite the
-primary LazyVim profile.
-
-Traditional Vim remains intentionally plugin-free so it is dependable during recovery,
-SSH troubleshooting and minimal-system work.
+The legacy monolithic files are intentionally rejected if they reappear.

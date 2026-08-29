@@ -1,0 +1,25 @@
+services:
+  minio:
+    image: ${MINIO_IMAGE}:${MINIO_VERSION}
+    container_name: dev-minio
+    hostname: dev-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "127.0.0.1:${MINIO_API_HOST_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_HOST_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    networks: [platform-dev]
+    mem_limit: 512m
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev
+
+volumes:
+  minio-data:
+    name: platform-minio-data

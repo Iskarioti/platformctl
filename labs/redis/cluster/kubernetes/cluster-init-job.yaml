@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: redis-cluster-init
+spec:
+  backoffLimit: 10
+  template:
+    metadata:
+      labels:
+        platformctl.lab: redis-cluster
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: init
+          image: redis:7.4.11-bookworm
+          command:
+            - sh
+            - -ec
+            - |
+              for n in 0 1 2 3 4 5; do
+                until redis-cli -h redis-${n}.redis-cluster ping | grep -q PONG; do
+                  sleep 2
+                done
+              done
+              if redis-cli -h redis-0.redis-cluster cluster info 2>/dev/null | grep -q 'cluster_state:ok'; then
+                exit 0
+              fi
+              redis-cli --cluster create \
+                redis-0.redis-cluster:6379 redis-1.redis-cluster:6379 \
+                redis-2.redis-cluster:6379 redis-3.redis-cluster:6379 \
+                redis-4.redis-cluster:6379 redis-5.redis-cluster:6379 \
+                --cluster-replicas 1 --cluster-yes

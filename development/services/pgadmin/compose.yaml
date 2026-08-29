@@ -1,0 +1,27 @@
+services:
+  pgadmin:
+    image: ${PGADMIN_IMAGE}:${PGADMIN_VERSION}
+    container_name: dev-pgadmin
+    hostname: dev-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_DISABLE_POSTFIX: "true"
+    ports:
+      - "127.0.0.1:${PGADMIN_HOST_PORT:-5050}:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [platform-dev]
+    mem_limit: 512m
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev
+
+volumes:
+  pgadmin-data:
+    name: platform-pgadmin-data

@@ -1,0 +1,26 @@
+{
+  "id": "mongodb",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": "~/.config/workstation/services/mongodb.env",
+  "secretKeys": [
+    "MONGO_INITDB_ROOT_PASSWORD"
+  ],
+  "dependsOn": [],
+  "volumes": [
+    "platform-mongodb-data"
+  ],
+  "hostEndpoints": [
+    {
+      "label": "MongoDB",
+      "endpoint": "mongodb://127.0.0.1:${MONGO_HOST_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "MongoDB",
+      "endpoint": "dev-mongodb:27017"
+    }
+  ]
+}

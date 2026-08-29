@@ -1,0 +1,12 @@
+{
+  "path": "labs/redis/cluster",
+  "runtimes": [
+    "docker",
+    "kubernetes"
+  ],
+  "tests": [
+    "smoke",
+    "failover"
+  ],
+  "purpose": "Six-node Redis Cluster with three masters and three replicas"
+}

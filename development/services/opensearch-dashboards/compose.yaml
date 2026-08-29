@@ -1,0 +1,22 @@
+services:
+  opensearch-dashboards:
+    image: ${OPENSEARCH_DASHBOARDS_IMAGE}:${OPENSEARCH_DASHBOARDS_VERSION}
+    container_name: dev-opensearch-dashboards
+    hostname: dev-opensearch-dashboards
+    environment:
+      OPENSEARCH_HOSTS: '["https://dev-opensearch:9200"]'
+      OPENSEARCH_USERNAME: admin
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+      OPENSEARCH_SSL_VERIFICATIONMODE: none
+    ports:
+      - "127.0.0.1:${OPENSEARCH_DASHBOARDS_HOST_PORT:-5601}:5601"
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    networks: [platform-dev]
+    mem_limit: 768m
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev

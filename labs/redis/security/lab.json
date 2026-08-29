@@ -1,0 +1,11 @@
+{
+  "path": "labs/redis/security",
+  "runtimes": [
+    "docker",
+    "kubernetes"
+  ],
+  "tests": [
+    "smoke"
+  ],
+  "purpose": "Redis TLS/mTLS plus ACL authorization validation"
+}

@@ -1,0 +1,26 @@
+{
+  "id": "postgres",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": "~/.config/workstation/services/postgres.env",
+  "secretKeys": [
+    "POSTGRES_PASSWORD"
+  ],
+  "dependsOn": [],
+  "volumes": [
+    "platform-postgres-data"
+  ],
+  "hostEndpoints": [
+    {
+      "label": "PostgreSQL",
+      "endpoint": "postgresql://${POSTGRES_USER}@127.0.0.1:${POSTGRES_HOST_PORT}/${POSTGRES_DB}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "PostgreSQL",
+      "endpoint": "dev-postgres:5432"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": "opensearch-dashboards",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": null,
+  "secretKeys": [],
+  "dependsOn": [
+    "opensearch"
+  ],
+  "volumes": [],
+  "hostEndpoints": [
+    {
+      "label": "OpenSearch Dashboards",
+      "endpoint": "http://127.0.0.1:${OPENSEARCH_DASHBOARDS_HOST_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "OpenSearch Dashboards",
+      "endpoint": "dev-opensearch-dashboards:5601"
+    }
+  ]
+}

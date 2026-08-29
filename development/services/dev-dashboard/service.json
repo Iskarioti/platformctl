@@ -1,0 +1,22 @@
+{
+  "id": "dev-dashboard",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": null,
+  "secretKeys": [],
+  "dependsOn": [],
+  "volumes": [],
+  "hostEndpoints": [
+    {
+      "label": "Dev Dashboard",
+      "endpoint": "http://127.0.0.1:${DEV_DASHBOARD_HOST_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "Dev Dashboard",
+      "endpoint": "dev-dashboard:3000"
+    }
+  ]
+}

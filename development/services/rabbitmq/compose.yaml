@@ -1,0 +1,29 @@
+services:
+  rabbitmq:
+    image: ${RABBITMQ_IMAGE}:${RABBITMQ_VERSION}
+    container_name: dev-rabbitmq
+    hostname: dev-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "127.0.0.1:${RABBITMQ_AMQP_HOST_PORT:-5672}:5672"
+      - "127.0.0.1:${RABBITMQ_UI_HOST_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    networks: [platform-dev]
+    mem_limit: 768m
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev
+
+volumes:
+  rabbitmq-data:
+    name: platform-rabbitmq-data

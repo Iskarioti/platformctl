@@ -1,0 +1,12 @@
+{
+  "path": "labs/kafka/kraft-3",
+  "runtimes": [
+    "docker",
+    "kubernetes"
+  ],
+  "tests": [
+    "smoke",
+    "broker-failure"
+  ],
+  "purpose": "Three-node Kafka KRaft quorum and broker resilience"
+}

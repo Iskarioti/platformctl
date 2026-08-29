@@ -1,0 +1,28 @@
+{
+  "id": "pgadmin",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": "~/.config/workstation/services/pgadmin.env",
+  "secretKeys": [
+    "PGADMIN_DEFAULT_PASSWORD"
+  ],
+  "dependsOn": [
+    "postgres"
+  ],
+  "volumes": [
+    "platform-pgadmin-data"
+  ],
+  "hostEndpoints": [
+    {
+      "label": "pgAdmin",
+      "endpoint": "http://127.0.0.1:${PGADMIN_HOST_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "pgAdmin",
+      "endpoint": "dev-pgadmin:80"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "id": "redis",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": "~/.config/workstation/services/redis.env",
+  "secretKeys": [
+    "REDIS_PASSWORD"
+  ],
+  "dependsOn": [],
+  "volumes": [
+    "platform-redis-data"
+  ],
+  "hostEndpoints": [
+    {
+      "label": "Redis",
+      "endpoint": "redis://127.0.0.1:${REDIS_HOST_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "Redis",
+      "endpoint": "dev-redis:6379"
+    }
+  ]
+}

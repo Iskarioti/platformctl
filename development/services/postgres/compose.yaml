@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE}:${POSTGRES_VERSION}
+    container_name: dev-postgres
+    hostname: dev-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./config/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks: [platform-dev]
+    mem_limit: 768m
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev
+
+volumes:
+  postgres-data:
+    name: platform-postgres-data

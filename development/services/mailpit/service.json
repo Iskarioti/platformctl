@@ -1,0 +1,28 @@
+{
+  "id": "mailpit",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": null,
+  "secretKeys": [],
+  "dependsOn": [],
+  "volumes": [
+    "platform-mailpit-data"
+  ],
+  "hostEndpoints": [
+    {
+      "label": "Mailpit SMTP",
+      "endpoint": "127.0.0.1:${MAILPIT_SMTP_HOST_PORT}"
+    },
+    {
+      "label": "Mailpit UI",
+      "endpoint": "http://127.0.0.1:${MAILPIT_UI_HOST_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "Mailpit SMTP",
+      "endpoint": "dev-mailpit:1025"
+    }
+  ]
+}

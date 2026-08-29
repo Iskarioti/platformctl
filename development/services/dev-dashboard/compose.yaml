@@ -1,0 +1,18 @@
+services:
+  dev-dashboard:
+    image: ${DEV_DASHBOARD_IMAGE}:${DEV_DASHBOARD_VERSION}
+    container_name: dev-dashboard
+    hostname: dev-dashboard
+    environment:
+      HOMEPAGE_ALLOWED_HOSTS: localhost:${DEV_DASHBOARD_HOST_PORT:-8088},127.0.0.1:${DEV_DASHBOARD_HOST_PORT:-8088}
+    ports:
+      - "127.0.0.1:${DEV_DASHBOARD_HOST_PORT:-8088}:3000"
+    volumes:
+      - ./config/homepage:/app/config:ro
+    networks: [platform-dev]
+    mem_limit: 256m
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev

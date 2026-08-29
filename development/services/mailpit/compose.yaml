@@ -1,0 +1,24 @@
+services:
+  mailpit:
+    image: ${MAILPIT_IMAGE}:${MAILPIT_VERSION}
+    container_name: dev-mailpit
+    hostname: dev-mailpit
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+    ports:
+      - "127.0.0.1:${MAILPIT_SMTP_HOST_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_HOST_PORT:-8025}:8025"
+    volumes:
+      - mailpit-data:/data
+    networks: [platform-dev]
+    mem_limit: 128m
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev
+
+volumes:
+  mailpit-data:
+    name: platform-mailpit-data

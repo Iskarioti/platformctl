@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-1
+spec:
+  selector:
+    platformctl.lab: kafka-kraft-3
+    kafka-node: "1"
+  ports:
+    - name: internal
+      port: 29092
+      targetPort: 29092
+    - name: controller
+      port: 29093
+      targetPort: 29093
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      platformctl.lab: kafka-kraft-3
+      kafka-node: "1"
+  template:
+    metadata:
+      labels:
+        platformctl.lab: kafka-kraft-3
+        kafka-node: "1"
+    spec:
+      containers:
+        - name: kafka
+          image: apache/kafka:4.3.1
+          env:
+            - name: CLUSTER_ID
+              value: 4L6g3nShT-eMCtK--X86sw
+            - name: KAFKA_NODE_ID
+              value: "1"
+            - name: KAFKA_PROCESS_ROLES
+              value: broker,controller
+            - name: KAFKA_LISTENERS
+              value: INTERNAL://:29092,CONTROLLER://:29093
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: INTERNAL://kafka-1:29092
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+              value: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT
+            - name: KAFKA_INTER_BROKER_LISTENER_NAME
+              value: INTERNAL
+            - name: KAFKA_CONTROLLER_LISTENER_NAMES
+              value: CONTROLLER
+            - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+              value: 1@kafka-1:29093,2@kafka-2:29093,3@kafka-3:29093
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "3"
+            - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+              value: "3"
+            - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+              value: "2"
+            - name: KAFKA_DEFAULT_REPLICATION_FACTOR
+              value: "3"
+            - name: KAFKA_MIN_INSYNC_REPLICAS
+              value: "2"
+            - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+              value: "false"
+            - name: KAFKA_LOG_DIRS
+              value: /var/lib/kafka/data
+          ports:
+            - containerPort: 29092
+            - containerPort: 29093
+          readinessProbe:
+            tcpSocket:
+              port: 29092
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 150m
+              memory: 384Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/kafka/data
+      volumes:
+        - name: data
+          emptyDir: {}

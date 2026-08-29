@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-security
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      platformctl.lab: redis-security
+  template:
+    metadata:
+      labels:
+        platformctl.lab: redis-security
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.4.11-bookworm
+          command:
+            - redis-server
+          args:
+            - --port
+            - "0"
+            - --tls-port
+            - "6379"
+            - --tls-cert-file
+            - /certs/server.crt
+            - --tls-key-file
+            - /certs/server.key
+            - --tls-ca-cert-file
+            - /certs/ca.crt
+            - --tls-auth-clients
+            - "yes"
+            - --aclfile
+            - /config/users.acl
+            - --protected-mode
+            - "yes"
+          ports:
+            - containerPort: 6379
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -ec
+                - |
+                  redis-cli --tls --cacert /certs/ca.crt \
+                    --cert /certs/client.crt --key /certs/client.key \
+                    --user admin --pass "$REDIS_ADMIN_PASSWORD" ping | grep -q PONG
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          env:
+            - name: REDIS_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-security-auth
+                  key: password
+          volumeMounts:
+            - name: tls
+              mountPath: /certs
+              readOnly: true
+            - name: acl
+              mountPath: /config
+              readOnly: true
+      volumes:
+        - name: tls
+          secret:
+            secretName: redis-security-tls
+        - name: acl
+          secret:
+            secretName: redis-security-acl

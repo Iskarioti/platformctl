@@ -1,0 +1,47 @@
+{
+  "version": "1.0.0",
+  "stateRoot": "~/.local/state/platformctl/labs",
+  "kubernetes": {
+    "provider": "k3d",
+    "cluster": "platform-labs",
+    "namespacePrefix": "platform-lab",
+    "k3sImage": "rancher/k3s:v1.36.2-k3s1"
+  },
+  "labs": {
+    "redis-cluster": {
+      "path": "labs/redis/cluster",
+      "runtimes": [
+        "docker",
+        "kubernetes"
+      ],
+      "tests": [
+        "smoke",
+        "failover"
+      ],
+      "purpose": "Six-node Redis Cluster with three masters and three replicas"
+    },
+    "kafka-kraft-3": {
+      "path": "labs/kafka/kraft-3",
+      "runtimes": [
+        "docker",
+        "kubernetes"
+      ],
+      "tests": [
+        "smoke",
+        "broker-failure"
+      ],
+      "purpose": "Three-node Kafka KRaft quorum and broker resilience"
+    },
+    "redis-security": {
+      "path": "labs/redis/security",
+      "runtimes": [
+        "docker",
+        "kubernetes"
+      ],
+      "tests": [
+        "smoke"
+      ],
+      "purpose": "Redis TLS/mTLS plus ACL authorization validation"
+    }
+  }
+}

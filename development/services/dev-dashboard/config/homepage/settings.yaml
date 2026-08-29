@@ -1,0 +1,20 @@
+title: Platform Development Services
+description: Local Systems & Platform Architecture services
+theme: dark
+color: slate
+headerStyle: clean
+hideVersion: true
+statusStyle: dot
+layout:
+  Data:
+    style: row
+    columns: 3
+  Messaging:
+    style: row
+    columns: 2
+  Search:
+    style: row
+    columns: 1
+  Integration:
+    style: row
+    columns: 2
