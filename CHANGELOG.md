@@ -1,5 +1,28 @@
 # Changelog
 
+## 3.6.1
+
+- Fixed a real "ready to work" gap: `wsl/configure-git.sh` (git identity + company SSH
+  key generation) existed but was never invoked by anything — a fresh WSL bootstrap
+  installed `git`/`openssh-client` but left `user.name`/`user.email` unset and
+  generated no SSH key, so the very first `git clone` of a company repo would fail or
+  silently fall back to password auth. Wired into `wsl/bootstrap.sh`; made
+  `configure-git.sh` idempotent (skips re-prompting if identity is already set, and
+  no longer hangs if run non-interactively with no identity configured).
+
+## 3.6.0
+
+- Added `workstation dashboard enable|disable|status`: the control plane can now run
+  as an always-on background service instead of requiring a manual foreground run.
+  WSL/Linux: a systemd user service (`Restart=on-failure`, enabled for
+  `default.target`) — as a side effect, keeps the WSL2 VM itself from tearing down
+  between uses, since a persistent process is now always running inside it. macOS: a
+  LaunchAgent (`RunAtLoad`+`KeepAlive`). Windows: a logon-triggered Scheduled Task
+  that wakes WSL (a systemd unit alone can't do that). Verified live: the WSL-side
+  service was genuinely enabled and confirmed running via real `systemctl` output;
+  the Windows Scheduled Task step hit the same sandbox restriction found earlier for
+  autosync/autoupgrade and needs to be completed from a normal terminal.
+
 ## 3.5.0
 
 Adopting a "trust before completeness" pass over the control plane and dev-services

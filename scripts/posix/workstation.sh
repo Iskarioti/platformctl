@@ -43,7 +43,26 @@ case "$CMD" in
     esac
     ;;
   upgrade) exec "$ROOT/scripts/posix/upgrade.sh" "$@" ;;
-  dashboard) exec platformctl serve "$@" ;;
+  dashboard)
+    action="${1:-}"
+    case "$action" in
+      enable)
+        shift
+        exec "$ROOT/scripts/posix/install-dashboard-service.sh" "$@"
+        ;;
+      disable)
+        exec "$ROOT/scripts/posix/uninstall-dashboard-service.sh"
+        ;;
+      status)
+        case "$(uname -s)" in
+          Linux) exec systemctl --user status workstation-dashboard.service --no-pager -l ;;
+          Darwin) exec launchctl list com.workstation.dashboard ;;
+          *) echo "Use platform-native service status commands." ;;
+        esac
+        ;;
+      *) exec platformctl serve "$@" ;;
+    esac
+    ;;
   backup) exec "$ROOT/scripts/posix/backup.sh" "$@" ;;
   restore) exec "$ROOT/scripts/posix/restore.sh" "$@" ;;
   changelog)
@@ -103,7 +122,8 @@ workstation commands:
   autosync enable|disable|once
   upgrade [--scope=packages|vscodeExtensions|fonts]
   autoupgrade enable|disable|once
-  dashboard [--port N]
+  dashboard [--port N]               run once (foreground)
+  dashboard enable|disable|status    always-on background service (auto-restart, starts at login)
   backup [output-path]
   restore <backup-file> [--yes]
   changelog [since-commit]

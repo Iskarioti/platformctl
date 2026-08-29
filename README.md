@@ -50,6 +50,7 @@ workstation autosync enable
 workstation upgrade
 workstation autoupgrade enable
 workstation dashboard
+workstation dashboard enable
 workstation backup
 workstation restore <backup-file>
 workstation changelog

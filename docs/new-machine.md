@@ -58,3 +58,9 @@ engineering plane, so `enforce` will correctly report non-compliance until WSL i
 Bootstrap installs the Dev Container CLI (`devcontainer`) on every platform so
 `policy/development.json`'s `requireDevContainer` project check passes without an extra
 step.
+
+On WSL, `wsl/bootstrap.sh` also generates a company SSH key (`~/.ssh/id_ed25519_company`)
+and prompts once for your git identity (name/email) if not already set — idempotent,
+safe to re-run. **A key working on one Git host does not mean it's registered on
+another** — add the printed public key separately to each host you use (GitHub, Azure
+DevOps, etc.) under that host's own SSH-keys settings. See `wsl/configure-git.sh`.

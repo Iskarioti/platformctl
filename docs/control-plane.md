@@ -21,7 +21,7 @@ land.
 ## Running it
 
 ```bash
-workstation dashboard            # or: platformctl serve
+workstation dashboard            # run once, in the foreground (Ctrl+C to stop)
 workstation dashboard --port 9000
 ```
 
@@ -29,6 +29,35 @@ Binds to `127.0.0.1` only — there is no flag to bind elsewhere. This is delibe
 control plane is designed for **localhost-only** access. If you need it from another
 device, reach it through an SSH tunnel or VS Code port-forward rather than exposing it
 directly.
+
+### Always-on background service
+
+```bash
+workstation dashboard enable    # install + start, auto-restart, starts at login
+workstation dashboard disable
+workstation dashboard status
+```
+
+Two parts, mirroring `autosync`/`autoupgrade`:
+
+- **WSL/Linux**: a systemd user *service* (not a periodic timer — this one runs
+  continuously): `workstation-dashboard.service`, `Restart=on-failure`, enabled for
+  `default.target`. As a side effect, a continuously-running process inside WSL keeps
+  the WSL2 VM itself alive — it no longer tears down between uses the way it does when
+  nothing is running in it.
+- **macOS**: a LaunchAgent (`com.workstation.dashboard`), `RunAtLoad` + `KeepAlive`.
+- **Windows**: since `platformctl serve` only runs inside WSL, a Scheduled Task
+  (`WorkstationDashboardAutostart`, trigger `AtLogOn`) whose only job is to wake WSL at
+  login — an enabled systemd unit does nothing until something actually starts WSL.
+  `workstation dashboard enable` on Windows installs both parts in one command.
+
+Verified live: enabling genuinely starts `workstation-dashboard.service` (confirmed via
+real `systemctl --user status` output, not just exit code). The Windows Scheduled Task
+step could not be created from this sandboxed session (`schtasks.exe /Create` denied —
+the same sandbox boundary hit earlier for autosync/autoupgrade) — run
+`workstation dashboard enable` yourself once from a normal terminal to pick up the
+Windows-side logon trigger; the WSL-side service is already enabled and does not need
+to be redone.
 
 ## First run: account setup
 

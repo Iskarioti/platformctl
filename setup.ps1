@@ -108,7 +108,10 @@ switch ($Command.ToLowerInvariant()) {
     "autoupgrade" { Invoke-RepoScript -Path "scripts\common\autoupgrade-control.ps1" -Arguments $Rest }
 
     "dashboard" {
-        if ($IsWindows -or $env:OS -eq "Windows_NT") {
+        $SubAction = if ($Rest.Count -gt 0) { $Rest[0] } else { "" }
+        if ($SubAction -in @("enable", "disable", "status")) {
+            Invoke-RepoScript -Path "scripts\common\dashboard-control.ps1" -Arguments $Rest
+        } elseif ($IsWindows -or $env:OS -eq "Windows_NT") {
             & wsl.exe -d Ubuntu-24.04 -- bash -lc 'platformctl serve "$@"' platformctl-serve @Rest
             exit $LASTEXITCODE
         } else {
@@ -166,7 +169,8 @@ workstation setup commands
   autosync enable|disable           manage background platformctl autosync
   upgrade [--Scope packages,...]    upgrade installed components (winget/VS Code/fonts)
   autoupgrade enable|disable|once   manage off-hours background component upgrades
-  dashboard [--port N]              run the platformctl web control plane (localhost only)
+  dashboard [--port N]              run the platformctl web control plane once (foreground)
+  dashboard enable|disable|status   always-on background dashboard service (auto-restart, starts at login)
   backup [output-path]              encrypted backup of control-plane/dev-service secrets and volumes
   restore <backup-file> [--yes]     restore a backup created by "backup"
   changelog [since-commit]          draft a CHANGELOG.md section from Conventional Commits (preview only)
