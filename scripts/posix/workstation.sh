@@ -25,6 +25,7 @@ case "$CMD" in
   enforce) exec "$ROOT/scripts/posix/enforce.sh" "$@" ;;
   project) exec "$ROOT/scripts/posix/project.sh" "$@" ;;
   services) exec "$ROOT/scripts/posix/services.sh" "$@" ;;
+  editor) exec "$ROOT/scripts/posix/editor.sh" "$@" ;;
   sync) exec "$ROOT/scripts/common/autosync.sh" --once ;;
   publish)
     if command -v pwsh >/dev/null 2>&1; then
@@ -77,6 +78,7 @@ workstation commands:
   services pull [service|profile ...]
   services project-up [path]
   services reset <service> [--yes]
+  editor install|apply|doctor|list|profile|sync|clean
   sync
   autosync enable|disable|once
   publish [owner/repo]

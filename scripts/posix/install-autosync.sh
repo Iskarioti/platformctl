@@ -6,27 +6,34 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 case "$(uname -s)" in
   Linux)
     SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
-    WORKSTATION_STATE_DIR="$HOME/.config/workstation"
-
-    mkdir -p "$SYSTEMD_USER_DIR" "$WORKSTATION_STATE_DIR"
+    WORKSTATION_CONFIG_DIR="$HOME/.config/workstation"
+    BIN_DIR="$HOME/.local/bin"
 
     SERVICE="$SYSTEMD_USER_DIR/workstation-autosync.service"
     TIMER="$SYSTEMD_USER_DIR/workstation-autosync.timer"
+    RUNNER="$BIN_DIR/workstation-autosync-run"
 
-    cat > "$SERVICE" <<EOF
+    mkdir -p "$SYSTEMD_USER_DIR" "$WORKSTATION_CONFIG_DIR" "$BIN_DIR"
+
+    # Keep the systemd unit itself independent of repository paths containing
+    # spaces (for example a Windows OneDrive mount under /mnt/c).
+    printf '%s\n' \
+      '#!/usr/bin/env bash' \
+      'set -euo pipefail' \
+      "ROOT=$(printf '%q' "$ROOT")" \
+      'exec "$ROOT/scripts/common/autosync.sh" --once' \
+      > "$RUNNER"
+
+    chmod +x "$RUNNER"
+
+    cat > "$SERVICE" <<'EOF'
 [Unit]
 Description=platformctl workstation autosync
-Documentation=file://$ROOT/docs/autosync.md
-After=default.target
 
 [Service]
 Type=oneshot
-WorkingDirectory="$ROOT"
-ExecStart=/usr/bin/env bash "$ROOT/scripts/common/autosync.sh" --once
+ExecStart=%h/.local/bin/workstation-autosync-run
 Nice=10
-
-[Install]
-WantedBy=default.target
 EOF
 
     cat > "$TIMER" <<'EOF'
@@ -50,20 +57,35 @@ EOF
     fi
 
     if ! systemctl --user show-environment >/dev/null 2>&1; then
-      echo "ERROR: the systemd user manager is unavailable in this Linux/WSL session." >&2
-      echo "Verify /etc/wsl.conf contains:" >&2
+      echo "ERROR: the systemd user manager is unavailable." >&2
+      echo "On WSL, verify /etc/wsl.conf contains:" >&2
       echo "  [boot]" >&2
       echo "  systemd=true" >&2
       exit 4
     fi
 
     systemctl --user daemon-reload
-    systemctl --user enable --now workstation-autosync.timer
+
+    echo "Verifying autosync units..."
+    systemd-analyze --user verify "$SERVICE" "$TIMER"
+
+    systemctl --user reset-failed workstation-autosync.service \
+      workstation-autosync.timer 2>/dev/null || true
+
+    systemctl --user enable workstation-autosync.timer >/dev/null
+    systemctl --user start workstation-autosync.timer
+
+    if ! systemctl --user is-active --quiet workstation-autosync.timer; then
+      echo "ERROR: workstation-autosync.timer did not become active." >&2
+      systemctl --user --no-pager -l status workstation-autosync.timer >&2 || true
+      systemctl --user --no-pager -l status workstation-autosync.service >&2 || true
+      exit 5
+    fi
 
     echo
     echo "platformctl autosync timer enabled."
     echo "Repository: $ROOT"
-    systemctl --user --no-pager status workstation-autosync.timer || true
+    systemctl --user --no-pager -l status workstation-autosync.timer
     ;;
 
   Darwin)
@@ -71,7 +93,6 @@ EOF
 
     PLIST="$HOME/Library/LaunchAgents/com.workstation.autosync.plist"
 
-    # XML-escape paths before embedding them in the plist.
     xml_escape() {
       printf '%s' "$1" |
         sed \

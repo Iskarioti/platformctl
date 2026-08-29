@@ -79,6 +79,16 @@ switch ($Command.ToLowerInvariant()) {
         }
     }
 
+    "editor" {
+        if ($IsWindows -or $env:OS -eq "Windows_NT") {
+            & wsl.exe -d Ubuntu-24.04 -- bash -lc 'workstation "$@"' workstation editor @Rest
+            exit $LASTEXITCODE
+        } else {
+            & bash (Join-Path $Root "scripts/posix/editor.sh") @Rest
+            exit $LASTEXITCODE
+        }
+    }
+
     "sync"     { Invoke-RepoScript -Path "scripts\common\autosync.ps1" -Arguments @("--once") + $Rest }
     "publish"  { Invoke-RepoScript -Path "scripts\github\publish.ps1" -Arguments $Rest }
     "autosync" { Invoke-RepoScript -Path "scripts\common\autosync-control.ps1" -Arguments $Rest }
@@ -116,6 +126,7 @@ workstation setup commands
   services project-up [path]        start services declared by a governed project
   services doctor                   check shared development service health
   services down                     stop catalog containers, preserve data
+  editor install|apply|doctor       manage Neovim/NvChad/Vim editor profiles
   sync                              validate -> apply -> commit -> push once
   autosync enable|disable           manage background platformctl autosync
   publish [owner/repo]              create/publish the GitHub repository
