@@ -589,7 +589,7 @@
         "commandline": "pwsh.exe -NoLogo",
         "startingDirectory": "%USERPROFILE%",
         "hidden": false,
-        "tabColor": "#7AA2F7"
+        "tabColor": "#24283B"
       }
     ]
   },

@@ -22,34 +22,36 @@ copy_managed() {
   [[ "$QUIET" -eq 0 ]] && echo "COPIED    $dst"
 }
 
-copy_managed "$ROOT/shell/oh-my-posh/tokyonight-architect.omp.json" \
-  "$HOME/.config/oh-my-posh/tokyonight-architect.omp.json"
+ensure_source_block() {
+  local rcfile="$1"
+  local managed="$2"
+  mkdir -p "$(dirname "$rcfile")"
+  touch "$rcfile"
+  if ! grep -Fq '# >>> workstation-managed >>>' "$rcfile" 2>/dev/null; then
+    cat >> "$rcfile" <<EOF2
 
-copy_managed "$ROOT/vscode/settings.json" \
-  "$HOME/.config/workstation/vscode-settings.json"
+# >>> workstation-managed >>>
+[[ -f "$managed" ]] && source "$managed"
+# <<< workstation-managed <<<
+EOF2
+  fi
+}
+
+copy_managed "$ROOT/shell/oh-my-posh/tokyonight-architect.omp.json" "$HOME/.config/oh-my-posh/tokyonight-architect.omp.json"
+copy_managed "$ROOT/vscode/settings.json" "$HOME/.config/workstation/vscode-settings.json"
 
 case "$(uname -s)" in
   Linux)
     copy_managed "$ROOT/shell/bash/architect.bashrc" "$HOME/.config/workstation/architect.bashrc"
-    if ! grep -Fq '# >>> workstation-managed >>>' "$HOME/.bashrc" 2>/dev/null; then
-      cat >> "$HOME/.bashrc" <<'EOF'
-
-# >>> workstation-managed >>>
-[[ -f "$HOME/.config/workstation/architect.bashrc" ]] && source "$HOME/.config/workstation/architect.bashrc"
-# <<< workstation-managed <<<
-EOF
+    copy_managed "$ROOT/shell/zsh/architect.zshrc" "$HOME/.config/workstation/architect.zshrc"
+    ensure_source_block "$HOME/.bashrc" '$HOME/.config/workstation/architect.bashrc'
+    if [[ -f "$HOME/.zshrc" ]] || command -v zsh >/dev/null 2>&1; then
+      ensure_source_block "$HOME/.zshrc" '$HOME/.config/workstation/architect.zshrc'
     fi
     ;;
   Darwin)
     copy_managed "$ROOT/shell/zsh/architect.zshrc" "$HOME/.config/workstation/architect.zshrc"
-    if ! grep -Fq '# >>> workstation-managed >>>' "$HOME/.zshrc" 2>/dev/null; then
-      cat >> "$HOME/.zshrc" <<'EOF'
-
-# >>> workstation-managed >>>
-[[ -f "$HOME/.config/workstation/architect.zshrc" ]] && source "$HOME/.config/workstation/architect.zshrc"
-# <<< workstation-managed <<<
-EOF
-    fi
+    ensure_source_block "$HOME/.zshrc" '$HOME/.config/workstation/architect.zshrc'
     ;;
 esac
 

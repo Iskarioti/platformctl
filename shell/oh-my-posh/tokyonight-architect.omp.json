@@ -31,25 +31,16 @@
             "windows": "󰍲",
             "ubuntu": "󰕈",
             "linux": "󰌽",
-            "macos": "󰀵",
-            "debian": "󰣚",
-            "fedora": "󰣛",
-            "redhat": "󱄛",
-            "redhatenterprise": "󱄛",
-            "centos": "",
-            "arch": "󰣇",
-            "alpine": ""
+            "macos": "󰀵"
           }
         },
         {
           "type": "path",
           "style": "plain",
           "foreground": "p:blue",
-          "template": "<b>{{ replaceP \"spa/spa\" (replaceP \"system-platform-architect-workstation-v[0-9.]+\" .Path \"spa\") \"spa\" }}</b>{{ if not .Writable }} {{ end }} ",
+          "template": "<b>{{ .Path }}</b>{{ if not .Writable }} {{ end }} ",
           "options": {
-            "style": "agnoster_short",
-            "max_depth": 2,
-            "hide_root_location": true,
+            "style": "folder",
             "folder_icon": "…",
             "folder_separator_icon": "/",
             "home_icon": "~"
@@ -64,7 +55,7 @@
             "{{ if gt .Ahead 0 }}p:blue{{ end }}",
             "{{ if gt .Behind 0 }}p:cyan{{ end }}"
           ],
-          "template": " {{ .HEAD }}{{ if .BranchStatus }} {{ .BranchStatus }}{{ end }}{{ if .Staging.Changed }} +{{ .Staging.Added }} ~{{ .Staging.Modified }} -{{ .Staging.Deleted }}{{ end }}{{ if .Working.Changed }} ?{{ .Working.Untracked }} !{{ .Working.Modified }} -{{ .Working.Deleted }}{{ end }} ",
+          "template": " {{ .HEAD }}{{ if .BranchStatus }} {{ .BranchStatus }}{{ end }}{{ if or (.Working.Changed) (.Staging.Changed) }} *{{ end }} ",
           "options": {
             "fetch_status": true,
             "native_status": true,
@@ -73,90 +64,21 @@
           "timeout": 500
         },
         {
-          "type": "python",
-          "style": "plain",
-          "foreground": "p:yellow",
-          "template": " {{ .Full }}{{ if .Venv }}({{ .Venv }}){{ end }} ",
-          "timeout": 300
-        },
-        {
-          "type": "node",
-          "style": "plain",
-          "foreground": "p:green",
-          "template": " {{ .Full }} ",
-          "timeout": 300
-        },
-        {
-          "type": "go",
-          "style": "plain",
-          "foreground": "p:cyan",
-          "template": " {{ .Full }} ",
-          "timeout": 300
-        },
-        {
-          "type": "rust",
-          "style": "plain",
-          "foreground": "p:orange",
-          "template": " {{ .Full }} ",
-          "timeout": 300
-        },
-        {
-          "type": "terraform",
-          "style": "plain",
-          "foreground": "p:magenta",
-          "template": "󱁢 {{ .WorkspaceName }}{{ if .Version }} {{ .Version }}{{ end }} ",
-          "options": {
-            "fetch_version": false
-          },
-          "timeout": 300
-        },
-        {
-          "type": "kubectl",
-          "style": "plain",
-          "foreground": "p:blue",
-          "foreground_templates": [
-            "{{ if or (contains \"prod\" .Context) (contains \"production\" .Context) }}p:red{{ end }}"
-          ],
-          "template": "󱃾 {{ .Context }}{{ if .Namespace }}::{{ .Namespace }}{{ end }} ",
-          "options": {
-            "parse_kubeconfig": true,
-            "display_error": false
-          },
-          "min_width": 110,
-          "timeout": 300
-        },
-        {
-          "type": "az",
-          "style": "plain",
-          "foreground": "p:cyan",
-          "template": "󰠅 {{ .Name }} ",
-          "options": {
-            "source": "cli"
-          },
-          "min_width": 130,
-          "timeout": 350
-        },
-        {
-          "type": "docker",
-          "style": "plain",
-          "foreground": "p:blue",
-          "template": " {{ .Context }} ",
-          "options": {
-            "display_mode": "files",
-            "fetch_context": true
-          },
-          "min_width": 100,
-          "timeout": 300
-        },
-        {
           "type": "status",
           "style": "plain",
           "foreground": "p:red",
-          "template": "{{ if ne .Code 0 }}✘ {{ .Code }} {{ end }}",
+          "template": "{{ if ne .Code 0 }}✘ {{ .Code }}{{ end }}",
           "options": {
             "always_enabled": true
           }
-        },
+        }
+      ]
+    },
+    {
+      "type": "prompt",
+      "alignment": "left",
+      "newline": true,
+      "segments": [
         {
           "type": "text",
           "style": "plain",
@@ -173,23 +95,61 @@
       "overflow": "hide",
       "segments": [
         {
+          "type": "python",
+          "style": "plain",
+          "foreground": "p:yellow",
+          "template": " {{ .Full }} ",
+          "timeout": 250
+        },
+        {
+          "type": "node",
+          "style": "plain",
+          "foreground": "p:green",
+          "template": " {{ .Full }} ",
+          "timeout": 250
+        },
+        {
+          "type": "terraform",
+          "style": "plain",
+          "foreground": "p:magenta",
+          "template": "󱁢 {{ .WorkspaceName }} ",
+          "options": { "fetch_version": false },
+          "timeout": 250
+        },
+        {
+          "type": "kubectl",
+          "style": "plain",
+          "foreground": "p:blue",
+          "foreground_templates": [
+            "{{ if or (contains \"prod\" .Context) (contains \"production\" .Context) }}p:red{{ end }}"
+          ],
+          "template": "󱃾 {{ .Context }}{{ if .Namespace }}::{{ .Namespace }}{{ end }} ",
+          "options": { "parse_kubeconfig": true, "display_error": false },
+          "min_width": 110,
+          "timeout": 250
+        },
+        {
+          "type": "docker",
+          "style": "plain",
+          "foreground": "p:blue",
+          "template": " {{ .Context }} ",
+          "options": { "display_mode": "files", "fetch_context": true },
+          "min_width": 100,
+          "timeout": 250
+        },
+        {
           "type": "executiontime",
           "style": "plain",
           "foreground": "p:yellow",
           "template": "󰔛 {{ .FormattedMs }} ",
-          "options": {
-            "threshold": 1000,
-            "style": "austin"
-          }
+          "options": { "threshold": 1000, "style": "austin" }
         },
         {
           "type": "time",
           "style": "plain",
           "foreground": "p:muted",
           "template": " {{ .CurrentDate | date .Format }}",
-          "options": {
-            "time_format": "15:04"
-          }
+          "options": { "time_format": "15:04" }
         }
       ]
     }
