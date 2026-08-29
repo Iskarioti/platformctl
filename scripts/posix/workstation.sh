@@ -44,6 +44,15 @@ case "$CMD" in
     ;;
   upgrade) exec "$ROOT/scripts/posix/upgrade.sh" "$@" ;;
   dashboard) exec platformctl serve "$@" ;;
+  backup) exec "$ROOT/scripts/posix/backup.sh" "$@" ;;
+  restore) exec "$ROOT/scripts/posix/restore.sh" "$@" ;;
+  changelog)
+    if command -v pwsh >/dev/null 2>&1; then
+      exec pwsh -NoLogo -NoProfile -File "$ROOT/scripts/common/changelog-preview.ps1" "$@"
+    fi
+    echo "changelog preview requires pwsh (PowerShell 7), which this repo already requires." >&2
+    exit 2
+    ;;
   autoupgrade)
     action="${1:-status}"
     case "$action" in
@@ -95,6 +104,9 @@ workstation commands:
   upgrade [--scope=packages|vscodeExtensions|fonts]
   autoupgrade enable|disable|once
   dashboard [--port N]
+  backup [output-path]
+  restore <backup-file> [--yes]
+  changelog [since-commit]
   publish [owner/repo]
   update
   dry-run

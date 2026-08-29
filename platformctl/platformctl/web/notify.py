@@ -9,8 +9,16 @@ from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
 
+import httpx
+
 from .config import NOTIFY_CONFIG_FILE, secure_write
 from .status import is_wsl, background_jobs_status, dev_services_status, resource_utilization
+
+# The observability profile's documented default port (development/services/
+# prometheus/defaults.env). Not read from that file at runtime: this app has
+# no other reason to parse compose env files, and the same simplification
+# already applies to the Grafana link hardcoded in templates/index.html.
+PROMETHEUS_URL = "http://127.0.0.1:9090"
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "enabled_channels": ["in_app"],
@@ -131,6 +139,7 @@ class NotificationBus:
 async def poller_loop(bus: NotificationBus) -> None:
     previous_jobs_healthy: dict[str, bool] = {}
     previous_services_running: dict[str, bool] = {}
+    previous_firing_alerts: set[str] = set()
     cpu_breached = False
     memory_breached = False
 
@@ -148,6 +157,7 @@ async def poller_loop(bus: NotificationBus) -> None:
             cpu_breached, memory_breached = await asyncio.to_thread(
                 _check_resources, bus, channels, config, cpu_breached, memory_breached
             )
+            await _check_prometheus_alerts(bus, channels, config, previous_firing_alerts)
         except Exception as exc:  # noqa: BLE001 - the poller must never die
             bus.publish({"level": "error", "message": f"Notification poller error: {exc}"})
 
@@ -163,8 +173,8 @@ def _notify(bus: NotificationBus, channels: list[str], config: dict[str, Any], l
         send_email(f"platformctl: {message[:60]}", message, config.get("smtp", {}))
 
 
-def _check_jobs(bus, channels, config, previous: dict[str, bool]) -> None:
-    for job in background_jobs_status():
+def _check_jobs(bus, channels, config, previous: dict[str, bool], jobs_fn=background_jobs_status) -> None:
+    for job in jobs_fn():
         name = job["name"]
         healthy = bool(job["healthy"])
         was_healthy = previous.get(name)
@@ -173,8 +183,8 @@ def _check_jobs(bus, channels, config, previous: dict[str, bool]) -> None:
         previous[name] = healthy
 
 
-def _check_services(bus, channels, config, previous: dict[str, bool]) -> None:
-    current = {c["name"]: c["state"] == "running" for c in dev_services_status()}
+def _check_services(bus, channels, config, previous: dict[str, bool], services_fn=dev_services_status) -> None:
+    current = {c["name"]: c["state"] == "running" for c in services_fn()}
     for name, running in current.items():
         was_running = previous.get(name)
         if was_running is True and not running:
@@ -183,8 +193,8 @@ def _check_services(bus, channels, config, previous: dict[str, bool]) -> None:
     previous.update(current)
 
 
-def _check_resources(bus, channels, config, cpu_breached: bool, memory_breached: bool):
-    data = resource_utilization()["host"]
+def _check_resources(bus, channels, config, cpu_breached: bool, memory_breached: bool, resources_fn=resource_utilization):
+    data = resources_fn()["host"]
     cpu_threshold = float(config.get("cpu_threshold", 90))
     memory_threshold = float(config.get("memory_threshold", 90))
 
@@ -198,3 +208,29 @@ def _check_resources(bus, channels, config, cpu_breached: bool, memory_breached:
             bus, channels, config, "warning", f"Memory usage above {memory_threshold}%: {data['memory_percent']}%"
         )
     return cpu_now, memory_now
+
+
+async def _check_prometheus_alerts(bus, channels, config, previous_firing: set[str]) -> None:
+    """Poll Prometheus's own alert-rule evaluation (development/services/prometheus/
+    config/alert-rules.yml) rather than accepting an inbound webhook from Grafana:
+    platformctl serve binds 127.0.0.1 only, which a container in a different network
+    namespace (Grafana) could never reach anyway - pulling keeps the same direction
+    as every other status check in this file."""
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            response = await client.get(f"{PROMETHEUS_URL}/api/v1/query", params={"query": 'ALERTS{alertstate="firing"}'})
+            response.raise_for_status()
+            results = response.json().get("data", {}).get("result", [])
+    except (httpx.HTTPError, ValueError):
+        return  # observability profile not running, or Prometheus not reachable - not an error
+
+    current_firing = {
+        r["metric"].get("alertname", "unknown") + "/" + r["metric"].get("job", r["metric"].get("name", ""))
+        for r in results
+    }
+
+    for alert in current_firing - previous_firing:
+        _notify(bus, channels, config, "warning", f"Prometheus alert firing: {alert}")
+
+    previous_firing.clear()
+    previous_firing.update(current_firing)

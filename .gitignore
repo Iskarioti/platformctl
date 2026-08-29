@@ -29,6 +29,10 @@ logs/
 Thumbs.db
 __pycache__/
 *.pyc
+.venv/
+.venv-*/
+*.egg-info/
+.pytest_cache/
 .vscode/settings.local.json
 
 # Editor/local agent state

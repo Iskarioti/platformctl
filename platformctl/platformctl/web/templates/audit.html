@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Command audit log{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h1>Command audit log</h1>
+  <a href="/">&larr; Back to dashboard</a>
+</div>
+
+<p class="muted">Every command run through the command runner, most recent first.</p>
+
+<table>
+  <thead><tr><th>When</th><th>User</th><th>Command</th><th>Exit code</th></tr></thead>
+  <tbody>
+  {% for e in entries %}
+    <tr class="{{ 'row-bad' if e.exit_code not in (0, None) }}">
+      <td>{{ e.ts }}</td>
+      <td>{{ e.username }}</td>
+      <td><code>{{ e.argv | join(' ') }}</code></td>
+      <td>{{ e.exit_code if e.exit_code is not none else 'in progress' }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4" class="muted">No commands have been run yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,5 +1,49 @@
 # Changelog
 
+## 3.5.0
+
+Adopting a "trust before completeness" pass over the control plane and dev-services
+subsystem: a real automated test suite, real CI, and a disaster-recovery story, on the
+premise that this whole session has repeatedly found bugs that schema validation alone
+could never catch.
+
+- Added `platformctl/tests/`: a pytest suite covering auth (password hashing, TOTP,
+  session signing/expiry/revocation, login backoff), the status pollers (subprocess
+  calls mocked), notification transition logic, and full HTTP integration tests via
+  FastAPI's `TestClient`. Found and fixed two real test-isolation bugs while building
+  it (module-global `_failed_attempts` leaking state across tests; a stale assertion
+  against a template string that had already changed in an earlier phase).
+- Added `.github/workflows/behavioral-tests.yml`: runs the pytest suite; brings up
+  `services up core` for real and asserts both containers reach `healthy` (a direct
+  regression test for the project-directory Compose bug from 3.4.0); validates the
+  observability profile's Compose config merges cleanly; runs a live end-to-end
+  smoke test (`scripts/ci/control_plane_smoke.py`) against a real `platformctl serve`
+  instance.
+- Added audit logging: every command run through the command runner is recorded
+  (`~/.config/workstation/control-plane/audit.log`, mode 600) and viewable at `/audit`.
+- Added session revocation: sessions now carry an ID checked against an active-session
+  registry, so logout actually revokes (not just clears a cookie), and a new
+  "sign out everywhere" action can invalidate every outstanding session at once.
+- Added `workstation backup` / `workstation restore`: an openssl-encrypted backup of
+  `~/.config/workstation/` (control-plane credentials, dev-service secrets), labs
+  state, and named `platform-*` Docker volumes. Restore stages and confirms before
+  touching anything live, moves existing config aside instead of overwriting it, and
+  skips existing volumes unless `--force-volumes` is passed. Verified end-to-end
+  against throwaway fake-machine state, including wrong-passphrase rejection and the
+  moved-aside-not-clobbered safety behavior.
+- Added Prometheus alert-rule polling for notifications (`ScrapeTargetDown`,
+  `ContainerOOMKilled` — verified the underlying cAdvisor metric actually exists before
+  shipping the rule; an early draft referenced one that doesn't). Deliberately pulls
+  from Prometheus's API rather than accepting a Grafana webhook: the control plane
+  binds `127.0.0.1` only, which a container in Grafana's own network namespace could
+  never reach.
+- Added `workstation changelog`: drafts a CHANGELOG.md section and suggested semver
+  bump from Conventional Commits since the last VERSION change. Preview only, not a
+  CI gate — this repo's history predates the convention.
+- Fixed the notification poller blocking the entire dashboard event loop during each
+  check cycle (synchronous PowerShell/Docker/psutil calls now run via
+  `asyncio.to_thread`).
+
 ## 3.4.0
 
 - Added an `observability` dev-services profile: `otel-collector`, `prometheus`,

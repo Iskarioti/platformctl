@@ -11,6 +11,8 @@ CONFIG_DIR = Path(os.environ.get("PLATFORMCTL_CONTROL_PLANE_DIR", "")) if os.env
 CREDENTIALS_FILE = CONFIG_DIR / "credentials.json"
 SESSION_SECRET_FILE = CONFIG_DIR / "session_secret"
 NOTIFY_CONFIG_FILE = CONFIG_DIR / "notify.json"
+AUDIT_LOG_FILE = CONFIG_DIR / "audit.log"
+SESSIONS_FILE = CONFIG_DIR / "active_sessions.json"
 
 
 def ensure_config_dir() -> Path:
@@ -28,3 +30,11 @@ def secure_write(path: Path, content: str) -> None:
     fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w") as f:
         f.write(content)
+
+
+def secure_append(path: Path, line: str) -> None:
+    """Append one line to a 0600 file, creating it (and its permissions) on first use."""
+    ensure_config_dir()
+    fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    with os.fdopen(fd, "a") as f:
+        f.write(line if line.endswith("\n") else line + "\n")

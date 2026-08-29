@@ -14,7 +14,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import auth, notify, status
+from . import audit, auth, notify, status
 from .commands import COMMANDS, REPO_ROOT
 
 SESSION_COOKIE = "platformctl_session"
@@ -105,7 +105,7 @@ def create_app() -> FastAPI:
         )
 
     @app.get("/run/{command_id}")
-    async def run_command(command_id: str, _: auth.Session = Depends(require_session)):
+    async def run_command(command_id: str, session: auth.Session = Depends(require_session)):
         entry = COMMANDS.get(command_id)
 
         async def stream():
@@ -134,8 +134,13 @@ def create_app() -> FastAPI:
             await proc.wait()
             yield f"data: [exit {proc.returncode}]\n\n"
             yield "event: done\ndata: 1\n\n"
+            audit.log_command(session.username, command_id, argv, proc.returncode)
 
         return StreamingResponse(stream(), media_type="text/event-stream")
+
+    @app.get("/audit", response_class=HTMLResponse)
+    async def audit_log(request: Request, _: auth.Session = Depends(require_session)):
+        return templates.TemplateResponse(request, "audit.html", {"entries": audit.read_recent()})
 
     @app.get("/notifications/stream")
     async def notifications_stream(request: Request, _: auth.Session = Depends(require_session)):
@@ -292,7 +297,17 @@ def create_app() -> FastAPI:
         return response
 
     @app.get("/logout")
-    async def logout():
+    async def logout(request: Request):
+        session = auth.verify_session_token(request.cookies.get(SESSION_COOKIE))
+        if session is not None:
+            auth.revoke_session(session.session_id)
+        response = RedirectResponse("/login", status_code=303)
+        response.delete_cookie(SESSION_COOKIE)
+        return response
+
+    @app.post("/settings/revoke-all")
+    async def revoke_all_sessions(_: auth.Session = Depends(require_session)):
+        auth.revoke_all_sessions()
         response = RedirectResponse("/login", status_code=303)
         response.delete_cookie(SESSION_COOKIE)
         return response

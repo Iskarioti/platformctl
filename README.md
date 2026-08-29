@@ -49,6 +49,10 @@ workstation update
 workstation autosync enable
 workstation upgrade
 workstation autoupgrade enable
+workstation dashboard
+workstation backup
+workstation restore <backup-file>
+workstation changelog
 ```
 
 ## Development model
@@ -102,4 +106,5 @@ required engineering plane.
 - `docs/autosync.md`
 - `docs/auto-update.md`
 - `docs/control-plane.md`
+- `docs/reliability.md`
 - `docs/ai-agent-maintenance.md`

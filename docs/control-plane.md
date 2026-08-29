@@ -13,8 +13,10 @@ land.
   `cadvisor`, `node-exporter`).
 - **Phase B — auth skeleton**: shipped (covered below).
 - **Phase C — status/discovery layer + command runner**: shipped (covered below).
-- **Phase D — notifications**: shipped (covered below).
-- **Phase E — full docs**: this document; changelog covers A-D.
+- **Phase D — notifications**: shipped (covered below), including audit logging,
+  session revocation, and Prometheus alert-rule polling added in a later pass.
+- **Phase E — full docs**: this document plus `docs/reliability.md`; changelog covers
+  all of it.
 
 ## Running it
 
@@ -61,13 +63,24 @@ reset the account entirely (e.g. lost authenticator), delete
 
 ## Session and login safety
 
-- Sessions are signed, stateless cookies (`HttpOnly`, `SameSite=Strict`), valid 12
-  hours.
+- Sessions are signed cookies (`HttpOnly`, `SameSite=Strict`), valid 12 hours, but not
+  purely stateless: each carries a session ID checked against an active-session
+  registry (`~/.config/workstation/control-plane/active_sessions.json`, mode 600), so a
+  session can be revoked before its TTL expires. Logout revokes just that session.
+  "Sign out everywhere" (`/settings/notifications`) revokes all of them at once — use
+  it if you think a session cookie leaked.
 - Repeated failed logins from the same client trigger an increasing backoff (starts
   after ~5 failures in a 15-minute window, capped at 5 minutes) — in-memory, resets if
   the process restarts.
 - There is no "remember me," no password reset email flow, and no multi-user support
   in this version — it's a single local operator's console for a single workstation.
+
+## Audit log
+
+Every command run through the command runner is appended to
+`~/.config/workstation/control-plane/audit.log` (JSONL, mode 600): timestamp, username,
+the exact argv that ran, and its exit code. View it at `/audit`. There is currently no
+retention/rotation policy — it's a plain append-only file.
 
 ## Status/discovery layer (Phase C)
 
@@ -127,6 +140,23 @@ threshold. Configure at `/settings/notifications`:
 The poller's checks shell out to PowerShell/Docker/psutil and can take real seconds;
 they run via `asyncio.to_thread` so a slow check cycle never blocks the dashboard's
 other requests.
+
+### Grafana alert rules
+
+Prometheus (not Grafana) evaluates two starter alert rules
+(`development/services/prometheus/config/alert-rules.yml`): `ScrapeTargetDown` (any
+scrape target's `up == 0` for 2 minutes) and `ContainerOOMKilled`
+(`container_oom_events_total` increasing — verified this is a real cAdvisor metric
+before shipping it; a first draft referenced a restart-count metric that doesn't
+actually exist in cAdvisor's output and would have silently never fired).
+
+The control plane **polls** Prometheus's `/api/v1/query?query=ALERTS{alertstate="firing"}`
+each cycle rather than accepting an inbound webhook from Grafana — deliberately: this
+app binds `127.0.0.1` only, which a container in Grafana's own network namespace could
+never reach anyway, webhook or not. Pulling keeps the same direction as every other
+status check in this file. Newly-firing alerts land in the same in-app/OS-native/email
+pipeline as everything else in this section, fired once per firing episode (not
+repeated every cycle while still firing).
 
 ## What's next (not built yet)
 

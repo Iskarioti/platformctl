@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import pyotp
 
-from .config import CREDENTIALS_FILE, SESSION_SECRET_FILE, secure_write
+from .config import CREDENTIALS_FILE, SESSION_SECRET_FILE, SESSIONS_FILE, secure_write
 
 SESSION_TTL_SECONDS = 12 * 60 * 60  # 12 hours
 SCRYPT_N = 2**14
@@ -98,12 +98,31 @@ def _session_secret() -> bytes:
     return bytes.fromhex(SESSION_SECRET_FILE.read_text(encoding="utf-8").strip())
 
 
+def _load_active_session_ids() -> set[str]:
+    if not SESSIONS_FILE.exists():
+        return set()
+    try:
+        return set(json.loads(SESSIONS_FILE.read_text(encoding="utf-8")))
+    except (json.JSONDecodeError, OSError):
+        return set()
+
+
+def _save_active_session_ids(ids: set[str]) -> None:
+    secure_write(SESSIONS_FILE, json.dumps(sorted(ids)))
+
+
 def create_session_token(username: str) -> str:
     expires = int(time.time()) + SESSION_TTL_SECONDS
     csrf = secrets.token_hex(16)
-    payload = f"{username}|{expires}|{csrf}"
+    session_id = secrets.token_hex(16)
+    payload = f"{username}|{expires}|{csrf}|{session_id}"
     payload_b64 = base64.urlsafe_b64encode(payload.encode("utf-8")).decode("ascii")
     signature = hmac.new(_session_secret(), payload_b64.encode("ascii"), hashlib.sha256).hexdigest()
+
+    active = _load_active_session_ids()
+    active.add(session_id)
+    _save_active_session_ids(active)
+
     return f"{payload_b64}.{signature}"
 
 
@@ -111,6 +130,7 @@ def create_session_token(username: str) -> str:
 class Session:
     username: str
     csrf: str
+    session_id: str
 
 
 def verify_session_token(token: str | None) -> Session | None:
@@ -122,13 +142,29 @@ def verify_session_token(token: str | None) -> Session | None:
         return None
     try:
         payload = base64.urlsafe_b64decode(payload_b64.encode("ascii")).decode("utf-8")
-        username, expires_str, csrf = payload.split("|", 2)
+        username, expires_str, csrf, session_id = payload.split("|", 3)
         expires = int(expires_str)
     except (ValueError, UnicodeDecodeError):
         return None
     if time.time() > expires:
         return None
-    return Session(username=username, csrf=csrf)
+    # A signature can still verify for a session that was explicitly revoked
+    # (sign-out-everywhere, or a single logout) - the active-session registry
+    # is what makes revocation actually possible for an otherwise-stateless,
+    # not-yet-expired token.
+    if session_id not in _load_active_session_ids():
+        return None
+    return Session(username=username, csrf=csrf, session_id=session_id)
+
+
+def revoke_session(session_id: str) -> None:
+    active = _load_active_session_ids()
+    active.discard(session_id)
+    _save_active_session_ids(active)
+
+
+def revoke_all_sessions() -> None:
+    _save_active_session_ids(set())
 
 
 # --- Login attempt backoff (in-memory, single-process; resets on restart) ---

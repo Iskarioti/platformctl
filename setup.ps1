@@ -117,6 +117,28 @@ switch ($Command.ToLowerInvariant()) {
         }
     }
 
+    "backup" {
+        if ($IsWindows -or $env:OS -eq "Windows_NT") {
+            & wsl.exe -d Ubuntu-24.04 -- bash -lc 'workstation backup "$@"' workstation-backup @Rest
+            exit $LASTEXITCODE
+        } else {
+            & bash (Join-Path $Root "scripts/posix/backup.sh") @Rest
+            exit $LASTEXITCODE
+        }
+    }
+
+    "changelog" { Invoke-RepoScript -Path "scripts\common\changelog-preview.ps1" -Arguments $Rest }
+
+    "restore" {
+        if ($IsWindows -or $env:OS -eq "Windows_NT") {
+            & wsl.exe -d Ubuntu-24.04 -- bash -lc 'workstation restore "$@"' workstation-restore @Rest
+            exit $LASTEXITCODE
+        } else {
+            & bash (Join-Path $Root "scripts/posix/restore.sh") @Rest
+            exit $LASTEXITCODE
+        }
+    }
+
     "dry-run" { Invoke-RepoScript -Path "scripts\ci\dry-run.ps1" -Arguments $Rest }
 
     default {
@@ -145,6 +167,9 @@ workstation setup commands
   upgrade [--Scope packages,...]    upgrade installed components (winget/VS Code/fonts)
   autoupgrade enable|disable|once   manage off-hours background component upgrades
   dashboard [--port N]              run the platformctl web control plane (localhost only)
+  backup [output-path]              encrypted backup of control-plane/dev-service secrets and volumes
+  restore <backup-file> [--yes]     restore a backup created by "backup"
+  changelog [since-commit]          draft a CHANGELOG.md section from Conventional Commits (preview only)
   publish [owner/repo]              create/publish the GitHub repository
   update                            pull/rebase, validate, apply, doctor
   dry-run                           CI-safe platform simulation

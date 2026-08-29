@@ -1,0 +1,102 @@
+name: behavioral-tests
+
+# validate.yml checks that config/schema is well-formed. This workflow checks
+# that things actually behave correctly at runtime - this repo has repeatedly
+# had bugs (a scheduled task that failed every run, a Compose merge bug that
+# silently corrupted redis's config) that pure schema validation could never
+# have caught.
+#
+# Scoped to ubuntu-latest: it's the only GitHub-hosted runner that can
+# genuinely exercise the Linux-native code path (platform/linux/*, Docker,
+# platformctl serve) without WSL2/nested virtualization, which GitHub-hosted
+# Windows runners don't support. Windows-specific behavior (Scheduled Tasks,
+# WSL interop) is not covered here - see docs/control-plane.md.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install platformctl with test dependencies
+        run: pip install -e "./platformctl[test]"
+      - name: Run pytest
+        run: pytest platformctl/tests -q
+
+  dev-services-core-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bring up core dev services (postgres, redis)
+        run: bash scripts/posix/services.sh up core
+      - name: Wait for both containers to report healthy
+        run: |
+          for i in $(seq 1 30); do
+            docker compose -p platform-dev ps -a --format json > /tmp/ps.jsonl
+            unhealthy=$(python3 -c "
+import json
+lines = [json.loads(l) for l in open('/tmp/ps.jsonl') if l.strip()]
+print(sum(1 for c in lines if c.get('State') != 'running' or c.get('Health') not in ('healthy', '')))
+")
+            [ "$unhealthy" = "0" ] && break
+            sleep 2
+          done
+      - name: Verify exactly 2 healthy containers
+        run: |
+          docker compose -p platform-dev ps -a
+          python3 -c "
+import json
+lines = [json.loads(l) for l in open('/tmp/ps.jsonl') if l.strip()]
+assert len(lines) == 2, f'expected 2 containers, got {len(lines)}: {lines}'
+for c in lines:
+    assert c['State'] == 'running', c
+    assert c.get('Health') in ('healthy', ''), c
+print('OK: core dev services healthy - regression check for the project-directory Compose bug')
+"
+      - name: Tear down
+        if: always()
+        run: bash scripts/posix/services.sh down
+
+  observability-compose-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate observability profile Compose merge (config only, no image pulls)
+        run: |
+          args=(-p platform-dev --project-directory "$PWD")
+          for s in otel-collector prometheus loki tempo grafana cadvisor node-exporter; do
+            dir="development/services/$s"
+            args+=(--env-file "$dir/versions.env" --env-file "$dir/defaults.env")
+            args+=(-f "$dir/compose.yaml")
+          done
+          docker compose "${args[@]}" config >/dev/null
+          echo "OK: observability profile Compose config merges cleanly"
+
+  control-plane-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install platformctl
+        run: pip install -e ./platformctl httpx pyotp
+      - name: Start the control plane against a throwaway config dir
+        run: |
+          mkdir -p /tmp/pctl-ci-cp
+          PLATFORMCTL_CONTROL_PLANE_DIR=/tmp/pctl-ci-cp platformctl serve --port 8765 &
+          for i in $(seq 1 20); do
+            curl -s -o /dev/null http://127.0.0.1:8765/setup && break
+            sleep 0.5
+          done
+      - name: Drive the real enrollment + login + command-runner flow
+        run: python3 scripts/ci/control_plane_smoke.py --port 8765
