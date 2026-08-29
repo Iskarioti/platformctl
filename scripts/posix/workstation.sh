@@ -18,7 +18,7 @@ case "$CMD" in
     if command -v pwsh >/dev/null 2>&1; then
       exec pwsh -NoLogo -NoProfile -File "$ROOT/scripts/common/doctor.ps1" "$@"
     fi
-    for x in git gh code oh-my-posh zoxide fzf jq; do
+    for x in git gh code oh-my-posh zoxide fzf jq devcontainer; do
       command -v "$x" >/dev/null 2>&1 && echo "PASS $x" || echo "MISS $x"
     done
     ;;
@@ -40,6 +40,17 @@ case "$CMD" in
       disable) exec "$ROOT/scripts/posix/uninstall-autosync.sh" ;;
       once) exec "$ROOT/scripts/common/autosync.sh" --once ;;
       *) echo "autosync: enable | disable | once" ;;
+    esac
+    ;;
+  upgrade) exec "$ROOT/scripts/posix/upgrade.sh" "$@" ;;
+  dashboard) exec platformctl serve "$@" ;;
+  autoupgrade)
+    action="${1:-status}"
+    case "$action" in
+      enable) exec "$ROOT/scripts/posix/install-autoupgrade.sh" ;;
+      disable) exec "$ROOT/scripts/posix/uninstall-autoupgrade.sh" ;;
+      once) exec "$ROOT/scripts/posix/upgrade.sh" ;;
+      *) echo "autoupgrade: enable | disable | once" ;;
     esac
     ;;
   update)
@@ -81,6 +92,9 @@ workstation commands:
   editor install|apply|doctor|list|profile|sync|clean
   sync
   autosync enable|disable|once
+  upgrade [--scope=packages|vscodeExtensions|fonts]
+  autoupgrade enable|disable|once
+  dashboard [--port N]
   publish [owner/repo]
   update
   dry-run

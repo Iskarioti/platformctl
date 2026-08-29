@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Enroll your authenticator app{% endblock %}
+{% block content %}
+<div class="panel">
+  <h1>Scan into your authenticator app</h1>
+  <p class="muted">Account created for <strong>{{ username }}</strong>. Scan this QR code with an
+    authenticator app (e.g. Google Authenticator, Authy, 1Password) before continuing — it is
+    shown only once.</p>
+
+  <div class="qr-box">
+    <img src="{{ qr_data_uri }}" alt="TOTP enrollment QR code" width="220" height="220">
+  </div>
+
+  <p class="muted">Can't scan it? Enter this key manually:</p>
+  <code class="secret">{{ totp_secret }}</code>
+
+  <form method="get" action="/login">
+    <button type="submit">I've added it &mdash; continue to login</button>
+  </form>
+</div>
+{% endblock %}

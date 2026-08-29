@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}platformctl control plane{% endblock %}
+{% block content %}
+<script src="/static/sse.js"></script>
+
+<div id="toast-tray"></div>
+<div hx-ext="sse" sse-connect="/notifications/stream" sse-swap="message" hx-swap="none"
+     hx-on:htmx:sse-message="platformctlHandleNotification(event)"></div>
+
+<div class="topbar">
+  <h1>platformctl control plane</h1>
+  <div>
+    <span class="muted">{{ username }}</span>
+    <a href="http://127.0.0.1:3000" target="_blank" rel="noopener">Grafana</a>
+    <a href="/settings/notifications">Notifications</a>
+    <form method="get" action="/logout" style="display:inline"><button type="submit" class="link-btn">Sign out</button></form>
+  </div>
+</div>
+
+<script>
+function platformctlHandleNotification(event) {
+  let payload;
+  try { payload = JSON.parse(event.detail.data); } catch (e) { return; }
+  if (!payload || !payload.message) return;
+  const tray = document.getElementById('toast-tray');
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-' + (payload.level || 'info');
+  toast.textContent = payload.message;
+  tray.appendChild(toast);
+  setTimeout(() => toast.remove(), 15000);
+}
+</script>
+
+<section class="card">
+  <h2>Background jobs</h2>
+  <div hx-get="/panels/jobs" hx-trigger="load, every 10s" hx-swap="innerHTML">Loading&hellip;</div>
+</section>
+
+<section class="card">
+  <h2>Resource utilization</h2>
+  <div hx-get="/panels/resources" hx-trigger="load, every 5s" hx-swap="innerHTML">Loading&hellip;</div>
+</section>
+
+<section class="card">
+  <h2>Dev services</h2>
+  <div hx-get="/panels/services" hx-trigger="load, every 5s" hx-swap="innerHTML">Loading&hellip;</div>
+</section>
+
+<section class="card">
+  <h2>Governed projects</h2>
+  <div hx-get="/panels/projects" hx-trigger="load, every 15s" hx-swap="innerHTML">Loading&hellip;</div>
+</section>
+
+<section class="card">
+  <h2>Lab clusters</h2>
+  <div hx-get="/panels/labs" hx-trigger="load, every 15s" hx-swap="innerHTML">Loading&hellip;</div>
+</section>
+
+<section class="card">
+  <h2>ai-runtime</h2>
+  <div hx-get="/panels/ai-runtime" hx-trigger="load, every 10s" hx-swap="innerHTML">Loading&hellip;</div>
+</section>
+
+<section class="card">
+  <h2>Run a command</h2>
+  <p class="muted">A fixed, curated set of commands &mdash; not a free-text shell.</p>
+  <div class="cmd-buttons">
+    {% for id, entry in commands.items() %}
+      <button hx-get="/run-trigger/{{ id }}" hx-target="#cmd-stream" hx-swap="innerHTML">
+        {{ entry[1] }}
+      </button>
+    {% endfor %}
+  </div>
+  <pre id="cmd-output" class="cmd-output"></pre>
+  <div id="cmd-stream"></div>
+</section>
+{% endblock %}

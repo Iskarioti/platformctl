@@ -104,6 +104,19 @@ switch ($Command.ToLowerInvariant()) {
         exit 0
     }
 
+    "upgrade"  { Invoke-RepoScript -Path "scripts\common\upgrade.ps1" -Arguments $Rest }
+    "autoupgrade" { Invoke-RepoScript -Path "scripts\common\autoupgrade-control.ps1" -Arguments $Rest }
+
+    "dashboard" {
+        if ($IsWindows -or $env:OS -eq "Windows_NT") {
+            & wsl.exe -d Ubuntu-24.04 -- bash -lc 'platformctl serve "$@"' platformctl-serve @Rest
+            exit $LASTEXITCODE
+        } else {
+            & platformctl serve @Rest
+            exit $LASTEXITCODE
+        }
+    }
+
     "dry-run" { Invoke-RepoScript -Path "scripts\ci\dry-run.ps1" -Arguments $Rest }
 
     default {
@@ -129,6 +142,9 @@ workstation setup commands
   editor install|apply|doctor       manage Neovim/NvChad/Vim editor profiles
   sync                              validate -> apply -> commit -> push once
   autosync enable|disable           manage background platformctl autosync
+  upgrade [--Scope packages,...]    upgrade installed components (winget/VS Code/fonts)
+  autoupgrade enable|disable|once   manage off-hours background component upgrades
+  dashboard [--port N]              run the platformctl web control plane (localhost only)
   publish [owner/repo]              create/publish the GitHub repository
   update                            pull/rebase, validate, apply, doctor
   dry-run                           CI-safe platform simulation

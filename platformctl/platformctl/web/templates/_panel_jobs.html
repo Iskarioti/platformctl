@@ -1,0 +1,13 @@
+<table>
+  <thead><tr><th>Job</th><th>Installed</th><th>Last run</th><th>Last result</th></tr></thead>
+  <tbody>
+  {% for j in items %}
+    <tr class="{{ 'row-ok' if j.healthy else 'row-bad' }}">
+      <td>{{ j.name }}</td>
+      <td>{{ 'yes' if j.installed else 'no' }}</td>
+      <td>{{ j.last_run or '—' }}</td>
+      <td>{{ j.last_result if j.last_result is not none else '—' }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>

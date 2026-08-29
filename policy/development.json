@@ -71,7 +71,14 @@
       "mongodb",
       "minio",
       "mailpit",
-      "dev-dashboard"
+      "dev-dashboard",
+      "otel-collector",
+      "prometheus",
+      "loki",
+      "tempo",
+      "grafana",
+      "cadvisor",
+      "node-exporter"
     ],
     "profiles": {
       "core": ["postgres", "redis"],
@@ -80,6 +87,7 @@
       "data": ["postgres", "pgbouncer", "mongodb"],
       "integration": ["minio", "mailpit"],
       "ui": ["dev-dashboard", "pgadmin", "redisinsight", "kafbat-ui", "opensearch-dashboards"],
+      "observability": ["otel-collector", "prometheus", "loki", "tempo", "grafana", "cadvisor", "node-exporter"],
       "all": [
         "postgres",
         "pgbouncer",
@@ -94,7 +102,14 @@
         "mongodb",
         "minio",
         "mailpit",
-        "dev-dashboard"
+        "dev-dashboard",
+        "otel-collector",
+        "prometheus",
+        "loki",
+        "tempo",
+        "grafana",
+        "cadvisor",
+        "node-exporter"
       ]
     }
   },

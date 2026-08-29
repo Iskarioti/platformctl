@@ -1,7 +1,7 @@
 {
   "$schema": "./schema/workstation.schema.json",
   "name": "system-platform-architect-workstation",
-  "version": "3.1.0",
+  "version": "3.4.0",
   "role": "Systems & Platform Architect",
   "sourceOfTruth": "git",
   "developmentPolicy": "policy/development.json",
@@ -59,6 +59,12 @@
     "validateBeforeApply": true,
     "backupBeforeOverwrite": true,
     "neverCommitSecrets": true
+  },
+  "autoUpdate": {
+    "enabled": true,
+    "scope": ["packages", "vscodeExtensions", "fonts"],
+    "schedule": { "windowStart": "22:00", "windowEnd": "06:00" },
+    "skipIfContainersRunning": true
   },
   "safeTrackedRoots": [
     ".github",

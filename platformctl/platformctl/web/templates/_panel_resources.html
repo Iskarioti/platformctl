@@ -1,0 +1,18 @@
+<p class="muted">{{ data.host.scope }}</p>
+<table>
+  <tbody>
+    <tr><td>CPU</td><td>{{ data.host.cpu_percent }}%</td></tr>
+    <tr><td>Memory</td><td>{{ data.host.memory_percent }}% ({{ data.host.memory_available_gib }} GiB free)</td></tr>
+    <tr><td>Disk (home)</td><td>{{ data.host.disk_percent }}% ({{ data.host.disk_free_gib }} GiB free)</td></tr>
+  </tbody>
+</table>
+{% if data.containers %}
+<table>
+  <thead><tr><th>Container</th><th>CPU</th><th>Memory</th></tr></thead>
+  <tbody>
+  {% for c in data.containers %}
+    <tr><td>{{ c.name }}</td><td>{{ c.cpu }}</td><td>{{ c.memory_usage }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}

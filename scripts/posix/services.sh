@@ -165,6 +165,9 @@ generate_secret_file() {
     minio)
       [[ -f "$file" ]] || printf 'MINIO_ROOT_PASSWORD=%s\n' "$(strong_password)" > "$file"
       ;;
+    grafana)
+      [[ -f "$file" ]] || printf 'GRAFANA_ADMIN_PASSWORD=%s\n' "$(strong_password)" > "$file"
+      ;;
     *)
       return 0
       ;;
@@ -185,7 +188,16 @@ ensure_secrets_for() {
 }
 
 build_compose_args() {
-  COMPOSE_ARGS=(-p platform-dev)
+  # Explicit --project-directory is required: Compose otherwise defaults the
+  # project directory to the parent of the FIRST -f file, and resolves every
+  # merged file's relative bind-mount sources against that single directory —
+  # not each file's own directory. With more than one resolved service that
+  # each declare their own "./config/..." mount, this silently cross-wires
+  # sources onto whichever service came first (confirmed: it corrupted the
+  # "core" profile's redis.conf mount). Every compose.yaml's relative volume
+  # paths below are therefore written relative to $ROOT, not to their own
+  # directory.
+  COMPOSE_ARGS=(-p platform-dev --project-directory "$ROOT")
   local s dir meta secret
   for s in "$@"; do
     dir="$(service_dir "$s")"

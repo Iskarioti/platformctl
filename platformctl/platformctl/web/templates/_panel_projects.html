@@ -1,0 +1,15 @@
+<table>
+  <thead><tr><th>Project</th><th>Template</th><th>Area</th><th>Dev Container</th></tr></thead>
+  <tbody>
+  {% for p in items %}
+    <tr class="{{ 'row-ok' if p.dev_container_running else '' }}">
+      <td title="{{ p.path }}">{{ p.name }}</td>
+      <td>{{ p.template }}</td>
+      <td>{{ p.area }}</td>
+      <td>{{ p.dev_container_status if p.dev_container_running else 'not running' }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4" class="muted">No governed projects found under the configured project roots.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>

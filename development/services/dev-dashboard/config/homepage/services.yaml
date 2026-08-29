@@ -43,3 +43,20 @@
         href: http://localhost:8025
         description: Mailpit
         siteMonitor: http://dev-mailpit:8025
+
+- Observability:
+    - Grafana:
+        icon: grafana.png
+        href: http://localhost:3000
+        description: Dashboards (Prometheus/Loki/Tempo)
+        siteMonitor: http://dev-grafana:3000/api/health
+    - Prometheus:
+        icon: prometheus.png
+        href: http://localhost:9090
+        description: Metrics
+        siteMonitor: http://dev-prometheus:9090/-/healthy
+    - cAdvisor:
+        icon: cadvisor.png
+        href: http://localhost:8090
+        description: Container resource metrics
+        siteMonitor: http://dev-cadvisor:8080/healthz

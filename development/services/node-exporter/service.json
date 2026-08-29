@@ -1,0 +1,23 @@
+{
+  "id": "node-exporter",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": null,
+  "secretKeys": [],
+  "dependsOn": [],
+  "volumes": [],
+  "hostEndpoints": [
+    {
+      "label": "node-exporter",
+      "endpoint": "http://127.0.0.1:${NODE_EXPORTER_HOST_PORT}/metrics"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "node-exporter",
+      "endpoint": "dev-node-exporter:9100"
+    }
+  ],
+  "notes": "Requires pid: host and read-only mounts of /proc, /sys, / to report host metrics. On Windows this reports the WSL2 VM's resources, not true native-Windows host stats."
+}

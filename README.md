@@ -47,6 +47,8 @@ workstation project open
 workstation sync
 workstation update
 workstation autosync enable
+workstation upgrade
+workstation autoupgrade enable
 ```
 
 ## Development model
@@ -98,4 +100,6 @@ required engineering plane.
 - `docs/development-enforcement.md`
 - `docs/new-machine.md`
 - `docs/autosync.md`
+- `docs/auto-update.md`
+- `docs/control-plane.md`
 - `docs/ai-agent-maintenance.md`

@@ -1,5 +1,6 @@
 param(
     [switch]$NoAutoSync,
+    [switch]$NoAutoUpgrade,
     [switch]$NoWSL
 )
 
@@ -58,7 +59,16 @@ if (-not $NoAutoSync) {
     Run "scripts\windows\install-autosync.ps1"
 }
 
+if (-not $NoAutoUpgrade) {
+    Run "scripts\windows\install-autoupgrade.ps1"
+}
+
 Run "scripts\common\doctor.ps1"
 
 Write-Host "`nWindows workstation bootstrap completed." -ForegroundColor Green
 Write-Host "Close Windows Terminal completely and open a new PowerShell 7 session."
+
+# Informational: report development-policy compliance without failing bootstrap
+# over it (enforce.ps1 legitimately reports non-zero when policy is unmet, e.g.
+# after -NoWSL).
+& pwsh.exe -NoLogo -NoProfile -File (Join-Path $Root "scripts\common\enforce.ps1")

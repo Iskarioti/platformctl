@@ -33,6 +33,15 @@
       "kafbat-ui",
       "opensearch-dashboards"
     ],
+    "observability": [
+      "otel-collector",
+      "prometheus",
+      "loki",
+      "tempo",
+      "grafana",
+      "cadvisor",
+      "node-exporter"
+    ],
     "all": [
       "postgres",
       "pgbouncer",
@@ -47,7 +56,14 @@
       "mongodb",
       "minio",
       "mailpit",
-      "dev-dashboard"
+      "dev-dashboard",
+      "otel-collector",
+      "prometheus",
+      "loki",
+      "tempo",
+      "grafana",
+      "cadvisor",
+      "node-exporter"
     ]
   },
   "services": {
@@ -92,6 +108,27 @@
     },
     "dev-dashboard": {
       "path": "development/services/dev-dashboard"
+    },
+    "otel-collector": {
+      "path": "development/services/otel-collector"
+    },
+    "prometheus": {
+      "path": "development/services/prometheus"
+    },
+    "loki": {
+      "path": "development/services/loki"
+    },
+    "tempo": {
+      "path": "development/services/tempo"
+    },
+    "grafana": {
+      "path": "development/services/grafana"
+    },
+    "cadvisor": {
+      "path": "development/services/cadvisor"
+    },
+    "node-exporter": {
+      "path": "development/services/node-exporter"
     }
   }
 }

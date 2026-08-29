@@ -1,0 +1,30 @@
+{
+  "id": "grafana",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": "~/.config/workstation/services/grafana.env",
+  "secretKeys": [
+    "GRAFANA_ADMIN_PASSWORD"
+  ],
+  "dependsOn": [
+    "prometheus",
+    "loki",
+    "tempo"
+  ],
+  "volumes": [
+    "platform-grafana-data"
+  ],
+  "hostEndpoints": [
+    {
+      "label": "Grafana",
+      "endpoint": "http://127.0.0.1:${GRAFANA_HOST_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "Grafana",
+      "endpoint": "dev-grafana:3000"
+    }
+  ]
+}

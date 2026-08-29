@@ -1,0 +1,28 @@
+services:
+  tempo:
+    image: ${TEMPO_IMAGE}:${TEMPO_VERSION}
+    container_name: dev-tempo
+    hostname: dev-tempo
+    command:
+      - -config.file=/etc/tempo/tempo.yaml
+    volumes:
+      - ./development/services/tempo/config/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "127.0.0.1:${TEMPO_HOST_PORT:-3200}:3200"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:3200/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [platform-dev]
+    mem_limit: 512m
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev
+
+volumes:
+  tempo-data:
+    name: platform-tempo-data

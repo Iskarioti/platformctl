@@ -280,5 +280,19 @@ def incident_collect(
     console.print(f"Evidence written to [bold]{outdir}[/bold]")
 
 
+@app.command()
+def serve(
+    port: int = typer.Option(8765, help="TCP port to bind on 127.0.0.1."),
+) -> None:
+    """Run the platformctl web control plane (localhost only, username/password + TOTP)."""
+    import uvicorn
+
+    from .web.app import create_app
+
+    console.print(f"[bold]platformctl control plane[/bold] on http://127.0.0.1:{port}")
+    console.print("[dim]Bound to 127.0.0.1 only — this is intentional, see docs/control-plane.md.[/dim]")
+    uvicorn.run(create_app(), host="127.0.0.1", port=port, log_level="info")
+
+
 if __name__ == "__main__":
     app()

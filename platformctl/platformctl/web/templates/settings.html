@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Notification settings{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h1>Notification settings</h1>
+  <a href="/">&larr; Back to dashboard</a>
+</div>
+
+{% if saved %}<div class="error" style="background:rgba(62,207,142,.12);border-color:#3ecf8e;color:#3ecf8e;">Saved.</div>{% endif %}
+
+<form method="post" action="/settings/notifications" class="panel">
+  <label>Channels</label>
+  <label class="checkline"><input type="checkbox" name="enabled_channels" value="in_app"
+    {{ "checked" if "in_app" in config.enabled_channels }}> In-app (toasts on this dashboard)</label>
+  <label class="checkline"><input type="checkbox" name="enabled_channels" value="os_native"
+    {{ "checked" if "os_native" in config.enabled_channels }}> OS-native (desktop notification)</label>
+  <label class="checkline"><input type="checkbox" name="enabled_channels" value="email"
+    {{ "checked" if "email" in config.enabled_channels }}> Email</label>
+
+  <label for="poll_interval_seconds">Check interval (seconds, min. 10)</label>
+  <input type="text" id="poll_interval_seconds" name="poll_interval_seconds" value="{{ config.poll_interval_seconds }}">
+
+  <label for="cpu_threshold">CPU alert threshold (%)</label>
+  <input type="text" id="cpu_threshold" name="cpu_threshold" value="{{ config.cpu_threshold }}">
+
+  <label for="memory_threshold">Memory alert threshold (%)</label>
+  <input type="text" id="memory_threshold" name="memory_threshold" value="{{ config.memory_threshold }}">
+
+  <h2 style="margin-top:1.5rem;">Email (SMTP)</h2>
+
+  <label for="smtp_host">SMTP host</label>
+  <input type="text" id="smtp_host" name="smtp_host" value="{{ config.smtp.host }}">
+
+  <label for="smtp_port">SMTP port</label>
+  <input type="text" id="smtp_port" name="smtp_port" value="{{ config.smtp.port }}">
+
+  <label for="smtp_username">SMTP username</label>
+  <input type="text" id="smtp_username" name="smtp_username" value="{{ config.smtp.username }}">
+
+  <label for="smtp_password">SMTP password (leave blank to keep the existing one)</label>
+  <input type="password" id="smtp_password" name="smtp_password" autocomplete="off">
+
+  <label class="checkline"><input type="checkbox" name="smtp_use_tls" value="true"
+    {{ "checked" if config.smtp.use_tls }}> Use STARTTLS</label>
+
+  <label for="smtp_from_addr">From address</label>
+  <input type="text" id="smtp_from_addr" name="smtp_from_addr" value="{{ config.smtp.from_addr }}">
+
+  <label for="smtp_to_addr">Send alerts to</label>
+  <input type="text" id="smtp_to_addr" name="smtp_to_addr" value="{{ config.smtp.to_addr }}">
+
+  <button type="submit">Save</button>
+</form>
+{% endblock %}

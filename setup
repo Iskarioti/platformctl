@@ -14,7 +14,7 @@ case "$CMD" in
     esac
     ;;
   apply) exec "$ROOT/scripts/posix/apply.sh" "$@" ;;
-  validate|doctor|enforce|project|services|editor|sync|publish|autosync|update|dry-run|help)
+  validate|doctor|enforce|project|services|editor|sync|publish|autosync|upgrade|autoupgrade|dashboard|update|dry-run|help)
     exec "$ROOT/scripts/posix/workstation.sh" "$CMD" "$@"
     ;;
   *)

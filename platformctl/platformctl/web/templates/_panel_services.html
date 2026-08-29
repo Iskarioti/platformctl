@@ -1,0 +1,12 @@
+<table>
+  <thead><tr><th>Container</th><th>Service</th><th>State</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for c in items %}
+    <tr class="{{ 'row-ok' if c.state == 'running' else 'row-bad' }}">
+      <td>{{ c.name }}</td><td>{{ c.service }}</td><td>{{ c.state }}</td><td>{{ c.status }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4" class="muted">No dev-services containers (run "Start core dev services" below).</td></tr>
+  {% endfor %}
+  </tbody>
+</table>

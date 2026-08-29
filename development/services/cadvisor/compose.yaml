@@ -1,0 +1,26 @@
+services:
+  cadvisor:
+    image: ${CADVISOR_IMAGE}:${CADVISOR_VERSION}
+    container_name: dev-cadvisor
+    hostname: dev-cadvisor
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "127.0.0.1:${CADVISOR_HOST_PORT:-8090}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [platform-dev]
+    mem_limit: 256m
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev

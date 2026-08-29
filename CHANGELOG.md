@@ -1,5 +1,89 @@
 # Changelog
 
+## 3.4.0
+
+- Added an `observability` dev-services profile: `otel-collector`, `prometheus`,
+  `loki`, `tempo`, `grafana`, `cadvisor`, `node-exporter` — a full local metrics/logs/
+  traces stack, verified end-to-end (all containers healthy, Prometheus scraping all
+  targets, Grafana provisioned with datasources).
+- Fixed a pre-existing bug in `scripts/posix/services.sh`: `build_compose_args` never
+  passed `--project-directory`, so Docker Compose resolved every merged service's
+  relative bind-mount paths against the *first* service's directory instead of its
+  own. This silently corrupted `workstation services up core` (redis's `redis.conf`
+  mount resolved into `postgres/config/`). Fixed by passing `--project-directory`
+  explicitly and rewriting every affected service's compose file
+  (`postgres`, `redis`, `dev-dashboard`, plus the 5 new observability services with a
+  config mount) to reference paths relative to repo root.
+- Added `platformctl serve` / `workstation dashboard`: a FastAPI + HTMX web control
+  plane, localhost-only, with first-run username/password + TOTP (authenticator app)
+  enrollment, signed session cookies, and login rate-limiting with backoff. Verified
+  end-to-end: unauthenticated redirect, enrollment, wrong-password rejection, correct
+  login, authenticated access, invalid-code rejection, logout, and backoff after
+  repeated failures.
+- Added the Phase C status/discovery layer: six live dashboard panels (background
+  jobs, resource utilization, dev services, governed projects + Dev Containers, lab
+  clusters, `ai-runtime`), each backed by `platformctl/platformctl/web/status.py` and
+  polled via HTMX. Governed-project discovery (scanning `.platformctl/project.json`
+  under policy `projectRoots`) is new bookkeeping — no such registry existed before.
+- Added a curated, allowlisted command runner (`platformctl/platformctl/web/commands.py`)
+  streaming output live via Server-Sent Events — deliberately a fixed set of exact
+  command lines, not a free-text shell box.
+- Added the Phase D notification system: a background poller
+  (`platformctl/platformctl/web/notify.py`) that fires on state *transitions*
+  (background job going unhealthy, a dev service stopping, CPU/memory threshold
+  breaches), dispatched to in-app toasts (SSE), Windows-native desktop notifications
+  (PowerShell `NotifyIcon`, no new dependency), macOS (`osascript`), Linux
+  (`notify-send`), and email (stdlib `smtplib`) — configurable at
+  `/settings/notifications`. Fixed a real bug found while verifying this: the
+  poller's checks shell out to PowerShell/Docker/psutil and block for real time;
+  they now run via `asyncio.to_thread` so a slow check cycle can't freeze every other
+  request the dashboard is serving.
+- Added `docs/control-plane.md`.
+
+## 3.3.0
+
+- Added `workstation upgrade` (`scripts/common/upgrade.ps1` / `scripts/posix/upgrade.sh`):
+  on-demand refresh of winget/brew/apt-managed packages, VS Code extensions and pinned
+  fonts, scoped by `workstation.json`'s new `autoUpdate` block and logged to
+  `.state/upgrade-<date>.log`.
+- Added `workstation autoupgrade enable|disable|once|status`: an off-hours background
+  worker (Windows Scheduled Task, systemd user timer, launchd LaunchAgent) that runs
+  `workstation upgrade` unattended, gated by a configurable quiet-hours window
+  (`autoUpdate.schedule`) and skipped while Docker containers are running so it never
+  disturbs active project work.
+- Fixed `WorkstationSetupAutoSync` silently failing on every run: the scheduled task
+  invoked bare `pwsh.exe`, which resolves through a Store/MSIX App Execution Alias that
+  Task Scheduler's process launch cannot follow. `scripts/windows/install-autosync.ps1`
+  and the new `install-autoupgrade.ps1` now embed the resolved absolute `pwsh.exe` path.
+- Fixed `workstation autosync enable/disable` (and the equivalent new `autoupgrade`
+  commands) failing with "term ... is not recognized" on managed/App-Control endpoints:
+  `& (Join-Path ...)` invoked a dynamically-computed path directly, which is untrusted
+  under ConstrainedLanguage; both control scripts now invoke through `pwsh.exe -File`.
+- Fixed `wsl.exe --list --verbose` producing corrupted, spaced-out output in
+  `workstation doctor`, `windows/40-health.ps1` and `windows/46-shell-doctor.ps1`
+  whenever captured/redirected instead of shown live in a console.
+- `workstation doctor` now reports last-run status for the autosync/autoupgrade
+  background jobs on all three platforms, surfacing failures automatically instead of
+  requiring manual `schtasks`/`systemctl`/`launchctl` inspection.
+- Added Dev Container CLI installation to native Linux/macOS bootstrap
+  (`scripts/posix/install-devcontainers-cli.sh`), closing a gap where a fresh non-WSL
+  machine couldn't satisfy `policy/development.json`'s `requireDevContainer` check.
+- Bootstrap now runs `enforce` (informationally) after `doctor` on all three platforms,
+  and `docs/new-machine.md` states the concrete "ready to work" contract.
+- Fixed every tracked shell script and Git hook (`bootstrap`, `setup`,
+  `scripts/posix/*.sh`, `platform/*/*.sh`, `wsl/*.sh`, `.githooks/*`) being committed
+  without the executable bit (`core.fileMode=false` on the Windows authoring machine
+  meant `chmod` was never recorded) — a fresh Linux/macOS clone could not run
+  `./bootstrap` at all until this was fixed.
+- Added `docs/auto-update.md`.
+
+## 3.2.0
+
+- Hardened Windows bootstrap for managed endpoints (execution-policy- and
+  App-Control-safe `workstation` command shim, VS Code/Windows Terminal/font
+  provisioning adjustments).
+- Made WSL provisioning idempotent.
+
 ## 3.1.0
 
 - Added policy-as-code development-environment enforcement.

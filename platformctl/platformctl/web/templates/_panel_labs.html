@@ -1,0 +1,26 @@
+{% for lab in items %}
+  <div class="lab-block">
+    <strong>{{ lab.id }}</strong> <span class="muted">{{ lab.purpose }}</span>
+    {% if lab.containers %}
+      <table>
+        <tbody>
+        {% for c in lab.containers %}
+          <tr><td>{{ c.name }}</td><td>{{ c.state }}</td><td>{{ c.status }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% elif lab.kubernetes_pods %}
+      <table>
+        <tbody>
+        {% for p in lab.kubernetes_pods %}
+          <tr><td>{{ p.name }}</td><td>{{ p.phase }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">Not running.</p>
+    {% endif %}
+  </div>
+{% else %}
+  <p class="muted">No labs defined.</p>
+{% endfor %}

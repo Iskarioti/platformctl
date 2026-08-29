@@ -1,0 +1,24 @@
+{
+  "id": "loki",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": null,
+  "secretKeys": [],
+  "dependsOn": [],
+  "volumes": [
+    "platform-loki-data"
+  ],
+  "hostEndpoints": [
+    {
+      "label": "Loki",
+      "endpoint": "http://127.0.0.1:${LOKI_HOST_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "Loki",
+      "endpoint": "dev-loki:3100"
+    }
+  ]
+}

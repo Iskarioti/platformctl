@@ -1,0 +1,25 @@
+services:
+  otel-collector:
+    image: ${OTEL_COLLECTOR_IMAGE}:${OTEL_COLLECTOR_VERSION}
+    container_name: dev-otel-collector
+    hostname: dev-otel-collector
+    command:
+      - --config=/etc/otelcol-contrib/config.yaml
+    volumes:
+      - ./development/services/otel-collector/config/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "127.0.0.1:${OTEL_COLLECTOR_OTLP_GRPC_HOST_PORT:-4317}:4317"
+      - "127.0.0.1:${OTEL_COLLECTOR_OTLP_HTTP_HOST_PORT:-4318}:4318"
+      - "127.0.0.1:${OTEL_COLLECTOR_METRICS_HOST_PORT:-8888}:8888"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:13133/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [platform-dev]
+    mem_limit: 384m
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev

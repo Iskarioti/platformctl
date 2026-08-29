@@ -1,0 +1,24 @@
+services:
+  node-exporter:
+    image: ${NODE_EXPORTER_IMAGE}:${NODE_EXPORTER_VERSION}
+    container_name: dev-node-exporter
+    hostname: dev-node-exporter
+    pid: host
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host/root
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+    ports:
+      - "127.0.0.1:${NODE_EXPORTER_HOST_PORT:-9100}:9100"
+    networks: [platform-dev]
+    mem_limit: 128m
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev

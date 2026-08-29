@@ -1,0 +1,24 @@
+{
+  "id": "prometheus",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": null,
+  "secretKeys": [],
+  "dependsOn": [],
+  "volumes": [
+    "platform-prometheus-data"
+  ],
+  "hostEndpoints": [
+    {
+      "label": "Prometheus",
+      "endpoint": "http://127.0.0.1:${PROMETHEUS_HOST_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "Prometheus",
+      "endpoint": "dev-prometheus:9090"
+    }
+  ]
+}
