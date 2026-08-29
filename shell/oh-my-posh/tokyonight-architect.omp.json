@@ -8,7 +8,6 @@
     "main-bg": "#24283b",
     "red": "#f7768e",
     "green": "#9ece6a",
-    "aqua": "#73daca",
     "yellow": "#e0af68",
     "blue": "#7aa2f7",
     "cyan": "#7dcfff",
@@ -26,12 +25,19 @@
           "type": "os",
           "style": "plain",
           "foreground": "p:blue",
-          "template": "{{ if .WSL }}󰕈{{ else }}{{ .Icon }}{{ end }} ",
+          "template": "{{ if .WSL }}󰕈 {{ else }}{{ .Icon }} {{ end }}",
           "options": {
             "windows": "󰍲",
             "ubuntu": "󰕈",
             "linux": "󰌽",
-            "macos": "󰀵"
+            "macos": "󰀵",
+            "debian": "󰣚",
+            "fedora": "󰣛",
+            "redhat": "󱄛",
+            "redhatenterprise": "󱄛",
+            "centos": "",
+            "arch": "󰣇",
+            "alpine": ""
           }
         },
         {
@@ -40,7 +46,9 @@
           "foreground": "p:blue",
           "template": "<b>{{ .Path }}</b>{{ if not .Writable }} {{ end }} ",
           "options": {
-            "style": "folder",
+            "style": "agnoster_short",
+            "max_depth": 2,
+            "hide_root_location": true,
             "folder_icon": "…",
             "folder_separator_icon": "/",
             "home_icon": "~"
@@ -64,28 +72,74 @@
           "timeout": 500
         },
         {
+          "type": "python",
+          "style": "plain",
+          "foreground": "p:yellow",
+          "template": " {{ .Full }} ",
+          "options": {
+            "display_mode": "files"
+          },
+          "timeout": 300
+        },
+        {
+          "type": "node",
+          "style": "plain",
+          "foreground": "p:green",
+          "template": " {{ .Full }} ",
+          "options": {
+            "display_mode": "files"
+          },
+          "timeout": 300
+        },
+        {
+          "type": "terraform",
+          "style": "plain",
+          "foreground": "p:magenta",
+          "template": "󱁢 {{ .WorkspaceName }} ",
+          "options": {
+            "fetch_version": false
+          },
+          "timeout": 300
+        },
+        {
+          "type": "docker",
+          "style": "plain",
+          "foreground": "p:blue",
+          "template": " {{ .Context }} ",
+          "options": {
+            "display_mode": "files",
+            "fetch_context": true
+          },
+          "timeout": 300
+        },
+        {
+          "type": "kubectl",
+          "style": "plain",
+          "foreground": "p:blue",
+          "foreground_templates": [
+            "{{ if or (contains \"prod\" .Context) (contains \"production\" .Context) }}p:red{{ end }}"
+          ],
+          "template": "󱃾 {{ .Context }}{{ if .Namespace }}:{{ .Namespace }}{{ end }} ",
+          "options": {
+            "parse_kubeconfig": true,
+            "display_error": false
+          },
+          "timeout": 300
+        },
+        {
           "type": "status",
           "style": "plain",
           "foreground": "p:red",
-          "template": "{{ if ne .Code 0 }}✘ {{ .Code }}{{ end }}",
+          "template": "{{ if ne .Code 0 }}✘{{ .Code }} {{ end }}",
           "options": {
             "always_enabled": true
           }
-        }
-      ]
-    },
-    {
-      "type": "prompt",
-      "alignment": "left",
-      "newline": true,
-      "segments": [
+        },
         {
           "type": "text",
           "style": "plain",
           "foreground": "p:green",
-          "foreground_templates": [
-            "{{ if ne .Code 0 }}p:red{{ end }}"
-          ],
+          "foreground_templates": ["{{ if ne .Code 0 }}p:red{{ end }}"],
           "template": "❯ "
         }
       ]
@@ -95,61 +149,23 @@
       "overflow": "hide",
       "segments": [
         {
-          "type": "python",
-          "style": "plain",
-          "foreground": "p:yellow",
-          "template": " {{ .Full }} ",
-          "timeout": 250
-        },
-        {
-          "type": "node",
-          "style": "plain",
-          "foreground": "p:green",
-          "template": " {{ .Full }} ",
-          "timeout": 250
-        },
-        {
-          "type": "terraform",
-          "style": "plain",
-          "foreground": "p:magenta",
-          "template": "󱁢 {{ .WorkspaceName }} ",
-          "options": { "fetch_version": false },
-          "timeout": 250
-        },
-        {
-          "type": "kubectl",
-          "style": "plain",
-          "foreground": "p:blue",
-          "foreground_templates": [
-            "{{ if or (contains \"prod\" .Context) (contains \"production\" .Context) }}p:red{{ end }}"
-          ],
-          "template": "󱃾 {{ .Context }}{{ if .Namespace }}::{{ .Namespace }}{{ end }} ",
-          "options": { "parse_kubeconfig": true, "display_error": false },
-          "min_width": 110,
-          "timeout": 250
-        },
-        {
-          "type": "docker",
-          "style": "plain",
-          "foreground": "p:blue",
-          "template": " {{ .Context }} ",
-          "options": { "display_mode": "files", "fetch_context": true },
-          "min_width": 100,
-          "timeout": 250
-        },
-        {
           "type": "executiontime",
           "style": "plain",
           "foreground": "p:yellow",
           "template": "󰔛 {{ .FormattedMs }} ",
-          "options": { "threshold": 1000, "style": "austin" }
+          "options": {
+            "threshold": 1000,
+            "style": "austin"
+          }
         },
         {
           "type": "time",
           "style": "plain",
           "foreground": "p:muted",
           "template": " {{ .CurrentDate | date .Format }}",
-          "options": { "time_format": "15:04" }
+          "options": {
+            "time_format": "15:04"
+          }
         }
       ]
     }
