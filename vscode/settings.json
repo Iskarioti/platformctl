@@ -417,5 +417,14 @@
     "https://developer.microsoft.com/json-schemas/": true,
     "https://biomejs.dev": true
   },
-  "claudeCode.preferredLocation": "panel"
+  "claudeCode.preferredLocation": "panel",
+  "yaml.disableSchemaDetection": [
+    "**/.github/workflows/*.yml",
+    "**/.github/workflows/*.yaml",
+    "**/.gitea/workflows/*.yml",
+    "**/.gitea/workflows/*.yaml",
+    "**/.forgejo/workflows/*.yml",
+    "**/.forgejo/workflows/*.yaml"
+  ],
+  "editor.fontSize": 13
 }
