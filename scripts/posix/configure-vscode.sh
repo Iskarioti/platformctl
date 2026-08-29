@@ -18,6 +18,31 @@ cp -f "$ROOT/vscode/settings.json" "$TARGET"
 if command -v code >/dev/null 2>&1; then
   while IFS= read -r extension; do
     [[ -z "$extension" ]] && continue
-    code --install-extension "$extension" --force >/dev/null || true
+    [[ "$extension" =~ ^[[:space:]]*# ]] && continue
+
+    printf 'VS Code extension: %-45s ' "$extension"
+
+    output="$(
+      code \
+        --install-extension "$extension" \
+        --force \
+        2>&1
+    )"
+    status=$?
+
+    if [[ "$status" -eq 0 ]]; then
+      echo "PASS"
+    else
+      echo "FAIL"
+
+      # Remove only the known Node.js deprecation noise.
+      printf '%s\n' "$output" |
+        sed \
+          '/\[DEP0169\] DeprecationWarning: `url\.parse()`/d' \
+          | sed \
+          '/Use `node --trace-deprecation/d' >&2
+
+      exit "$status"
+    fi
   done < "$ROOT/vscode/extensions.txt"
 fi
