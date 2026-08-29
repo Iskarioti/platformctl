@@ -157,7 +157,7 @@ function wu {
 }
 
 function linux {
-    wsl.exe -d Ubuntu-24.04
+    wsl.exe -d Ubuntu-24.04 --cd ~
 }
 
 function ops {
