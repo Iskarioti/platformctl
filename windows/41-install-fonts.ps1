@@ -28,17 +28,82 @@ Expand-Archive -Path $Archive -DestinationPath $Extract -Force
 $UserFonts = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
 New-Item -ItemType Directory -Path $UserFonts -Force | Out-Null
 
-$Fonts = Get-ChildItem (Join-Path $Extract "fonts\ttf") -Filter "JetBrainsMono-*.ttf"
+$Fonts = Get-ChildItem `
+    (Join-Path $Extract "fonts\ttf") `
+    -Filter "JetBrainsMono-*.ttf"
+
 foreach ($Font in $Fonts) {
     $Target = Join-Path $UserFonts $Font.Name
-    Copy-Item $Font.FullName $Target -Force
+    $NeedsCopy = $true
 
-    # Register for current user using native registry tooling.
+    if (Test-Path -LiteralPath $Target) {
+        $SourceHash = (
+            Get-FileHash `
+                -LiteralPath $Font.FullName `
+                -Algorithm SHA256
+        ).Hash
+
+        $TargetHash = (
+            Get-FileHash `
+                -LiteralPath $Target `
+                -Algorithm SHA256
+        ).Hash
+
+        if ($SourceHash -eq $TargetHash) {
+            Write-Host "Already installed: $($Font.Name)"
+            $NeedsCopy = $false
+        }
+        else {
+            Write-Host "Update required: $($Font.Name)"
+        }
+    }
+
+    if ($NeedsCopy) {
+        try {
+            Copy-Item `
+                -LiteralPath $Font.FullName `
+                -Destination $Target `
+                -Force
+
+            Write-Host "Installed: $($Font.Name)"
+        }
+        catch {
+            throw @"
+Unable to update font:
+
+  $($Font.Name)
+
+Destination:
+  $Target
+
+The existing font differs from JetBrains Mono $Version and is currently
+locked by another process.
+
+Close applications using JetBrains Mono, including Windows Terminal,
+VS Code and other editors, then rerun the font installer.
+
+Original error:
+  $($_.Exception.Message)
+"@
+        }
+    }
+
+    # Ensure current-user registration exists even when the physical
+    # font file was already correct.
     $RegName = "$($Font.BaseName) (TrueType)"
-    reg.exe add "HKCU\Software\Microsoft\Windows NT\CurrentVersion\Fonts" `
-        /v $RegName /t REG_SZ /d $Target /f | Out-Null
-}
 
+    reg.exe add `
+        "HKCU\Software\Microsoft\Windows NT\CurrentVersion\Fonts" `
+        /v $RegName `
+        /t REG_SZ `
+        /d $Target `
+        /f |
+        Out-Null
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to register font: $($Font.Name)"
+    }
+}
 # Nerd Font terminal family through the NerdFonts module.
 if (-not (Get-Module -ListAvailable -Name NerdFonts)) {
     Write-Host "Installing NerdFonts PowerShell resource..."

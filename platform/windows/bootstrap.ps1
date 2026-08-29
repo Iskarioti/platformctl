@@ -6,10 +6,29 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 
-function Run([string]$Relative, [string[]]$Args=@()) {
+function Run {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Relative,
+
+        [string[]]$Arguments = @()
+    )
+
     $Path = Join-Path $Root $Relative
-    Write-Host "`n=== $Relative ===" -ForegroundColor Cyan
-    & $Path @Args
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "Required bootstrap component not found: $Path"
+    }
+
+    Write-Host ""
+    Write-Host "=== $Relative ===" -ForegroundColor Cyan
+
+    pwsh.exe `
+        -NoLogo `
+        -NoProfile `
+        -File $Path `
+        @Arguments
+
     if ($LASTEXITCODE -ne 0) {
         throw "$Relative failed with exit code $LASTEXITCODE"
     }

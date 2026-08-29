@@ -1,38 +1,421 @@
 {
-  "editor.fontFamily": "'JetBrains Mono', Consolas, 'Courier New', monospace",
-  "editor.fontLigatures": true,
-  "editor.fontSize": 14,
-  "editor.lineHeight": 1.55,
-  "editor.minimap.enabled": false,
-  "editor.renderWhitespace": "selection",
-  "editor.rulers": [
-    100,
-    120
-  ],
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.organizeImports": "explicit"
+  // =========================================================================
+  // General Workbench & Editor Settings
+  // =========================================================================
+  "workbench.editor.enablePreview": false,
+  "workbench.activityBar.location": "hidden",
+  "workbench.layoutControl.enabled": false,
+  "workbench.colorTheme": "Dark+",
+  "workbench.iconTheme": "material-icon-theme",
+  "editor.minimap.enabled": true,
+  "editor.renderWhitespace": "all",
+  "editor.wordWrap": "on",
+  "editor.stickyScroll.enabled": true,
+  "editor.renderLineHighlight": "all",
+  "editor.inlineSuggest.enabled": true,
+  "editor.quickSuggestions": {
+    "other": "on",
+    "comments": "off",
+    "strings": "on"
   },
+  "editor.suggest.insertMode": "replace",
+  "editor.suggestSelection": "first",
+  "editor.tabSize": 4,
+  "editor.insertSpaces": true,
+  "editor.foldingStrategy": "indentation",
+  "editor.formatOnSave": true,
+  "editor.bracketPairColorization.enabled": true,
+  "editor.fontFamily": "JetBrains Mono",
+  "editor.fontLigatures": true,
+  "editor.lineHeight": 1.4,
+  "editor.cursorBlinking": "smooth",
+  "editor.cursorWidth": 3,
+  "editor.linkedEditing": true,
+  "diffEditor.wordWrap": "on",
+  "diffEditor.ignoreTrimWhitespace": true,
+  "diffEditor.renderSideBySide": true,
   "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true,
-  "files.autoSave": "off",
-  "terminal.integrated.fontFamily": "JetBrainsMono Nerd Font Mono",
-  "terminal.integrated.fontSize": 12,
+  "files.eol": "\n",
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.trunk/**": true,
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/*.pyc": true,
+    "**/__pycache__": true,
+    "**/build": true,
+    "**/*.egg-info": true
+  },
+  "files.associations": {
+    "flake.lock": "json",
+    "*.env": "env",
+    "*.toml": "toml",
+    "*.lock": "toml",
+    "MLTable": "yaml",
+    "*.env*": "dotenv",
+    ".env*": "dotenv",
+    "Dockerfile*": "dockerfile"
+  },
+  "search.useIgnoreFiles": true,
+  "search.exclude": {
+    "**/dist": true,
+    "**/build": true,
+    "**/coverage": true
+  },
+  "explorer.confirmDelete": false,
+  "explorer.confirmDragAndDrop": false,
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "terminal.integrated.fontFamily": "JetBrains Mono Nerd Font",
+  "terminal.integrated.fontSize": 14,
+  "terminal.integrated.cursorWidth": 2,
   "terminal.integrated.lineHeight": 1.2,
-  "terminal.integrated.scrollback": 20000,
-  "terminal.integrated.enablePersistentSessions": true,
-  "terminal.integrated.copyOnSelection": false,
-  "terminal.integrated.rightClickBehavior": "default",
-  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.tabs.enabled": false,
+  "terminal.integrated.profiles.linux": {
+    "bash": {
+      "path": "bash"
+    },
+    "zsh": {
+      "path": "zsh"
+    },
+    "fish": {
+      "path": "fish"
+    }
+  },
   "terminal.integrated.defaultProfile.linux": "bash",
-  "terminal.integrated.defaultProfile.osx": "zsh",
+  "terminal.integrated.wordSeparators": " ()[]{}\"',;:.<>~!@#$%^&*|+=`~",
+  "terminal.integrated.enableMultiLinePasteWarning": "always",
+  "security.workspace.trust.untrustedFiles": "open",
+  // =========================================================================
+  // Git & Merge Settings
+  // =========================================================================
   "git.autofetch": true,
-  "git.confirmSync": true,
-  "git.enableSmartCommit": true,
+  "git.pullTags": true,
+  "git.confirmForcePush": true,
+  "git.pruneOnFetch": true,
+  "git.confirmSync": false,
+  "git.ignoreLimitWarning": true,
+  "git.openRepositoryInParentFolders": "never",
+  "mergeEditor.enabled": true,
+  // =========================================================================
+  // Language-Specific Defaults
+  // =========================================================================
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit",
+    "source.fixAll.ruff": "explicit",
+    "source.fixAll": "explicit"
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  // =========================================================================
+  // Python
+  // =========================================================================
+  "flake8.args": ["--max-line-length=100", "--ignore=E203,W503", "--exclude=.git,__pycache__,venv"],
+  "python.languageServer": "Pylance",
+  "python.formatting.provider": "none",
+  "python.linting.enabled": true,
+  "python.linting.lintOnSave": true,
+  "python.linting.mypyEnabled": true,
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.inlayHints.functionReturnTypes": true,
+  "python.analysis.inlayHints.variableTypes": true,
+  "python.analysis.inlayHints.pytestParameters": true,
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit",
+      "source.fixAll.ruff": "explicit",
+      "source.fixAll": "explicit"
+    },
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.rulers": [100, 120]
+  },
+  // =========================================================================
+  // Go
+  // =========================================================================
+  "go.useLanguageServer": true,
+  "go.formatTool": "goimports",
+  "go.lintTool": "golangci-lint",
+  "go.vetOnSave": "package",
+  "go.lintOnSave": "package",
+  "go.lintFlags": ["--fast"],
+  "go.buildOnSave": "package",
+  "go.testFlags": ["-v"],
+  "go.testOnSave": false,
+  "go.toolsManagement.autoUpdate": true,
+  "gopls": {
+    "usePlaceholders": true,
+    "staticcheck": true,
+    "analyses": {
+      "unusedparams": true,
+      "shadow": true,
+      "nilness": true,
+      "unusedwrite": true
+    },
+    "ui.inlayHint.enable": true
+  },
+  "[go]": {
+    "editor.defaultFormatter": "golang.go",
+    "editor.formatOnSave": true,
+    "editor.insertSpaces": true,
+    "editor.tabSize": 4
+  },
+  // =========================================================================
+  // TypeScript & JavaScript
+  // =========================================================================
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.preferences.quoteStyle": "single",
+  "typescript.suggest.completeFunctionCalls": true,
+  "typescript.validate.enable": true,
+  "javascript.preferences.quoteStyle": "single",
+  "javascript.validate.enable": true,
+  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+  "eslint.probe": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+  "eslint.lintTask.enable": true,
+  "eslint.alwaysShowStatus": true,
+  "emmet.includeLanguages": {
+    "javascript": "javascriptreact",
+    "typescript": "typescriptreact"
+  },
+  "[typescript]": {
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2,
+    "editor.rulers": [100, 120]
+  },
+  "[typescriptreact]": {
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2,
+    "editor.rulers": [100, 120]
+  },
+  "[javascript]": {
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2,
+    "editor.rulers": [100, 120]
+  },
+  "[javascriptreact]": {
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2,
+    "editor.rulers": [100, 120]
+  },
+  // =========================================================================
+  // Rust
+  // =========================================================================
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4,
+    "editor.rulers": [100]
+  },
+  "rust-analyzer.checkOnSave.command": "clippy",
+  "rust-analyzer.inlayHints.lifetimeElisionHints": {
+    "enable": "always"
+  },
+  "rust-analyzer.inlayHints.parameterHints": true,
+  "rust-analyzer.inlayHints.typeHints": true,
+  // =========================================================================
+  // Bash & Shell
+  // =========================================================================
+  "[shellscript]": {
+    "editor.defaultFormatter": "foxundermoon.shell-format",
+    "editor.formatOnSave": true
+  },
+  "[properties]": {
+    "editor.defaultFormatter": "foxundermoon.shell-format"
+  },
+  "[ignore]": {
+    "editor.defaultFormatter": "foxundermoon.shell-format"
+  },
+  // =========================================================================
+  // DevOps & Infrastructure as Code (IaC)
+  // =========================================================================
+  // Docker
+  "[dockerfile]": {
+    "editor.defaultFormatter": "ms-azuretools.vscode-docker",
+    "editor.tabSize": 4
+  },
+  "[dockercompose]": {
+    "editor.defaultFormatter": "ms-azuretools.vscode-docker",
+    "editor.tabSize": 2
+  },
+  "docker.autoStartContainers": false,
+  "docker.extension.enableComposeLanguageServer": true,
+  // Kubernetes & YAML
+  "kubernetes.validate": true,
+  "kubernetes.kubectl-path": "auto",
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+  // Terraform
+  "[terraform]": {
+    "editor.defaultFormatter": "hashicorp.terraform",
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.formatOnSave": true
+  },
+  "[tfvars]": {
+    "editor.defaultFormatter": "hashicorp.terraform",
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.formatOnSave": true
+  },
+  "terraform.languageServer.enable": true,
+  "terraform.validation.enableEnhancedValidation": true,
+  // Other DevOps Files
+  "[dotenv]": {
+    "editor.defaultFormatter": "dotenv.dotenv-vscode"
+  },
+  "[makefile]": {
+    "editor.insertSpaces": false
+  },
+  "makefile.configureOnOpen": true,
+  // =========================================================================
+  // Other Language and Extension Settings
+  // =========================================================================
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[toml]": {
+    "editor.defaultFormatter": "tamasfe.even-better-toml"
+  },
+  "[markdown]": {
+    "editor.wordWrap": "on"
+  },
+  "prettier.semi": true,
+  "prettier.singleQuote": true,
+  "prettier.printWidth": 100,
+  "prettier.arrowParens": "always",
+  "prettier.trailingComma": "all",
+  "prettier.jsxSingleQuote": true,
+  "prettier.bracketSpacing": true,
+  "prettier.useEditorConfig": true,
+  "dotenv.enableAutocloaking": false,
+  "djlint.showInstallError": false,
+  "remote.SSH.remotePlatform": {
+    "2Africa2": "linux",
+    "2africa": "linux",
+    "portal": "linux",
+    "2Africa3": "linux",
+    "WioccWazuhSiem": "linux",
+    "10.107.5.15": "linux"
+  },
+  "remote.autoRefresh": true,
+  "liveServer.settings.donotShowInfoMsg": true,
+  "redhat.telemetry.enabled": false,
+  "react-native-tools.showUserTips": false,
+  "github.copilot.nextEditSuggestions.enabled": true,
+  "editor.tokenColorCustomizations": {
+    "[*Light*]": {
+      "textMateRules": [
+        {
+          "scope": "ref.matchtext",
+          "settings": {
+            "foreground": "#000"
+          }
+        }
+      ]
+    },
+    "[*Dark*]": {
+      "textMateRules": [
+        {
+          "scope": "ref.matchtext",
+          "settings": {
+            "foreground": "#fff"
+          }
+        }
+      ]
+    },
+    "textMateRules": []
+  },
+  "window.menuBarVisibility": "compact",
+  "editor.suggest.showStatusBar": true,
+  "chat.instructionsFilesLocations": {
+    ".github/instructions": true,
+    ".claude/rules": true,
+    "~/.copilot/instructions": true,
+    "~/.claude/rules": true,
+    "/tmp/postman-collections-post-response.instructions.md": true,
+    "/tmp/postman-collections-pre-request.instructions.md": true,
+    "/tmp/postman-folder-post-response.instructions.md": true,
+    "/tmp/postman-folder-pre-request.instructions.md": true,
+    "/tmp/postman-http-request-post-response.instructions.md": true,
+    "/tmp/postman-http-request-pre-request.instructions.md": true,
+    "C:\\Users\\ANDREW~1\\AppData\\Local\\Temp\\postman-collections-post-response.instructions.md": true,
+    "C:\\Users\\ANDREW~1\\AppData\\Local\\Temp\\postman-collections-pre-request.instructions.md": true,
+    "C:\\Users\\ANDREW~1\\AppData\\Local\\Temp\\postman-folder-post-response.instructions.md": true,
+    "C:\\Users\\ANDREW~1\\AppData\\Local\\Temp\\postman-folder-pre-request.instructions.md": true,
+    "C:\\Users\\ANDREW~1\\AppData\\Local\\Temp\\postman-http-request-post-response.instructions.md": true,
+    "C:\\Users\\ANDREW~1\\AppData\\Local\\Temp\\postman-http-request-pre-request.instructions.md": true,
+    "/var/folders/yj/t_5qjq_93ml9_3d_sd7fz0c00000gn/T/postman-collections-post-response.instructions.md": true,
+    "/var/folders/yj/t_5qjq_93ml9_3d_sd7fz0c00000gn/T/postman-collections-pre-request.instructions.md": true,
+    "/var/folders/yj/t_5qjq_93ml9_3d_sd7fz0c00000gn/T/postman-folder-post-response.instructions.md": true,
+    "/var/folders/yj/t_5qjq_93ml9_3d_sd7fz0c00000gn/T/postman-folder-pre-request.instructions.md": true,
+    "/var/folders/yj/t_5qjq_93ml9_3d_sd7fz0c00000gn/T/postman-http-request-post-response.instructions.md": true,
+    "/var/folders/yj/t_5qjq_93ml9_3d_sd7fz0c00000gn/T/postman-http-request-pre-request.instructions.md": true,
+    "/var/folders/qt/70t4mz4n2d38pd1fntz357v40000gn/T/postman-collections-post-response.instructions.md": true,
+    "/var/folders/qt/70t4mz4n2d38pd1fntz357v40000gn/T/postman-collections-pre-request.instructions.md": true,
+    "/var/folders/qt/70t4mz4n2d38pd1fntz357v40000gn/T/postman-folder-post-response.instructions.md": true,
+    "/var/folders/qt/70t4mz4n2d38pd1fntz357v40000gn/T/postman-folder-pre-request.instructions.md": true,
+    "/var/folders/qt/70t4mz4n2d38pd1fntz357v40000gn/T/postman-http-request-post-response.instructions.md": true,
+    "/var/folders/qt/70t4mz4n2d38pd1fntz357v40000gn/T/postman-http-request-pre-request.instructions.md": true
+  },
+  "[nginx]": {
+    "editor.defaultFormatter": "ahmadalli.vscode-nginx-conf"
+  },
+  "editor.unicodeHighlight.invisibleCharacters": false,
+  "editor.unicodeHighlight.ambiguousCharacters": false,
+  "remote.autoForwardPortsSource": "hybrid",
+  "[nix]": {
+    "editor.defaultFormatter": "jnoortheen.nix-ide"
+  },
   "workbench.startupEditor": "none",
-  "workbench.editor.enablePreview": false,
-  "breadcrumbs.enabled": true,
-  "explorer.confirmDelete": true,
-  "security.workspace.trust.enabled": true,
-  "remote.autoForwardPortsSource": "hybrid"
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "postman.mcp.notifications.postmanMCP": false,
+  "[github-actions-workflow]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "cSpell.userWords": ["Kariuki"],
+  "dev.containers.environment": {
+    "GIT_SSH_COMMAND": "ssh -o UserKnownHostsFile=/tmp/devcontainer_known_hosts -o StrictHostKeyChecking=accept-new"
+  },
+  "[jinja]": {
+    "editor.defaultFormatter": "monosans.djlint"
+  },
+  "workbench.secondarySideBar.defaultVisibility": "hidden",
+  "chat.tools.terminal.outputLocation": "chat",
+  "chat.viewSessions.orientation": "stacked",
+  "json.schemaDownload.trustedDomains": {
+    "https://schemastore.azurewebsites.net/": true,
+    "https://raw.githubusercontent.com/microsoft/vscode/": true,
+    "https://raw.githubusercontent.com/devcontainers/spec/": true,
+    "https://www.schemastore.org/": true,
+    "https://json.schemastore.org/": true,
+    "https://json-schema.org/": true,
+    "https://developer.microsoft.com/json-schemas/": true,
+    "https://biomejs.dev": true
+  },
+  "claudeCode.preferredLocation": "panel"
 }

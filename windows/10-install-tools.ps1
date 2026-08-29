@@ -7,7 +7,9 @@ $packages = @(
     @{ Name = "Visual Studio Code"; Id = "Microsoft.VisualStudioCode" },
     @{ Name = "PowerToys";          Id = "Microsoft.PowerToys" },
     @{ Name = "Git";                Id = "Git.Git" },
+    @{ Name = "GitHub CLI";         Id = "GitHub.cli" },
     @{ Name = "Azure CLI";          Id = "Microsoft.AzureCLI" },
+    @{ Name = "jq";                 Id = "jqlang.jq" },
     @{ Name = "7-Zip";              Id = "7zip.7zip" },
     @{ Name = "Wireshark";          Id = "WiresharkFoundation.Wireshark" }
 )
@@ -49,21 +51,66 @@ foreach ($pkg in $packages) {
     }
 }
 
-# Sysinternals: use the Microsoft Store package while the stable WinGet ZIP
-# manifest can become temporarily stale when Microsoft replaces the archive.
+# Sysinternals Suite
+#
+# Treat an existing installation as success regardless of whether it came
+# from the winget community source or Microsoft Store. WinGet may return a
+# non-zero code when "install" encounters an already-installed package with
+# no available upgrade, which must not fail the workstation bootstrap.
+
 Write-Host ""
 Write-Host "=== Sysinternals Suite ===" -ForegroundColor Cyan
-$SysinternalsStoreId = "9P7KNL5RWT25"
-winget list --id $SysinternalsStoreId --source msstore 2>$null | Out-Null
+
+$SysinternalsWingetId = "Microsoft.Sysinternals.Suite"
+$SysinternalsStoreId  = "9P7KNL5RWT25"
+$SysinternalsInstalled = $false
+
+# Check community WinGet package first.
+winget list --id $SysinternalsWingetId --exact 2>$null | Out-Null
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "Sysinternals Suite already installed."
-} else {
-    winget install --id $SysinternalsStoreId --source msstore `
-        --accept-package-agreements --accept-source-agreements
-    if ($LASTEXITCODE -ne 0) {
-        $failed += @{ Name = "Sysinternals Suite"; Id = $SysinternalsStoreId }
-        Write-Warning "Sysinternals Store installation failed. Do not bypass installer hash validation."
+    Write-Host "Sysinternals Suite is already installed [$SysinternalsWingetId]."
+    $SysinternalsInstalled = $true
+}
+
+# Check Microsoft Store package.
+if (-not $SysinternalsInstalled) {
+    winget list --id $SysinternalsStoreId --exact 2>$null | Out-Null
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Sysinternals Suite is already installed [$SysinternalsStoreId]."
+        $SysinternalsInstalled = $true
     }
+}
+
+# Install only when neither package is present.
+if (-not $SysinternalsInstalled) {
+    Write-Host "Installing Sysinternals Suite..."
+
+    winget install `
+        --id $SysinternalsStoreId `
+        --exact `
+        --source msstore `
+        --accept-package-agreements `
+        --accept-source-agreements
+
+    # Do not rely only on winget's install exit code.
+    # Verify actual installed state after the operation.
+    winget list --id $SysinternalsStoreId --exact 2>$null | Out-Null
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Sysinternals Suite installed successfully."
+        $SysinternalsInstalled = $true
+    }
+}
+
+if (-not $SysinternalsInstalled) {
+    $failed += @{
+        Name = "Sysinternals Suite"
+        Id   = $SysinternalsStoreId
+    }
+
+    Write-Warning "Sysinternals Suite could not be verified as installed."
+    Write-Warning "Installer security/hash validation was not bypassed."
 }
 
 Write-Host ""

@@ -463,3 +463,13 @@ if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
         }
     }
 }
+
+function workstation {
+    $RepoPathFile = Join-Path $HOME ".config\workstation\repo-path"
+    if (-not (Test-Path $RepoPathFile)) {
+        Write-Error "Workstation repo path is not registered."
+        return
+    }
+    $Repo = (Get-Content $RepoPathFile -Raw).Trim()
+    & pwsh.exe -NoLogo -NoProfile -File (Join-Path $Repo "setup.ps1") @args
+}

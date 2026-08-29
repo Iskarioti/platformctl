@@ -12,16 +12,36 @@ $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $Root
 
 function Invoke-RepoScript {
-    param([string]$Path, [string[]]$Args)
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path,
+
+        [string[]]$Arguments = @()
+    )
+
     $Full = Join-Path $Root $Path
-    & $Full @Args
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+    if (-not (Test-Path -LiteralPath $Full -PathType Leaf)) {
+        throw "Required setup component not found: $Full"
+    }
+
+    Write-Host "Running: $Path"
+
+    pwsh.exe `
+        -NoLogo `
+        -NoProfile `
+        -File $Full `
+        @Arguments
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Path failed with exit code $LASTEXITCODE"
+    }
 }
 
 switch ($Command.ToLowerInvariant()) {
     "bootstrap" {
         if ($IsWindows -or $env:OS -eq "Windows_NT") {
-            Invoke-RepoScript "platform\windows\bootstrap.ps1" $Rest
+            Invoke-RepoScript -Path "platform\windows\bootstrap.ps1" -Arguments $Rest
         } elseif ($IsMacOS) {
             & bash (Join-Path $Root "platform/macos/bootstrap.sh") @Rest
         } elseif ($IsLinux) {
@@ -33,30 +53,30 @@ switch ($Command.ToLowerInvariant()) {
 
     "apply" {
         if ($IsWindows -or $env:OS -eq "Windows_NT") {
-            Invoke-RepoScript "scripts\windows\apply.ps1" $Rest
+            Invoke-RepoScript  -Path "scripts\windows\apply.ps1" -Arguments $Rest
         } else {
             & bash (Join-Path $Root "scripts/posix/apply.sh") @Rest
         }
     }
 
     "validate" {
-        Invoke-RepoScript "scripts\ci\validate.ps1" $Rest
+        Invoke-RepoScript -Path "scripts\ci\validate.ps1" -Arguments $Rest
     }
 
     "doctor" {
-        Invoke-RepoScript "scripts\common\doctor.ps1" $Rest
+        Invoke-RepoScript -Path "scripts\common\doctor.ps1" -Arguments $Rest
     }
 
     "sync" {
-        Invoke-RepoScript "scripts\common\autosync.ps1" @("--once") + $Rest
+        Invoke-RepoScript -Path "scripts\common\autosync.ps1" -Arguments @("--once") + $Rest
     }
 
     "publish" {
-        Invoke-RepoScript "scripts\github\publish.ps1" $Rest
+        Invoke-RepoScript -Path "scripts\github\publish.ps1" -Arguments $Rest
     }
 
     "autosync" {
-        Invoke-RepoScript "scripts\common\autosync-control.ps1" $Rest
+        Invoke-RepoScript -Path "scripts\common\autosync-control.ps1" -Arguments $Rest
     }
 
     "update" {
@@ -68,7 +88,7 @@ switch ($Command.ToLowerInvariant()) {
     }
 
     "dry-run" {
-        Invoke-RepoScript "scripts\ci\dry-run.ps1" $Rest
+        Invoke-RepoScript -Path "scripts\ci\dry-run.ps1" -Arguments $Rest
     }
 
     default {

@@ -1,622 +1,622 @@
 {
-    "$help": "https://aka.ms/terminal-documentation",
-    "$schema": "https://aka.ms/terminal-profiles-schema",
-    "defaultProfile": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
-    "disabledProfileSources": [
-        "Windows.Terminal.Wsl",
-        "Microsoft.WSL",
-        "Windows.Terminal.Azure",
-        "Windows.Terminal.PowershellCore",
-        "Windows.Terminal.SSH",
-        "Windows.Terminal.VisualStudio"
-    ],
-    "startOnUserLogin": false,
-    "firstWindowPreference": "defaultProfile",
-    "windowingBehavior": "useExisting",
-    "launchMode": "default",
-    "centerOnLaunch": true,
-    "initialCols": 160,
-    "initialRows": 44,
-    "snapToGridOnResize": true,
-    "theme": "dark",
-    "alwaysOnTop": false,
-    "alwaysShowTabs": true,
-    "showTabsInTitlebar": true,
-    "showTabsFullscreen": true,
-    "showTerminalTitleInTitlebar": true,
-    "useAcrylicInTabRow": false,
-    "tabWidthMode": "titleLength",
-    "newTabPosition": "afterCurrentTab",
-    "tabSwitcherMode": "mru",
-    "disableAnimations": true,
-    "confirmCloseAllTabs": true,
-    "focusFollowMouse": false,
-    "copyFormatting": "none",
-    "copyOnSelect": false,
-    "trimBlockSelection": true,
-    "trimPaste": true,
-    "largePasteWarning": true,
-    "multiLinePasteWarning": true,
-    "experimental.detectURLs": true,
-    "experimental.scrollToZoom": false,
-    "experimental.scrollToChangeOpacity": false,
-    "actions": [
-        {
-            "command": "commandPalette",
-            "id": "User.CommandPalette",
-            "name": "Command Palette"
-        },
-        {
-            "command": {
-                "action": "copy",
-                "singleLine": false
-            },
-            "id": "User.Copy",
-            "name": "Copy"
-        },
-        {
-            "command": "paste",
-            "id": "User.Paste",
-            "name": "Paste"
-        },
-        {
-            "command": "find",
-            "id": "User.Find",
-            "name": "Find in terminal history"
-        },
-        {
-            "command": {
-                "action": "newTab",
-                "profile": "{574e775e-4f2a-5b96-ac1e-a2962a402336}"
-            },
-            "id": "User.NewPowerShellTab",
-            "name": "New PowerShell 7 tab"
-        },
-        {
-            "command": "closePane",
-            "id": "User.ClosePaneOrTab",
-            "name": "Close pane or tab"
-        },
-        {
-            "command": "openTabRenamer",
-            "id": "User.RenameTab",
-            "name": "Rename current tab"
-        },
-        {
-            "command": {
-                "action": "moveTab",
-                "direction": "backward"
-            },
-            "id": "User.MoveTabLeft",
-            "name": "Move tab left"
-        },
-        {
-            "command": {
-                "action": "moveTab",
-                "direction": "forward"
-            },
-            "id": "User.MoveTabRight",
-            "name": "Move tab right"
-        },
-        {
-            "command": "nextTab",
-            "id": "User.NextTab",
-            "name": "Next tab"
-        },
-        {
-            "command": "prevTab",
-            "id": "User.PrevTab",
-            "name": "Previous tab"
-        },
-        {
-            "command": "toggleFocusMode",
-            "id": "User.ToggleFocusMode",
-            "name": "Toggle focus mode"
-        },
-        {
-            "command": {
-                "action": "openSettings",
-                "target": "settingsFile"
-            },
-            "id": "User.OpenSettingsFile",
-            "name": "Open settings.json"
-        },
-        {
-            "command": {
-                "action": "splitPane",
-                "split": "auto",
-                "splitMode": "duplicate"
-            },
-            "id": "User.SplitAuto",
-            "name": "Split PowerShell pane automatically"
-        },
-        {
-            "command": {
-                "action": "splitPane",
-                "split": "vertical",
-                "splitMode": "duplicate"
-            },
-            "id": "User.SplitVertical",
-            "name": "Split PowerShell pane vertically"
-        },
-        {
-            "command": {
-                "action": "splitPane",
-                "split": "horizontal",
-                "splitMode": "duplicate"
-            },
-            "id": "User.SplitHorizontal",
-            "name": "Split PowerShell pane horizontally"
-        },
-        {
-            "command": "togglePaneZoom",
-            "id": "User.TogglePaneZoom",
-            "name": "Zoom active pane"
-        },
-        {
-            "command": {
-                "action": "scrollToMark",
-                "direction": "previous"
-            },
-            "id": "User.PreviousCommand",
-            "name": "Jump to previous command"
-        },
-        {
-            "command": {
-                "action": "scrollToMark",
-                "direction": "next"
-            },
-            "id": "User.NextCommand",
-            "name": "Jump to next command"
-        },
-        {
-            "command": {
-                "action": "addMark",
-                "color": "#BB9AF7"
-            },
-            "id": "User.AddMark",
-            "name": "Add troubleshooting bookmark"
-        },
-        {
-            "command": {
-                "action": "exportBuffer"
-            },
-            "id": "User.ExportBuffer",
-            "name": "Export complete terminal buffer"
-        },
-        {
-            "command": {
-                "action": "clearBuffer",
-                "clear": "all"
-            },
-            "id": "User.ClearBuffer",
-            "name": "Clear terminal buffer"
-        },
-        {
-            "command": "showContextMenu",
-            "id": "User.ContextMenu",
-            "name": "Open terminal context menu"
-        },
-        {
-            "command": {
-                "action": "adjustFontSize",
-                "delta": 1
-            },
-            "id": "User.FontUp",
-            "name": "Increase font size"
-        },
-        {
-            "command": {
-                "action": "adjustFontSize",
-                "delta": -1
-            },
-            "id": "User.FontDown",
-            "name": "Decrease font size"
-        },
-        {
-            "command": "resetFontSize",
-            "id": "User.FontReset",
-            "name": "Reset font size"
-        },
-        {
-            "command": {
-                "action": "globalSummon",
-                "desktop": "toCurrent",
-                "monitor": "toCurrent",
-                "toggleVisibility": true,
-                "dropdownDuration": 0
-            },
-            "id": "User.GlobalSummon",
-            "name": "Summon Windows Terminal"
-        },
-        {
-            "command": {
-                "action": "moveFocus",
-                "direction": "left"
-            },
-            "id": "User.FocusLeft",
-            "name": "Focus pane left"
-        },
-        {
-            "command": {
-                "action": "resizePane",
-                "direction": "left"
-            },
-            "id": "User.ResizeLeft",
-            "name": "Resize pane left"
-        },
-        {
-            "command": {
-                "action": "moveFocus",
-                "direction": "right"
-            },
-            "id": "User.FocusRight",
-            "name": "Focus pane right"
-        },
-        {
-            "command": {
-                "action": "resizePane",
-                "direction": "right"
-            },
-            "id": "User.ResizeRight",
-            "name": "Resize pane right"
-        },
-        {
-            "command": {
-                "action": "moveFocus",
-                "direction": "up"
-            },
-            "id": "User.FocusUp",
-            "name": "Focus pane up"
-        },
-        {
-            "command": {
-                "action": "resizePane",
-                "direction": "up"
-            },
-            "id": "User.ResizeUp",
-            "name": "Resize pane up"
-        },
-        {
-            "command": {
-                "action": "moveFocus",
-                "direction": "down"
-            },
-            "id": "User.FocusDown",
-            "name": "Focus pane down"
-        },
-        {
-            "command": {
-                "action": "resizePane",
-                "direction": "down"
-            },
-            "id": "User.ResizeDown",
-            "name": "Resize pane down"
-        },
-        {
-            "command": {
-                "action": "switchToTab",
-                "index": 0
-            },
-            "id": "User.Tab1",
-            "name": "Switch to tab 1"
-        },
-        {
-            "command": {
-                "action": "switchToTab",
-                "index": 1
-            },
-            "id": "User.Tab2",
-            "name": "Switch to tab 2"
-        },
-        {
-            "command": {
-                "action": "switchToTab",
-                "index": 2
-            },
-            "id": "User.Tab3",
-            "name": "Switch to tab 3"
-        },
-        {
-            "command": {
-                "action": "switchToTab",
-                "index": 3
-            },
-            "id": "User.Tab4",
-            "name": "Switch to tab 4"
-        },
-        {
-            "command": {
-                "action": "switchToTab",
-                "index": 4
-            },
-            "id": "User.Tab5",
-            "name": "Switch to tab 5"
-        },
-        {
-            "command": {
-                "action": "switchToTab",
-                "index": 5
-            },
-            "id": "User.Tab6",
-            "name": "Switch to tab 6"
-        },
-        {
-            "command": {
-                "action": "switchToTab",
-                "index": 6
-            },
-            "id": "User.Tab7",
-            "name": "Switch to tab 7"
-        },
-        {
-            "command": {
-                "action": "switchToTab",
-                "index": 7
-            },
-            "id": "User.Tab8",
-            "name": "Switch to tab 8"
-        }
-    ],
-    "keybindings": [
-        {
-            "id": null,
-            "keys": "ctrl+c"
-        },
-        {
-            "id": null,
-            "keys": "ctrl+v"
-        },
-        {
-            "id": "User.Copy",
-            "keys": "ctrl+shift+c"
-        },
-        {
-            "id": "User.Paste",
-            "keys": "ctrl+shift+v"
-        },
-        {
-            "id": "User.CommandPalette",
-            "keys": "ctrl+shift+p"
-        },
-        {
-            "id": "User.Find",
-            "keys": "ctrl+shift+f"
-        },
-        {
-            "id": "User.OpenSettingsFile",
-            "keys": "ctrl+shift+,"
-        },
-        {
-            "id": "User.ToggleFocusMode",
-            "keys": "ctrl+shift+enter"
-        },
-        {
-            "id": "User.GlobalSummon",
-            "keys": "ctrl+alt+space"
-        },
-        {
-            "id": "User.NewPowerShellTab",
-            "keys": "ctrl+shift+t"
-        },
-        {
-            "id": "User.ClosePaneOrTab",
-            "keys": "ctrl+shift+w"
-        },
-        {
-            "id": "User.NextTab",
-            "keys": "ctrl+tab"
-        },
-        {
-            "id": "User.PrevTab",
-            "keys": "ctrl+shift+tab"
-        },
-        {
-            "id": "User.RenameTab",
-            "keys": "ctrl+shift+r"
-        },
-        {
-            "id": "User.MoveTabLeft",
-            "keys": "ctrl+shift+left"
-        },
-        {
-            "id": "User.MoveTabRight",
-            "keys": "ctrl+shift+right"
-        },
-        {
-            "id": "User.SplitAuto",
-            "keys": "alt+shift+d"
-        },
-        {
-            "id": "User.SplitVertical",
-            "keys": "alt+shift+v"
-        },
-        {
-            "id": "User.SplitHorizontal",
-            "keys": "alt+shift+h"
-        },
-        {
-            "id": "User.TogglePaneZoom",
-            "keys": "alt+shift+enter"
-        },
-        {
-            "id": "User.FocusLeft",
-            "keys": "alt+left"
-        },
-        {
-            "id": "User.FocusRight",
-            "keys": "alt+right"
-        },
-        {
-            "id": "User.FocusUp",
-            "keys": "alt+up"
-        },
-        {
-            "id": "User.FocusDown",
-            "keys": "alt+down"
-        },
-        {
-            "id": "User.ResizeLeft",
-            "keys": "alt+shift+left"
-        },
-        {
-            "id": "User.ResizeRight",
-            "keys": "alt+shift+right"
-        },
-        {
-            "id": "User.ResizeUp",
-            "keys": "alt+shift+up"
-        },
-        {
-            "id": "User.ResizeDown",
-            "keys": "alt+shift+down"
-        },
-        {
-            "id": "User.PreviousCommand",
-            "keys": "ctrl+alt+up"
-        },
-        {
-            "id": "User.NextCommand",
-            "keys": "ctrl+alt+down"
-        },
-        {
-            "id": "User.AddMark",
-            "keys": "ctrl+alt+m"
-        },
-        {
-            "id": "User.ExportBuffer",
-            "keys": "ctrl+shift+e"
-        },
-        {
-            "id": "User.ClearBuffer",
-            "keys": "ctrl+shift+l"
-        },
-        {
-            "id": "User.ContextMenu",
-            "keys": "shift+f10"
-        },
-        {
-            "id": "User.FontUp",
-            "keys": "ctrl+="
-        },
-        {
-            "id": "User.FontDown",
-            "keys": "ctrl+-"
-        },
-        {
-            "id": "User.FontReset",
-            "keys": "ctrl+0"
-        },
-        {
-            "id": "User.Tab1",
-            "keys": "ctrl+alt+1"
-        },
-        {
-            "id": "User.Tab2",
-            "keys": "ctrl+alt+2"
-        },
-        {
-            "id": "User.Tab3",
-            "keys": "ctrl+alt+3"
-        },
-        {
-            "id": "User.Tab4",
-            "keys": "ctrl+alt+4"
-        },
-        {
-            "id": "User.Tab5",
-            "keys": "ctrl+alt+5"
-        },
-        {
-            "id": "User.Tab6",
-            "keys": "ctrl+alt+6"
-        },
-        {
-            "id": "User.Tab7",
-            "keys": "ctrl+alt+7"
-        },
-        {
-            "id": "User.Tab8",
-            "keys": "ctrl+alt+8"
-        }
-    ],
-    "newTabMenu": [
-        {
-            "type": "profile",
-            "profile": "{574e775e-4f2a-5b96-ac1e-a2962a402336}"
-        },
-        {
-            "type": "separator"
-        },
-        {
-            "type": "action",
-            "id": "User.SplitAuto"
-        },
-        {
-            "type": "action",
-            "id": "User.ExportBuffer"
-        }
-    ],
-    "profiles": {
-        "defaults": {
-            "hidden": true,
-            "colorScheme": "Tokyo Night Architect",
-            "font": {
-                "face": "JetBrainsMono Nerd Font Mono",
-                "size": 11,
-                "weight": "normal"
-            },
-            "padding": "12, 8, 12, 8",
-            "antialiasingMode": "cleartype",
-            "adjustIndistinguishableColors": "indexed",
-            "cursorShape": "bar",
-            "scrollbarState": "visible",
-            "historySize": 32767,
-            "autoMarkPrompts": true,
-            "showMarksOnScrollbar": true,
-            "snapOnInput": true,
-            "opacity": 100,
-            "useAcrylic": false,
-            "bellStyle": "taskbar",
-            "closeOnExit": "automatic",
-            "suppressApplicationTitle": false,
-            "elevate": false
-        },
-        "list": [
-            {
-                "guid": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
-                "name": "PowerShell 7",
-                "commandline": "pwsh.exe -NoLogo",
-                "startingDirectory": "%USERPROFILE%",
-                "hidden": false,
-                "tabColor": "#7AA2F7"
-            }
-        ]
+  "$help": "https://aka.ms/terminal-documentation",
+  "$schema": "https://aka.ms/terminal-profiles-schema",
+  "defaultProfile": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+  "disabledProfileSources": [
+    "Windows.Terminal.Wsl",
+    "Microsoft.WSL",
+    "Windows.Terminal.Azure",
+    "Windows.Terminal.PowershellCore",
+    "Windows.Terminal.SSH",
+    "Windows.Terminal.VisualStudio"
+  ],
+  "startOnUserLogin": false,
+  "firstWindowPreference": "defaultProfile",
+  "windowingBehavior": "useExisting",
+  "launchMode": "default",
+  "centerOnLaunch": true,
+  "initialCols": 140,
+  "initialRows": 44,
+  "snapToGridOnResize": true,
+  "theme": "dark",
+  "alwaysOnTop": false,
+  "alwaysShowTabs": true,
+  "showTabsInTitlebar": true,
+  "showTabsFullscreen": true,
+  "showTerminalTitleInTitlebar": true,
+  "useAcrylicInTabRow": false,
+  "tabWidthMode": "titleLength",
+  "newTabPosition": "afterCurrentTab",
+  "tabSwitcherMode": "mru",
+  "disableAnimations": true,
+  "confirmCloseAllTabs": true,
+  "focusFollowMouse": false,
+  "copyFormatting": "none",
+  "copyOnSelect": false,
+  "trimBlockSelection": true,
+  "trimPaste": true,
+  "largePasteWarning": true,
+  "multiLinePasteWarning": true,
+  "experimental.detectURLs": true,
+  "experimental.scrollToZoom": false,
+  "experimental.scrollToChangeOpacity": false,
+  "actions": [
+    {
+      "command": "commandPalette",
+      "id": "User.CommandPalette",
+      "name": "Command Palette"
     },
-    "schemes": [
-        {
-            "name": "Tokyo Night Architect",
-            "background": "#24283B",
-            "foreground": "#C0CAF5",
-            "cursorColor": "#C0CAF5",
-            "selectionBackground": "#33467C",
-            "black": "#15161E",
-            "red": "#F7768E",
-            "green": "#9ECE6A",
-            "yellow": "#E0AF68",
-            "blue": "#7AA2F7",
-            "purple": "#BB9AF7",
-            "cyan": "#7DCFFF",
-            "white": "#A9B1D6",
-            "brightBlack": "#414868",
-            "brightRed": "#F7768E",
-            "brightGreen": "#9ECE6A",
-            "brightYellow": "#E0AF68",
-            "brightBlue": "#7AA2F7",
-            "brightPurple": "#BB9AF7",
-            "brightCyan": "#7DCFFF",
-            "brightWhite": "#C0CAF5"
-        }
-    ],
-    "themes": []
+    {
+      "command": {
+        "action": "copy",
+        "singleLine": false
+      },
+      "id": "User.Copy",
+      "name": "Copy"
+    },
+    {
+      "command": "paste",
+      "id": "User.Paste",
+      "name": "Paste"
+    },
+    {
+      "command": "find",
+      "id": "User.Find",
+      "name": "Find in terminal history"
+    },
+    {
+      "command": {
+        "action": "newTab",
+        "profile": "{574e775e-4f2a-5b96-ac1e-a2962a402336}"
+      },
+      "id": "User.NewPowerShellTab",
+      "name": "New PowerShell 7 tab"
+    },
+    {
+      "command": "closePane",
+      "id": "User.ClosePaneOrTab",
+      "name": "Close pane or tab"
+    },
+    {
+      "command": "openTabRenamer",
+      "id": "User.RenameTab",
+      "name": "Rename current tab"
+    },
+    {
+      "command": {
+        "action": "moveTab",
+        "direction": "backward"
+      },
+      "id": "User.MoveTabLeft",
+      "name": "Move tab left"
+    },
+    {
+      "command": {
+        "action": "moveTab",
+        "direction": "forward"
+      },
+      "id": "User.MoveTabRight",
+      "name": "Move tab right"
+    },
+    {
+      "command": "nextTab",
+      "id": "User.NextTab",
+      "name": "Next tab"
+    },
+    {
+      "command": "prevTab",
+      "id": "User.PrevTab",
+      "name": "Previous tab"
+    },
+    {
+      "command": "toggleFocusMode",
+      "id": "User.ToggleFocusMode",
+      "name": "Toggle focus mode"
+    },
+    {
+      "command": {
+        "action": "openSettings",
+        "target": "settingsFile"
+      },
+      "id": "User.OpenSettingsFile",
+      "name": "Open settings.json"
+    },
+    {
+      "command": {
+        "action": "splitPane",
+        "split": "auto",
+        "splitMode": "duplicate"
+      },
+      "id": "User.SplitAuto",
+      "name": "Split PowerShell pane automatically"
+    },
+    {
+      "command": {
+        "action": "splitPane",
+        "split": "vertical",
+        "splitMode": "duplicate"
+      },
+      "id": "User.SplitVertical",
+      "name": "Split PowerShell pane vertically"
+    },
+    {
+      "command": {
+        "action": "splitPane",
+        "split": "horizontal",
+        "splitMode": "duplicate"
+      },
+      "id": "User.SplitHorizontal",
+      "name": "Split PowerShell pane horizontally"
+    },
+    {
+      "command": "togglePaneZoom",
+      "id": "User.TogglePaneZoom",
+      "name": "Zoom active pane"
+    },
+    {
+      "command": {
+        "action": "scrollToMark",
+        "direction": "previous"
+      },
+      "id": "User.PreviousCommand",
+      "name": "Jump to previous command"
+    },
+    {
+      "command": {
+        "action": "scrollToMark",
+        "direction": "next"
+      },
+      "id": "User.NextCommand",
+      "name": "Jump to next command"
+    },
+    {
+      "command": {
+        "action": "addMark",
+        "color": "#BB9AF7"
+      },
+      "id": "User.AddMark",
+      "name": "Add troubleshooting bookmark"
+    },
+    {
+      "command": {
+        "action": "exportBuffer"
+      },
+      "id": "User.ExportBuffer",
+      "name": "Export complete terminal buffer"
+    },
+    {
+      "command": {
+        "action": "clearBuffer",
+        "clear": "all"
+      },
+      "id": "User.ClearBuffer",
+      "name": "Clear terminal buffer"
+    },
+    {
+      "command": "showContextMenu",
+      "id": "User.ContextMenu",
+      "name": "Open terminal context menu"
+    },
+    {
+      "command": {
+        "action": "adjustFontSize",
+        "delta": 1
+      },
+      "id": "User.FontUp",
+      "name": "Increase font size"
+    },
+    {
+      "command": {
+        "action": "adjustFontSize",
+        "delta": -1
+      },
+      "id": "User.FontDown",
+      "name": "Decrease font size"
+    },
+    {
+      "command": "resetFontSize",
+      "id": "User.FontReset",
+      "name": "Reset font size"
+    },
+    {
+      "command": {
+        "action": "globalSummon",
+        "desktop": "toCurrent",
+        "monitor": "toCurrent",
+        "toggleVisibility": true,
+        "dropdownDuration": 0
+      },
+      "id": "User.GlobalSummon",
+      "name": "Summon Windows Terminal"
+    },
+    {
+      "command": {
+        "action": "moveFocus",
+        "direction": "left"
+      },
+      "id": "User.FocusLeft",
+      "name": "Focus pane left"
+    },
+    {
+      "command": {
+        "action": "resizePane",
+        "direction": "left"
+      },
+      "id": "User.ResizeLeft",
+      "name": "Resize pane left"
+    },
+    {
+      "command": {
+        "action": "moveFocus",
+        "direction": "right"
+      },
+      "id": "User.FocusRight",
+      "name": "Focus pane right"
+    },
+    {
+      "command": {
+        "action": "resizePane",
+        "direction": "right"
+      },
+      "id": "User.ResizeRight",
+      "name": "Resize pane right"
+    },
+    {
+      "command": {
+        "action": "moveFocus",
+        "direction": "up"
+      },
+      "id": "User.FocusUp",
+      "name": "Focus pane up"
+    },
+    {
+      "command": {
+        "action": "resizePane",
+        "direction": "up"
+      },
+      "id": "User.ResizeUp",
+      "name": "Resize pane up"
+    },
+    {
+      "command": {
+        "action": "moveFocus",
+        "direction": "down"
+      },
+      "id": "User.FocusDown",
+      "name": "Focus pane down"
+    },
+    {
+      "command": {
+        "action": "resizePane",
+        "direction": "down"
+      },
+      "id": "User.ResizeDown",
+      "name": "Resize pane down"
+    },
+    {
+      "command": {
+        "action": "switchToTab",
+        "index": 0
+      },
+      "id": "User.Tab1",
+      "name": "Switch to tab 1"
+    },
+    {
+      "command": {
+        "action": "switchToTab",
+        "index": 1
+      },
+      "id": "User.Tab2",
+      "name": "Switch to tab 2"
+    },
+    {
+      "command": {
+        "action": "switchToTab",
+        "index": 2
+      },
+      "id": "User.Tab3",
+      "name": "Switch to tab 3"
+    },
+    {
+      "command": {
+        "action": "switchToTab",
+        "index": 3
+      },
+      "id": "User.Tab4",
+      "name": "Switch to tab 4"
+    },
+    {
+      "command": {
+        "action": "switchToTab",
+        "index": 4
+      },
+      "id": "User.Tab5",
+      "name": "Switch to tab 5"
+    },
+    {
+      "command": {
+        "action": "switchToTab",
+        "index": 5
+      },
+      "id": "User.Tab6",
+      "name": "Switch to tab 6"
+    },
+    {
+      "command": {
+        "action": "switchToTab",
+        "index": 6
+      },
+      "id": "User.Tab7",
+      "name": "Switch to tab 7"
+    },
+    {
+      "command": {
+        "action": "switchToTab",
+        "index": 7
+      },
+      "id": "User.Tab8",
+      "name": "Switch to tab 8"
+    }
+  ],
+  "keybindings": [
+    {
+      "id": null,
+      "keys": "ctrl+c"
+    },
+    {
+      "id": null,
+      "keys": "ctrl+v"
+    },
+    {
+      "id": "User.Copy",
+      "keys": "ctrl+shift+c"
+    },
+    {
+      "id": "User.Paste",
+      "keys": "ctrl+shift+v"
+    },
+    {
+      "id": "User.CommandPalette",
+      "keys": "ctrl+shift+p"
+    },
+    {
+      "id": "User.Find",
+      "keys": "ctrl+shift+f"
+    },
+    {
+      "id": "User.OpenSettingsFile",
+      "keys": "ctrl+shift+,"
+    },
+    {
+      "id": "User.ToggleFocusMode",
+      "keys": "ctrl+shift+enter"
+    },
+    {
+      "id": "User.GlobalSummon",
+      "keys": "ctrl+alt+space"
+    },
+    {
+      "id": "User.NewPowerShellTab",
+      "keys": "ctrl+shift+t"
+    },
+    {
+      "id": "User.ClosePaneOrTab",
+      "keys": "ctrl+shift+w"
+    },
+    {
+      "id": "User.NextTab",
+      "keys": "ctrl+tab"
+    },
+    {
+      "id": "User.PrevTab",
+      "keys": "ctrl+shift+tab"
+    },
+    {
+      "id": "User.RenameTab",
+      "keys": "ctrl+shift+r"
+    },
+    {
+      "id": "User.MoveTabLeft",
+      "keys": "ctrl+shift+left"
+    },
+    {
+      "id": "User.MoveTabRight",
+      "keys": "ctrl+shift+right"
+    },
+    {
+      "id": "User.SplitAuto",
+      "keys": "alt+shift+d"
+    },
+    {
+      "id": "User.SplitVertical",
+      "keys": "alt+shift+v"
+    },
+    {
+      "id": "User.SplitHorizontal",
+      "keys": "alt+shift+h"
+    },
+    {
+      "id": "User.TogglePaneZoom",
+      "keys": "alt+shift+enter"
+    },
+    {
+      "id": "User.FocusLeft",
+      "keys": "alt+left"
+    },
+    {
+      "id": "User.FocusRight",
+      "keys": "alt+right"
+    },
+    {
+      "id": "User.FocusUp",
+      "keys": "alt+up"
+    },
+    {
+      "id": "User.FocusDown",
+      "keys": "alt+down"
+    },
+    {
+      "id": "User.ResizeLeft",
+      "keys": "alt+shift+left"
+    },
+    {
+      "id": "User.ResizeRight",
+      "keys": "alt+shift+right"
+    },
+    {
+      "id": "User.ResizeUp",
+      "keys": "alt+shift+up"
+    },
+    {
+      "id": "User.ResizeDown",
+      "keys": "alt+shift+down"
+    },
+    {
+      "id": "User.PreviousCommand",
+      "keys": "ctrl+alt+up"
+    },
+    {
+      "id": "User.NextCommand",
+      "keys": "ctrl+alt+down"
+    },
+    {
+      "id": "User.AddMark",
+      "keys": "ctrl+alt+m"
+    },
+    {
+      "id": "User.ExportBuffer",
+      "keys": "ctrl+shift+e"
+    },
+    {
+      "id": "User.ClearBuffer",
+      "keys": "ctrl+shift+l"
+    },
+    {
+      "id": "User.ContextMenu",
+      "keys": "shift+f10"
+    },
+    {
+      "id": "User.FontUp",
+      "keys": "ctrl+="
+    },
+    {
+      "id": "User.FontDown",
+      "keys": "ctrl+-"
+    },
+    {
+      "id": "User.FontReset",
+      "keys": "ctrl+0"
+    },
+    {
+      "id": "User.Tab1",
+      "keys": "ctrl+alt+1"
+    },
+    {
+      "id": "User.Tab2",
+      "keys": "ctrl+alt+2"
+    },
+    {
+      "id": "User.Tab3",
+      "keys": "ctrl+alt+3"
+    },
+    {
+      "id": "User.Tab4",
+      "keys": "ctrl+alt+4"
+    },
+    {
+      "id": "User.Tab5",
+      "keys": "ctrl+alt+5"
+    },
+    {
+      "id": "User.Tab6",
+      "keys": "ctrl+alt+6"
+    },
+    {
+      "id": "User.Tab7",
+      "keys": "ctrl+alt+7"
+    },
+    {
+      "id": "User.Tab8",
+      "keys": "ctrl+alt+8"
+    }
+  ],
+  "newTabMenu": [
+    {
+      "type": "profile",
+      "profile": "{574e775e-4f2a-5b96-ac1e-a2962a402336}"
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "action",
+      "id": "User.SplitAuto"
+    },
+    {
+      "type": "action",
+      "id": "User.ExportBuffer"
+    }
+  ],
+  "profiles": {
+    "defaults": {
+      "hidden": true,
+      "colorScheme": "Tokyo Night Architect",
+      "font": {
+        "face": "JetBrainsMono Nerd Font Mono",
+        "size": 11,
+        "weight": "normal"
+      },
+      "padding": "12, 8, 12, 8",
+      "antialiasingMode": "cleartype",
+      "adjustIndistinguishableColors": "indexed",
+      "cursorShape": "bar",
+      "scrollbarState": "visible",
+      "historySize": 32767,
+      "autoMarkPrompts": true,
+      "showMarksOnScrollbar": true,
+      "snapOnInput": true,
+      "opacity": 100,
+      "useAcrylic": false,
+      "bellStyle": "taskbar",
+      "closeOnExit": "automatic",
+      "suppressApplicationTitle": false,
+      "elevate": false
+    },
+    "list": [
+      {
+        "guid": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+        "name": "PowerShell 7",
+        "commandline": "pwsh.exe -NoLogo",
+        "startingDirectory": "%USERPROFILE%",
+        "hidden": false,
+        "tabColor": "#7AA2F7"
+      }
+    ]
+  },
+  "schemes": [
+    {
+      "name": "Tokyo Night Architect",
+      "background": "#24283B",
+      "foreground": "#C0CAF5",
+      "cursorColor": "#C0CAF5",
+      "selectionBackground": "#33467C",
+      "black": "#15161E",
+      "red": "#F7768E",
+      "green": "#9ECE6A",
+      "yellow": "#E0AF68",
+      "blue": "#7AA2F7",
+      "purple": "#BB9AF7",
+      "cyan": "#7DCFFF",
+      "white": "#A9B1D6",
+      "brightBlack": "#414868",
+      "brightRed": "#F7768E",
+      "brightGreen": "#9ECE6A",
+      "brightYellow": "#E0AF68",
+      "brightBlue": "#7AA2F7",
+      "brightPurple": "#BB9AF7",
+      "brightCyan": "#7DCFFF",
+      "brightWhite": "#C0CAF5"
+    }
+  ],
+  "themes": []
 }
