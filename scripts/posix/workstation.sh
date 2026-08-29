@@ -24,6 +24,7 @@ case "$CMD" in
     ;;
   enforce) exec "$ROOT/scripts/posix/enforce.sh" "$@" ;;
   project) exec "$ROOT/scripts/posix/project.sh" "$@" ;;
+  services) exec "$ROOT/scripts/posix/services.sh" "$@" ;;
   sync) exec "$ROOT/scripts/common/autosync.sh" --once ;;
   publish)
     if command -v pwsh >/dev/null 2>&1; then
@@ -51,7 +52,7 @@ case "$CMD" in
     "$ROOT/scripts/posix/workstation.sh" validate
     ;;
   *)
-    cat <<'EOF'
+    cat <<'EOF_HELP'
 workstation commands:
   bootstrap
   apply
@@ -63,11 +64,24 @@ workstation commands:
   project doctor [path]
   project open [path]
   project templates
+  services init
+  services list
+  services up [service|profile ...]
+  services stop <service ...>
+  services down
+  services restart <service ...>
+  services logs <service>
+  services status
+  services doctor
+  services urls
+  services pull [service|profile ...]
+  services project-up [path]
+  services reset <service> [--yes]
   sync
   autosync enable|disable|once
   publish [owner/repo]
   update
   dry-run
-EOF
+EOF_HELP
     ;;
 esac

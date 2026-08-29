@@ -98,4 +98,48 @@ foreach ($DockerFile in $DockerFiles) {
     }
 }
 
+
+# Development service catalog invariants.
+$ServiceRoot = Join-Path $Root "development\services"
+foreach ($Required in @("compose.yaml","versions.env",".env.example")) {
+    $Path = Join-Path $ServiceRoot $Required
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "Development service catalog file is missing: $Required"
+    }
+}
+
+$ServicePolicy = $Policy.developmentServices
+if (-not $ServicePolicy.enabled) { throw "Development service catalog must remain enabled." }
+if ($ServicePolicy.autoStartAfterBootstrap) { throw "Development services must remain opt-in after bootstrap." }
+if ($ServicePolicy.network -ne "platform-dev") { throw "Development service network invariant failed." }
+
+$ComposeText = Get-Content (Join-Path $ServiceRoot "compose.yaml") -Raw
+if ($ComposeText -match '(?im)^\s*image:\s*[^\r\n]+:latest\s*$') {
+    throw "Development service images must not use :latest."
+}
+
+$PortLines = $ComposeText -split "`n" | Where-Object { $_ -match '^\s*-\s*["'']?[^\r\n]*:\d+:\d+["'']?\s*$' }
+foreach ($Line in $PortLines) {
+    if ($Line -notmatch '127\.0\.0\.1:') {
+        throw "Published development-service ports must bind to 127.0.0.1: $Line"
+    }
+}
+
+$VersionsText = Get-Content (Join-Path $ServiceRoot "versions.env") -Raw
+if ($VersionsText -match '(?im)_VERSION\s*=\s*latest\s*$') {
+    throw "versions.env must not contain latest tags."
+}
+
+foreach ($Service in $ServicePolicy.allowedServices) {
+    if ($ComposeText -notmatch "(?m)^  $([regex]::Escape($Service)):\s*$") {
+        throw "Allowed development service is missing from compose.yaml: $Service"
+    }
+}
+
+foreach ($Script in @("scripts\posix\services.sh","scripts\common\services.ps1")) {
+    if (-not (Test-Path -LiteralPath (Join-Path $Root $Script) -PathType Leaf)) {
+        throw "Development service dispatcher is missing: $Script"
+    }
+}
+
 Write-Host "PASS repository validation" -ForegroundColor Green

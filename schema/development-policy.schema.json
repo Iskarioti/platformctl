@@ -1,42 +1,29 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Platformctl Development Policy",
+  "title": "platformctl Development Policy",
   "type": "object",
-  "required": [
-    "version",
-    "projectRoots",
-    "windows",
-    "projects",
-    "git",
-    "security",
-    "containers",
-    "ci"
-  ],
+  "required": ["version", "projectRoots", "windows", "projects", "security", "containers", "developmentServices", "ci"],
   "properties": {
-    "version": { "type": "string" },
-    "projectRoots": {
-      "type": "array",
-      "minItems": 1,
-      "uniqueItems": true,
-      "items": { "type": "string" }
-    },
-    "windows": {
+    "version": {"type": "string"},
+    "projectRoots": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "windows": {"type": "object"},
+    "projects": {"type": "object"},
+    "git": {"type": "object"},
+    "security": {"type": "object"},
+    "containers": {"type": "object"},
+    "developmentServices": {
       "type": "object",
-      "required": [
-        "developmentInWSL",
-        "wslDistribution",
-        "dockerEngine",
-        "dockerDesktopAllowed",
-        "allowProjectsOnWindowsFilesystem"
-      ]
+      "required": ["enabled", "catalog", "network", "credentialsFile", "autoStartAfterBootstrap", "allowedServices", "profiles"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "catalog": {"type": "string"},
+        "network": {"type": "string"},
+        "credentialsFile": {"type": "string"},
+        "autoStartAfterBootstrap": {"type": "boolean"},
+        "allowedServices": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "profiles": {"type": "object"}
+      }
     },
-    "projects": {
-      "type": "object",
-      "required": ["requireGit", "requireDevContainer", "allowedTemplates"]
-    },
-    "git": { "type": "object" },
-    "security": { "type": "object" },
-    "containers": { "type": "object" },
-    "ci": { "type": "object" }
+    "ci": {"type": "object"}
   }
 }

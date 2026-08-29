@@ -106,6 +106,21 @@ if git -C "$TARGET" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   fi
 fi
 
+META="$TARGET/.platformctl/project.json"
+if [[ -f "$META" ]] && jq empty "$META" >/dev/null 2>&1; then
+  invalid_services="$(jq -r --slurpfile policy "$POLICY" '
+    [.developmentServices[]? | select(($policy[0].developmentServices.allowedServices | index(.)) == null)] | .[]?
+  ' "$META" 2>/dev/null || true)"
+  if [[ -n "$invalid_services" ]]; then
+    fail "Project declares development services not allowed by policy: $(echo "$invalid_services" | tr '\n' ' ')"
+  else
+    declared_count="$(jq '.developmentServices // [] | length' "$META")"
+    if [[ "$declared_count" -gt 0 ]]; then
+      pass "Declared development services are allowed by policy"
+    fi
+  fi
+fi
+
 if jq -e '.containers.forbidLatestTag' "$POLICY" >/dev/null; then
   latest_hits="$(
     find "$TARGET" -type f \( -name 'Dockerfile' -o -name 'Dockerfile.*' \) -not -path '*/.git/*' -print0 2>/dev/null |

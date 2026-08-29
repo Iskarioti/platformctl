@@ -1,6 +1,6 @@
 {
   "$schema": "../schema/development-policy.schema.json",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "projectRoots": [
     "~/src/company",
     "~/src/platform",
@@ -50,6 +50,42 @@
     "requireNonRootDevContainer": true,
     "forbidLatestTag": true,
     "publishPortsToLocalhostByDefault": true
+  },
+  "developmentServices": {
+    "enabled": true,
+    "catalog": "development/services/compose.yaml",
+    "network": "platform-dev",
+    "credentialsFile": "~/.config/workstation/dev-services.env",
+    "autoStartAfterBootstrap": false,
+    "allowedServices": [
+      "postgres",
+      "pgbouncer",
+      "redis",
+      "kafka",
+      "opensearch",
+      "rabbitmq",
+      "mongodb",
+      "minio",
+      "mailpit"
+    ],
+    "profiles": {
+      "core": ["postgres", "redis"],
+      "messaging": ["kafka", "rabbitmq"],
+      "search": ["opensearch"],
+      "data": ["postgres", "pgbouncer", "mongodb"],
+      "integration": ["minio", "mailpit"],
+      "all": [
+        "postgres",
+        "pgbouncer",
+        "redis",
+        "kafka",
+        "opensearch",
+        "rabbitmq",
+        "mongodb",
+        "minio",
+        "mailpit"
+      ]
+    }
   },
   "ci": {
     "required": true,
