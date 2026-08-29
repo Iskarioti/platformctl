@@ -2,18 +2,24 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Workstation Setup Configuration",
   "type": "object",
-  "required": ["name","version","role","repo","fonts","automation"],
+  "required": ["name", "version", "role", "repo", "fonts", "automation"],
   "properties": {
-    "name":{"type":"string"},
-    "version":{"type":"string"},
-    "role":{"type":"string"},
-    "developmentPolicy":{"type":"string"},
-    "copyStrategy":{"const":"cp"},
-    "repo":{"type":"object","required":["autoPush","autoApply","autoCommit"],"properties":{
-      "autoPush":{"type":"boolean"},"autoApply":{"type":"boolean"},"autoCommit":{"type":"boolean"},
-      "autosyncIntervalSeconds":{"type":"integer","minimum":30}
-    }},
-    "fonts":{"type":"object"},
-    "automation":{"type":"object"}
+    "name": { "type": "string" },
+    "version": { "type": "string" },
+    "role": { "type": "string" },
+    "developmentPolicy": { "type": "string" },
+    "copyStrategy": { "const": "cp" },
+    "repo": {
+      "type": "object",
+      "required": ["autoPush", "autoApply", "autoCommit"],
+      "properties": {
+        "autoPush": { "type": "boolean" },
+        "autoApply": { "type": "boolean" },
+        "autoCommit": { "type": "boolean" },
+        "autosyncIntervalSeconds": { "type": "integer", "minimum": 30 }
+      }
+    },
+    "fonts": { "type": "object" },
+    "automation": { "type": "object" }
   }
 }
