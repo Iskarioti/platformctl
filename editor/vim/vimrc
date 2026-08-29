@@ -1,0 +1,58 @@
+" Systems & Platform Architect - rescue Vim configuration.
+" Intentionally plugin-free for SSH, recovery and minimal systems.
+
+set nocompatible
+syntax enable
+filetype plugin indent on
+
+set number
+set relativenumber
+set ruler
+set showcmd
+set showmatch
+set hidden
+
+set ignorecase
+set smartcase
+set incsearch
+set hlsearch
+
+set expandtab
+set tabstop=2
+set softtabstop=2
+set shiftwidth=2
+set smartindent
+
+set splitbelow
+set splitright
+set scrolloff=5
+set sidescrolloff=5
+
+set backspace=indent,eol,start
+set wildmenu
+set wildmode=longest:full,full
+set mouse=a
+set encoding=utf-8
+set nowrap
+set undofile
+set updatetime=250
+set timeoutlen=400
+
+if has("termguicolors")
+  set termguicolors
+endif
+
+" Do not automatically execute project-local vimrc/modelines.
+set noexrc
+set nomodeline
+
+let mapleader=" "
+
+nnoremap <leader>w :write<CR>
+nnoremap <leader>q :quit<CR>
+nnoremap <leader>h :nohlsearch<CR>
+
+nnoremap <C-h> <C-w>h
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+nnoremap <C-l> <C-w>l
