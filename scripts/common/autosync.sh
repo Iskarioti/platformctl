@@ -9,6 +9,16 @@ if ! mkdir "$LOCK" 2>/dev/null; then exit 0; fi
 trap 'rmdir "$LOCK" 2>/dev/null || true' EXIT
 
 cd "$ROOT"
+
+# Local file copy only (Windows -> WSL native filesystem), never git -
+# unrelated to the git-sync logic below and must never be allowed to abort
+# it. Runs every cycle regardless of git dirty state. WSL-only: this is a
+# no-op (and prints nothing) on native Linux/macOS, where there's no Windows
+# host to import from.
+if grep -qi microsoft /proc/version 2>/dev/null; then
+  "$ROOT/wsl/import-windows-ssh-keys.sh" >/dev/null 2>&1 || echo "SSH key import failed (non-fatal)" >&2
+fi
+
 [[ -z "$(git status --porcelain)" ]] && exit 0
 
 "$ROOT/setup" validate

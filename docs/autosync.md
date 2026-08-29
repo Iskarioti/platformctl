@@ -34,3 +34,13 @@ conflict.
 Agents can commit normally. The post-commit hook pushes the current branch.
 If an agent only edits files and leaves them uncommitted, autosync validates and
 commits them on the next cycle.
+
+## SSH key import (WSL only)
+
+Each cycle, before any git logic runs, autosync also re-runs
+`wsl/import-windows-ssh-keys.sh` (see `docs/new-machine.md`) to copy any new Windows
+SSH keys into WSL's native filesystem. This is **local file copying only** and runs
+regardless of whether there's anything to git-sync — it never touches git, is
+completely independent of the secret-file staging refusal above, and is a no-op on
+native Linux/macOS (there's no Windows host to import from). A failure here is
+logged but never aborts the git-sync part of the cycle.

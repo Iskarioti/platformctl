@@ -1,5 +1,33 @@
 # Changelog
 
+## 3.6.3
+
+- Added `workstation ssh-import` (wires `wsl/import-windows-ssh-keys.sh` into the
+  `workstation` command) and folded it into the existing autosync cycle
+  (`scripts/common/autosync.ps1`/`.sh`): every autosync run now also re-copies any new
+  Windows SSH keys into WSL, before the git-sync logic and regardless of git dirty
+  state. Deliberately **pure local file copying, never git** — autosync's existing
+  refusal to stage secret-bearing files is completely unmodified and unrelated; keys
+  never go anywhere near a git commit. Wrapped in its own try/catch so a failure here
+  can never abort the git-sync part of the cycle. Verified: the dispatcher wiring and
+  the exact snippet added to `autosync.ps1` both run correctly in isolation (did not
+  run a live autosync cycle for real, to avoid prematurely committing/pushing
+  in-progress working-tree changes as a side effect of testing).
+
+## 3.6.2
+
+- Added `wsl/import-windows-ssh-keys.sh`: copies existing Windows-host SSH key pairs
+  into WSL's native filesystem (correct permissions, never referenced in place on
+  `/mnt/c`) rather than generating separate WSL-only keys — for when the Windows-side
+  keys are already registered with the Git hosts in use. Used it live to fix a real
+  blocked `git clone` to Azure DevOps: WSL had generated its own company key that was
+  never registered anywhere, while a Windows-side key (tied to the same Azure AD
+  identity backing the Azure DevOps org) already worked. Verified both imported
+  identities authenticate correctly (`ssh -T git@github-iskarioti`, and Azure DevOps's
+  "shell access is not supported" response, which is its normal signature for
+  *successful* auth). Deliberately not wired into bootstrap — importing arbitrary
+  existing keys is a bigger action than generating a fresh one.
+
 ## 3.6.1
 
 - Fixed a real "ready to work" gap: `wsl/configure-git.sh` (git identity + company SSH

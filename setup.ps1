@@ -132,6 +132,16 @@ switch ($Command.ToLowerInvariant()) {
 
     "changelog" { Invoke-RepoScript -Path "scripts\common\changelog-preview.ps1" -Arguments $Rest }
 
+    "ssh-import" {
+        if ($IsWindows -or $env:OS -eq "Windows_NT") {
+            & wsl.exe -d Ubuntu-24.04 -- bash -lc 'workstation ssh-import "$@"' workstation-ssh-import @Rest
+            exit $LASTEXITCODE
+        } else {
+            & bash (Join-Path $Root "wsl/import-windows-ssh-keys.sh") @Rest
+            exit $LASTEXITCODE
+        }
+    }
+
     "restore" {
         if ($IsWindows -or $env:OS -eq "Windows_NT") {
             & wsl.exe -d Ubuntu-24.04 -- bash -lc 'workstation restore "$@"' workstation-restore @Rest
@@ -174,6 +184,7 @@ workstation setup commands
   backup [output-path]              encrypted backup of control-plane/dev-service secrets and volumes
   restore <backup-file> [--yes]     restore a backup created by "backup"
   changelog [since-commit]          draft a CHANGELOG.md section from Conventional Commits (preview only)
+  ssh-import                        copy Windows SSH keys into WSL (WSL only)
   publish [owner/repo]              create/publish the GitHub repository
   update                            pull/rebase, validate, apply, doctor
   dry-run                           CI-safe platform simulation

@@ -64,3 +64,27 @@ and prompts once for your git identity (name/email) if not already set — idemp
 safe to re-run. **A key working on one Git host does not mean it's registered on
 another** — add the printed public key separately to each host you use (GitHub, Azure
 DevOps, etc.) under that host's own SSH-keys settings. See `wsl/configure-git.sh`.
+
+**If you already have working SSH keys on the Windows side** (registered with your Git
+hosts there), prefer reusing them over generating fresh WSL-only ones — one less key to
+register per host:
+
+```bash
+wsl/import-windows-ssh-keys.sh
+```
+
+Copies every private/public key pair from the Windows profile's `~/.ssh` into WSL's
+native filesystem (never referenced in place on `/mnt/c` — OpenSSH refuses a private
+key with NTFS-loose permissions) with correct `600`/`644` permissions. Windows stays
+canonical; re-run after adding a new key there. It does not guess which key belongs to
+which host — add/update the matching `Host` blocks in `~/.ssh/config` yourself (or ask
+an agent to, given the running `ssh -T git@<host>` output). Deliberately not wired into
+bootstrap — importing arbitrary existing keys is a bigger action than generating a
+fresh one, and the same directory may hold keys for unrelated purposes.
+
+**Kept in sync automatically** via the existing autosync cycle (`docs/autosync.md`):
+every autosync run also re-runs this import (WSL-only; a no-op on native Linux/macOS)
+before its git-sync logic, so a new Windows key gets copied into WSL within a minute of
+being added, with no manual step. This is **pure local file copying** — autosync's
+git-commit path is completely unmodified and still refuses to stage anything
+secret-bearing; keys are never touched by, or go anywhere near, git.

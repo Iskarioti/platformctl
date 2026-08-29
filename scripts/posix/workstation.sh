@@ -43,6 +43,7 @@ case "$CMD" in
     esac
     ;;
   upgrade) exec "$ROOT/scripts/posix/upgrade.sh" "$@" ;;
+  ssh-import) exec "$ROOT/wsl/import-windows-ssh-keys.sh" "$@" ;;
   dashboard)
     action="${1:-}"
     case "$action" in
@@ -121,6 +122,7 @@ workstation commands:
   sync
   autosync enable|disable|once
   upgrade [--scope=packages|vscodeExtensions|fonts]
+  ssh-import                         copy Windows SSH keys into WSL (WSL only)
   autoupgrade enable|disable|once
   dashboard [--port N]               run once (foreground)
   dashboard enable|disable|status    always-on background service (auto-restart, starts at login)

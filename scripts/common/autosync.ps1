@@ -13,6 +13,18 @@ try {
 
 try {
     Set-Location $Root
+
+    # Local file copy only (Windows -> WSL native filesystem), never git -
+    # unrelated to the git-sync logic below and must never be allowed to
+    # abort it. Runs every cycle regardless of git dirty state.
+    try {
+        if (Get-Command wsl.exe -ErrorAction SilentlyContinue) {
+            & wsl.exe -d Ubuntu-24.04 -- bash -lc "workstation ssh-import" *>$null
+        }
+    } catch {
+        Write-Warning "SSH key import into WSL failed (non-fatal): $_"
+    }
+
     $Dirty = git status --porcelain
     if (-not $Dirty) { exit 0 }
 
