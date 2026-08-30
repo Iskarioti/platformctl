@@ -73,6 +73,33 @@ Lockfiles begin as a warning in v3.1 so a freshly generated project can install 
 dependencies first. Change `projects.lockfilePolicy` to `required` once every active
 template generates lockfiles during initialization.
 
+## Git SSH access inside Dev Containers
+
+Every governed devcontainer.json (this repo's own templates, plus adopted projects
+like `wiocchub-api`/`wiocchub-app`) forwards SSH access into the container via an
+agent socket, never by mounting a private key file directly:
+
+```json
+"mounts": ["source=${localEnv:HOME}/.ssh/agent.sock,target=/ssh-agent,type=bind"],
+"containerEnv": {"SSH_AUTH_SOCK": "/ssh-agent"}
+```
+
+`scripts/posix/ensure-ssh-agent.sh` keeps a persistent `ssh-agent` listening at that
+fixed socket path (`~/.ssh/agent.sock`, not the default random `/tmp/ssh-*/agent.<pid>`
+path, which a static devcontainer.json mount can't reference) and loads only
+company-purposed identities into it (see the script's own comments for exactly which
+key basenames and why). A container can ask the agent to sign a challenge but can
+never read key material back out through the socket — a compromised container
+(malicious dependency, container escape) cannot exfiltrate the key for reuse
+elsewhere, unlike a direct key-file mount. It also means only the identities you
+`ssh-add` are ever exposed to a container, never every key sitting in `~/.ssh`
+(personal keys included) the way mounting the whole directory would.
+
+The script runs from `project-open.sh` before every `devcontainer up` (so it works
+regardless of shell history) and from `architect.bashrc`/`architect.zshrc` (so a new
+terminal always has it too). Add a new project template's own SSH mount by copying
+the two lines above into its devcontainer.json.
+
 ## GitHub enforcement
 
 Important repositories should protect `main` with pull requests, blocked force pushes,
