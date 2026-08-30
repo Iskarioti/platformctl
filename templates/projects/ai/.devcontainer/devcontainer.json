@@ -5,7 +5,8 @@
   },
   "forwardPorts": [8000],
   "mounts": [
-    "source=${localEnv:HOME}/.ssh/agent.sock,target=/ssh-agent,type=bind"
+    "source=${localEnv:HOME}/.ssh/agent.sock,target=/ssh-agent,type=bind",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly"
   ],
   "containerEnv": {
     "SSH_AUTH_SOCK": "/ssh-agent"
