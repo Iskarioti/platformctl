@@ -35,6 +35,13 @@ fi
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init bash)"
 command -v direnv >/dev/null 2>&1 && eval "$(direnv hook bash)"
 
+# Governed Dev Containers forward this agent's socket in as SSH_AUTH_SOCK
+# rather than mounting private keys directly - see ensure-ssh-agent.sh.
+if [[ -r "$HOME/.config/workstation/repo-path" ]]; then
+  "$(cat "$HOME/.config/workstation/repo-path")/scripts/posix/ensure-ssh-agent.sh" 2>/dev/null
+fi
+export SSH_AUTH_SOCK="$HOME/.ssh/agent.sock"
+
 if command -v eza >/dev/null 2>&1; then
   alias ls='eza'
   alias l='eza -lah --group-directories-first'

@@ -35,6 +35,12 @@ if [[ ! -x "$DEVCONTAINER_BIN" ]]; then
   open_plain
 fi
 
+# Governed devcontainer.json files forward this fixed-path agent socket in
+# as SSH_AUTH_SOCK rather than mounting private keys directly - make sure
+# it's actually listening before the container starts, regardless of
+# whether an interactive shell has already done so this session.
+"$ROOT/scripts/posix/ensure-ssh-agent.sh" 2>/dev/null || true
+
 echo "Building/starting Dev Container for $TARGET ..."
 log_file="$(mktemp)"
 trap 'rm -f "$log_file"' EXIT
