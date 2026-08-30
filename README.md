@@ -40,6 +40,7 @@ workstation enforce --repair
 
 workstation project templates
 workstation project init fastapi-service my-api --area company
+workstation project adopt ~/src/company/already-cloned-repo
 workstation project check
 workstation project doctor
 workstation project open

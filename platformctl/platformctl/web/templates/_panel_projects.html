@@ -1,15 +1,22 @@
 <table>
-  <thead><tr><th>Project</th><th>Template</th><th>Area</th><th>Dev Container</th></tr></thead>
+  <thead><tr><th>Project</th><th>Template</th><th>Area</th><th>Dev Container</th><th>Tracked</th></tr></thead>
   <tbody>
   {% for p in items %}
-    <tr class="{{ 'row-ok' if p.dev_container_running else '' }}">
+    <tr class="{{ 'row-ok' if p.dev_container_running else ('row-bad' if not p.tracked else '') }}">
       <td title="{{ p.path }}">{{ p.name }}</td>
-      <td>{{ p.template }}</td>
-      <td>{{ p.area }}</td>
+      <td>{{ p.template or '—' }}</td>
+      <td>{{ p.area or '—' }}</td>
       <td>{{ p.dev_container_status if p.dev_container_running else 'not running' }}</td>
+      <td>
+        {% if p.tracked %}
+          yes
+        {% else %}
+          <span title="Run: workstation project adopt &quot;{{ p.path }}&quot;">no &mdash; run project adopt</span>
+        {% endif %}
+      </td>
     </tr>
   {% else %}
-    <tr><td colspan="4" class="muted">No governed projects found under the configured project roots.</td></tr>
+    <tr><td colspan="5" class="muted">No projects found under the configured project roots.</td></tr>
   {% endfor %}
   </tbody>
 </table>

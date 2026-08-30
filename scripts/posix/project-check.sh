@@ -51,9 +51,18 @@ required=(
   "README.md"
   ".env.example"
   ".platformctl/project.json"
-  ".github/workflows/ci.yml"
-  ".github/workflows/policy.yml"
 )
+
+# The CI-workflow requirement depends on which Git host the project actually
+# uses - .github/workflows/* never executes on Azure DevOps, and requiring
+# it there would just prompt scaffolding dead files. Detected from the
+# "origin" remote rather than assumed.
+origin_url="$(git -C "$TARGET" remote get-url origin 2>/dev/null || true)"
+if [[ "$origin_url" == *"dev.azure.com"* ]]; then
+  required+=("azure-pipelines.yml")
+else
+  required+=(".github/workflows/ci.yml" ".github/workflows/policy.yml")
+fi
 
 for rel in "${required[@]}"; do
   if [[ -e "$TARGET/$rel" ]]; then pass "Required file: $rel"; else fail "Required file missing: $rel"; fi

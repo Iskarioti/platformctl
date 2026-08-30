@@ -1,5 +1,81 @@
 # Changelog
 
+## 3.7.3
+
+- Fixed `workstation project open` (`scripts/posix/project-open.sh`) not actually
+  building/starting or attaching VS Code to a project's Dev Container — it previously
+  just ran a bare `code .`, and (under `set -e`) would abort entirely before even doing
+  that if the project happened to be policy-non-compliant. Now: `project-check.sh`
+  runs informationally (never blocks opening), and if `.devcontainer/devcontainer.json`
+  exists, it builds/starts the container via `devcontainer up` and attaches VS Code to
+  it directly (`code --folder-uri vscode-remote://dev-container+<hex>/...`), falling
+  back to a plain `code .` open if the Dev Container CLI isn't installed or the build
+  fails.
+- Found and fixed two real, verified-on-hardware bugs along the way:
+  - The Dev Container CLI was never actually wired into WSL bootstrap
+    (`wsl/install-devcontainers-cli.sh` was an orphaned script, never called).
+    `scripts/posix/install-devcontainers-cli.sh` now installs it via mise-managed Node
+    and is called from `wsl/bootstrap.sh` (and the Linux/macOS bootstraps, which already
+    called it). It symlinks the real binary into `~/.local/bin/devcontainer` rather than
+    trusting bare `devcontainer`/`node` PATH resolution — on this WSL machine, that bare
+    name resolves to an unrelated Windows-native `@devcontainers/cli` install (via WSL's
+    Windows-PATH interop) that can never see Docker, and even a fully non-interactive
+    `bash` invocation has neither `~/.local/bin` nor mise's shims on PATH at all (only
+    `~/.bashrc`/`~/.profile` add them, neither sourced there) — `project-open.sh`
+    explicitly prepends mise's shims dir and calls the installed binary by absolute path
+    to sidestep both.
+  - The `vscode-remote://dev-container+<hex>/...` URI's authority is hex-encoded JSON
+    (`{hostPath, localDocker, configFile}`), not a hex-encoded path as first assumed —
+    confirmed by decoding a live "could not be established" message from `code --status`
+    for an actual in-progress attach. The wrong (path-only) encoding still opened *a*
+    window, which read as success until checked with `code --status` and given time to
+    settle — it was not genuinely attached. The corrected encoding was verified stable
+    (a `[Dev Container: ...]` window that persisted with no connection error).
+
+- Simplified `workstation project adopt` (`scripts/posix/project-adopt.sh`): it now
+  only writes `.platformctl/project.json` to register an existing/cloned project — it
+  no longer takes a `<template>` argument, no longer backfills any scaffolding files
+  (`.editorconfig`, `.gitignore`, `.env.example`, CI files, `.devcontainer/`, etc.). A
+  pre-existing codebase keeps its own structure and conventions untouched, managed
+  independently by the project itself; `project check` still reports what's missing
+  relative to policy, purely informationally.
+
+## 3.7.1
+
+- Fixed `project-check.sh`/`project-adopt.sh` assuming GitHub Actions unconditionally:
+  `.github/workflows/ci.yml`/`policy.yml` never execute on Azure DevOps-hosted
+  projects. Both now detect the `origin` remote and require/backfill
+  `azure-pipelines.yml` instead for `dev.azure.com` remotes — `adopt` skips
+  scaffolding the dead GitHub Actions files rather than creating them anyway (it
+  does not fabricate `azure-pipelines.yml` either; its content is too
+  project-specific to guess, left as a manual follow-up, correctly flagged as
+  still missing when actually missing).
+- Found while adopting two real company projects: both have private keys/certs
+  and, for one, `.env` files for all four environments currently tracked in git
+  at `HEAD` — pre-existing, unrelated to this repo, surfaced (not caused) by
+  `project-check.sh`'s existing secret-filename scan. Flagged directly rather
+  than acted on; this needs coordination with whoever owns those certs/environments,
+  not a unilateral fix.
+
+## 3.7.0
+
+Fixed a real gap: pre-existing and freshly-cloned projects had no path into this
+governance model at all. `.platformctl/project.json` only ever got created by
+`workstation project init`, and both `project check`'s compliance model and the
+dashboard's governed-projects panel keyed entirely off that file — a project cloned
+straight from GitHub/Azure DevOps was invisible to both, not just non-compliant.
+
+- Added `workstation project adopt <template> [path]`
+  (`scripts/posix/project-adopt.sh`): backfills only the scaffolding files missing
+  from an existing project relative to a template — never overwrites a file that's
+  already there, never runs `git init`, never stages or commits anything. Verified
+  against a simulated pre-existing clone: pre-existing README/`.gitignore`/app code
+  left untouched, all required files backfilled, idempotent on re-run, nothing
+  auto-committed.
+- The dashboard's governed-projects panel now surfaces untracked projects too (a git
+  repo under a project root with no `.platformctl/project.json`), flagged distinctly
+  with a prompt to run `project adopt`, instead of silently omitting them.
+
 ## 3.6.3
 
 - Added `workstation ssh-import` (wires `wsl/import-windows-ssh-keys.sh` into the

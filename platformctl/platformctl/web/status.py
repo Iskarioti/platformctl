@@ -178,24 +178,46 @@ def governed_projects_status() -> list[dict[str, Any]]:
         if not root.is_dir():
             continue
         for project_dir in sorted(root.glob("*")):
-            meta_file = project_dir / ".platformctl" / "project.json"
-            if not meta_file.exists():
+            if not project_dir.is_dir():
                 continue
-            try:
-                meta = json.loads(meta_file.read_text(encoding="utf-8"))
-            except json.JSONDecodeError:
-                meta = {}
+
+            meta_file = project_dir / ".platformctl" / "project.json"
             container = running_by_folder.get(str(project_dir))
-            projects.append(
-                {
-                    "path": str(project_dir),
-                    "name": meta.get("name", project_dir.name),
-                    "template": meta.get("template"),
-                    "area": meta.get("area"),
-                    "dev_container_running": container is not None,
-                    "dev_container_status": container.get("status") if container else None,
-                }
-            )
+
+            if meta_file.exists():
+                try:
+                    meta = json.loads(meta_file.read_text(encoding="utf-8"))
+                except json.JSONDecodeError:
+                    meta = {}
+                projects.append(
+                    {
+                        "path": str(project_dir),
+                        "name": meta.get("name", project_dir.name),
+                        "template": meta.get("template"),
+                        "area": meta.get("area"),
+                        "dev_container_running": container is not None,
+                        "dev_container_status": container.get("status") if container else None,
+                        "tracked": True,
+                    }
+                )
+            elif (project_dir / ".git").exists():
+                # A real project (it's a git repo) that was cloned or already
+                # existed rather than created via "workstation project init" -
+                # no .platformctl/project.json means it's otherwise invisible
+                # here. Surface it anyway so there's a prompt to adopt it
+                # (see "workstation project adopt"), rather than it silently
+                # not being tracked at all.
+                projects.append(
+                    {
+                        "path": str(project_dir),
+                        "name": project_dir.name,
+                        "template": None,
+                        "area": None,
+                        "dev_container_running": container is not None,
+                        "dev_container_status": container.get("status") if container else None,
+                        "tracked": False,
+                    }
+                )
     return projects
 
 

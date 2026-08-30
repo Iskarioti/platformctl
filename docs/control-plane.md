@@ -126,7 +126,10 @@ WebSockets):
 - **Governed projects** — discovered by scanning `.platformctl/project.json` under
   `policy/development.json`'s `projectRoots`, cross-referenced against running Dev
   Containers (`docker ps --filter label=devcontainer.local_folder`). There was no
-  existing project registry to read from — this scan **is** the registry.
+  existing project registry to read from — this scan **is** the registry. A directory
+  that's a git repo but has no `.platformctl/project.json` (a pre-existing or freshly
+  cloned project — this used to be invisible here entirely) still shows up, flagged
+  "untracked", with a prompt to run `workstation project adopt`.
 - **Lab clusters** — each `labs/catalog.json` entry's Docker Compose project or
   Kubernetes namespace.
 - **ai-runtime** — the shared Ollama container.

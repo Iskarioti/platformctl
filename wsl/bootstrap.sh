@@ -23,7 +23,9 @@ fi
 mkdir -p "$HOME/src"/{company,platform,automation,labs,knowledge,tooling}
 git lfs install
 
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 "$(dirname "${BASH_SOURCE[0]}")/configure-git.sh"
+"$ROOT/scripts/posix/install-devcontainers-cli.sh"
 
 echo "Thin WSL engineering control plane installed."
 echo "Project runtimes belong in Dev Containers."

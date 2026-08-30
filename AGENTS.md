@@ -42,6 +42,7 @@ Project creation and checks use:
 workstation enforce
 workstation project templates
 workstation project init <template> <name>
+workstation project adopt <path>
 workstation project check
 workstation project doctor
 workstation project open

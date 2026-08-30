@@ -77,6 +77,7 @@ def test_governed_projects_status_finds_project_and_matches_container(tmp_path, 
     assert result[0]["template"] == "fastapi-service"
     assert result[0]["dev_container_running"] is True
     assert result[0]["dev_container_status"] == "Up 5 minutes"
+    assert result[0]["tracked"] is True
 
 
 def test_governed_projects_status_no_running_container(tmp_path, monkeypatch):
@@ -95,6 +96,44 @@ def test_governed_projects_status_no_running_container(tmp_path, monkeypatch):
     result = status.governed_projects_status()
     assert result[0]["dev_container_running"] is False
     assert result[0]["dev_container_status"] is None
+    assert result[0]["tracked"] is True
+
+
+def test_governed_projects_status_surfaces_untracked_cloned_repo(tmp_path, monkeypatch):
+    project_root = tmp_path / "src" / "company"
+    # A plain git clone: has a .git dir, no .platformctl/project.json at all.
+    cloned_dir = project_root / "wiocchub-api"
+    (cloned_dir / ".git").mkdir(parents=True)
+
+    policy_dir = tmp_path / "policy"
+    policy_dir.mkdir()
+    (policy_dir / "development.json").write_text(json.dumps({"projectRoots": [str(project_root)]}))
+
+    monkeypatch.setattr(status, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(status, "run", lambda cmd, timeout=30: (0, ""))
+
+    result = status.governed_projects_status()
+    assert len(result) == 1
+    assert result[0]["name"] == "wiocchub-api"
+    assert result[0]["tracked"] is False
+    assert result[0]["template"] is None
+    assert result[0]["area"] is None
+
+
+def test_governed_projects_status_ignores_non_git_non_metadata_dirs(tmp_path, monkeypatch):
+    project_root = tmp_path / "src" / "company"
+    # A plain directory that's neither a governed project nor a git repo -
+    # e.g. some unrelated scratch folder. Must not show up at all.
+    (project_root / "not-a-project").mkdir(parents=True)
+
+    policy_dir = tmp_path / "policy"
+    policy_dir.mkdir()
+    (policy_dir / "development.json").write_text(json.dumps({"projectRoots": [str(project_root)]}))
+
+    monkeypatch.setattr(status, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(status, "run", lambda cmd, timeout=30: (0, ""))
+
+    assert status.governed_projects_status() == []
 
 
 def test_parse_ms_date_handles_dotnet_and_passthrough():
