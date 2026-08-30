@@ -1,5 +1,30 @@
 # Changelog
 
+## 3.8.0
+
+- Every governed Dev Container (this repo's 8 project templates, plus the adopted
+  `wiocchub-api`/`wiocchub-app` projects) now forwards Git SSH access via an
+  `ssh-agent` socket instead of mounting private key files directly:
+  `"mounts": ["source=${localEnv:HOME}/.ssh/agent.sock,target=/ssh-agent,type=bind"]`
+  + `"containerEnv": {"SSH_AUTH_SOCK": "/ssh-agent"}`. A container can ask the agent
+  to sign a challenge but can never read key material back out through the socket,
+  so a compromised container (malicious dependency, container escape) can't
+  exfiltrate a key for reuse elsewhere — and only the identities actually loaded into
+  the agent are ever exposed, not every key sitting in `~/.ssh` (personal keys
+  included) the way mounting the whole directory would.
+- New `scripts/posix/ensure-ssh-agent.sh` keeps a persistent agent listening at a
+  FIXED socket path (`~/.ssh/agent.sock` — the default `ssh-agent` picks a new random
+  path every start, which a static devcontainer.json mount can't reference) and loads
+  only company-purposed identities into it (`id_ed25519_company`, `id_rsa` — the two
+  keys `~/.ssh/config`'s Host blocks map to company git hosts; never a personal key).
+  Runs from `project-open.sh` before every `devcontainer up` (works regardless of
+  shell history) and from `architect.bashrc`/`architect.zshrc` (so a new terminal
+  always has it too).
+- Verified end-to-end against a real container: `ssh-add -l` inside the container
+  showed both forwarded identities, `SSH_AUTH_SOCK=/ssh-agent` was set correctly, and
+  `ssh -T git@github.com` run *inside the container* authenticated successfully
+  through the forwarded agent — no private key file ever present in the container.
+
 ## 3.7.3
 
 - Fixed `workstation project open` (`scripts/posix/project-open.sh`) not actually
