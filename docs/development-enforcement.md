@@ -100,6 +100,30 @@ regardless of shell history) and from `architect.bashrc`/`architect.zshrc` (so a
 terminal always has it too). Add a new project template's own SSH mount by copying
 the two lines above into its devcontainer.json.
 
+## Git identity inside Dev Containers
+
+Unlike SSH keys, `.gitconfig` (just `user.name`/`user.email`, not a secret) IS mounted
+directly, read-only, into every governed devcontainer.json:
+
+```json
+"source=${localEnv:HOME}/.gitconfig,target=/home/<remoteUser>/.gitconfig,type=bind,readonly"
+```
+
+VS Code's Dev Containers extension has a client-side setting for this
+(`dev.containers.copyGitConfig`, default on) that's supposed to make an explicit mount
+unnecessary — checked and rejected: verified against a real container attached through
+this repo's own `project-open.sh` flow (`devcontainer up` via the CLI, then `code
+--folder-uri` to attach) that no `.gitconfig` ever appears inside the container this
+way, even minutes after a confirmed-connected attach. Whether that's because the
+setting only fires when VS Code itself creates the container, or needs an interactive
+terminal opened first, wasn't chased further — the direct mount is the one confirmed
+to actually work in this repo's flow, so that's what every template uses. Read-only
+so a container process can't write back and mutate the host's real `.gitconfig`
+(check before adding a `postCreateCommand` that runs `git config --global ...` inside
+a container using this mount — it would fail against a read-only file, unlike
+`wiocchub-api`'s own devcontainer.json, which predates this and still mounts
+`.gitconfig` read-write for exactly that reason).
+
 ## GitHub enforcement
 
 Important repositories should protect `main` with pull requests, blocked force pushes,
