@@ -12,6 +12,12 @@
       "version": "3.13"
     }
   },
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh/agent.sock,target=/ssh-agent,type=bind"
+  ],
+  "containerEnv": {
+    "SSH_AUTH_SOCK": "/ssh-agent"
+  },
   "customizations": {
     "vscode": {
       "extensions": [
