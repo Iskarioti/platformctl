@@ -5,7 +5,7 @@
   "features": {
     "ghcr.io/devcontainers/features/terraform:1": {"version":"1.13"}
   },
-  "mounts": ["source=${localEnv:HOME}/.ssh/agent.sock,target=/ssh-agent,type=bind"],
+  "mounts": ["source=${localEnv:HOME}/.ssh/agent.sock,target=/ssh-agent,type=bind", "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly"],
   "containerEnv": {"SSH_AUTH_SOCK": "/ssh-agent"},
   "customizations": {"vscode":{"extensions":["hashicorp.terraform"]}}
 }

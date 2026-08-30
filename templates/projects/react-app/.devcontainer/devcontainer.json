@@ -4,7 +4,7 @@
   "remoteUser": "node",
   "forwardPorts": [5173],
   "postCreateCommand": "npm install",
-  "mounts": ["source=${localEnv:HOME}/.ssh/agent.sock,target=/ssh-agent,type=bind"],
+  "mounts": ["source=${localEnv:HOME}/.ssh/agent.sock,target=/ssh-agent,type=bind", "source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind,readonly"],
   "containerEnv": {"SSH_AUTH_SOCK": "/ssh-agent"},
   "customizations": {"vscode":{"extensions":["dbaeumer.vscode-eslint","esbenp.prettier-vscode"]}}
 }
