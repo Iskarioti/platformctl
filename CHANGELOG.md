@@ -1,5 +1,33 @@
 # Changelog
 
+## 3.8.4
+
+- Found and fixed the last real blocker in the `workstation project open wiocchub-api`
+  bug chain (path resolution → JSONC validation → WSL networking, all fixed in
+  3.8.2/3.8.3): `wiocchub-api`'s own `postCreateCommand.configure-git` step ran
+  `git config --global --add safe.directory ...`, which failed with `error: could not
+  write config file /home/vscode/.gitconfig: Device or resource busy`. Git's config
+  writer works by atomically renaming a temp file over the target, and you cannot
+  rename over a bind-mounted file's mountpoint from inside a container — an
+  incompatibility with the `.gitconfig` file mount added in 3.8.1, independent of
+  read-only vs. read-write. Fixed (in `wiocchub-api`'s own devcontainer.json, not
+  tracked in this repo) by switching to `sudo git config --system --add safe.directory
+  ...`, which writes to `/etc/gitconfig` — a plain container-local file, never
+  bind-mounted — achieving the same effect. Verified end-to-end: the container now
+  builds and starts cleanly, `install-poetry`/`install-claude`/`install-dev-tools`/
+  `configure-git` all succeed.
+- Found along the way (not fixed, just documented — this is a characteristic of
+  `wiocchub-api`'s own devcontainer.json, not something to silently change): its
+  `runArgs` hardcodes a fixed `--name=wiocchub-api`. `project-open.sh`'s own
+  `devcontainer up` invocation (run from inside WSL) and VS Code's native "Reopen in
+  Container" flow label the resulting container's `devcontainer.local_folder` with
+  different path formats for the exact same project (a plain WSL path vs. a Windows
+  UNC `\\wsl.localhost\...` path) — so neither recognizes the other's container as
+  "already existing," and running both concurrently against the same project races on
+  that fixed container name, with one attempt failing with a Docker `Conflict: name
+  already in use` error. Don't run `project open` and VS Code's own native reopen at
+  the same time against a project with a hardcoded container name.
+
 ## 3.8.3
 
 - Switched WSL's networking mode from `mirrored` to `nat` in all three managed
