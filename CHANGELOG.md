@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.8.3
+
+- Switched WSL's networking mode from `mirrored` to `nat` in all three managed
+  configs (`wsl/.wslconfig`, `wsl/profiles/default.wslconfig`,
+  `wsl/profiles/ai-lab.wslconfig`) — root-caused a real, live networking outage
+  (WSL couldn't even reach its own default gateway, while the Windows host had
+  full connectivity to the same address) to a conflict between mirrored mode's
+  DNS tunneling and this machine's Global Secure Access Client (Microsoft Entra
+  Zero Trust). WSL's own warning ("DNS Tunneling is disabled" when GSA is
+  detected) implied this was already handled, but the actually-deployed
+  `.wslconfig` still had `dnsTunneling=true` — the repo's own file had been
+  edited to `false` at some point but never redeployed, so the fix never took
+  effect. Switching to NAT removes the conflict entirely (NAT doesn't use DNS
+  tunneling or mirrored mode's firewall integration at all, so both settings
+  are dropped rather than left as dead config). Verified end-to-end after
+  redeploying via `windows/25-set-wsl-profile.ps1 -Profile default` +
+  `wsl --shutdown`: DNS resolution, gateway ping, and the exact
+  `redis/redis-stack-server:7.4.0-v8` pull that had been failing all work now.
+
 ## 3.8.2
 
 - Fixed a real bug reported live: `workstation project open wiocchub-api` (run from

@@ -38,12 +38,12 @@ EOF
 
     cat > "$TIMER" <<'EOF'
 [Unit]
-Description=Run platformctl workstation autosync every minute
+Description=Run platformctl workstation autosync every 5 minutes
 
 [Timer]
-OnBootSec=60
-OnUnitActiveSec=60
-AccuracySec=10
+OnActiveSec=5min
+OnUnitActiveSec=5min
+AccuracySec=30s
 Persistent=true
 Unit=workstation-autosync.service
 
@@ -126,7 +126,7 @@ EOF
   <string>${ROOT_XML}</string>
 
   <key>StartInterval</key>
-  <integer>60</integer>
+  <integer>300</integer>
 
   <key>RunAtLoad</key>
   <true/>

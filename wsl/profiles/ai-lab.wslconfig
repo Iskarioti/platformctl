@@ -2,9 +2,9 @@
 memory=16GB
 processors=8
 swap=6GB
-networkingMode=mirrored
-dnsTunneling=true
-firewall=true
+# NAT, not mirrored - see wsl/.wslconfig's comment: mirrored mode's DNS
+# tunneling conflicts with this machine's Global Secure Access Client.
+networkingMode=nat
 autoProxy=true
 
 [experimental]

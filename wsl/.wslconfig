@@ -2,9 +2,14 @@
 memory=12GB
 processors=8
 swap=4GB
-networkingMode=mirrored
-dnsTunneling=false
-firewall=true
+# NAT, not mirrored: mirrored mode's DNS tunneling conflicts with this
+# machine's Global Secure Access Client (Microsoft Entra Zero Trust) -
+# WSL itself warns "DNS Tunneling is disabled" when it detects GSA, but in
+# practice this left WSL's mirrored networking unable to reach even its own
+# default gateway while the Windows host had full connectivity. NAT mode
+# doesn't use DNS tunneling or mirrored-mode's firewall integration at all,
+# so those settings are dropped below rather than left as dead config.
+networkingMode=nat
 autoProxy=true
 
 [experimental]
