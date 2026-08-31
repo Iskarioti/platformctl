@@ -1,5 +1,29 @@
 # Changelog
 
+## 3.8.5
+
+- Fixed the Windows autosync scheduled task flashing a visible PowerShell console
+  window every single run (every 1 minute) — reported live by Andrew. Task
+  Scheduler's own "Hidden" task setting only hides a task from the Task Scheduler
+  UI; it does not suppress the console window a launched `pwsh.exe` allocates. New
+  `scripts/windows/run-hidden.vbs` routes the real command through `wscript.exe`
+  (a GUI-subsystem host that never shows a window itself) + `Shell.Run` with a
+  hidden window style, applied to both `install-autosync.ps1` and
+  `install-autoupgrade.ps1` (same bug, just far less noticeable at once/day).
+- `scripts/windows/install-autosync.ps1` also switched from raw `schtasks.exe` to
+  the `ScheduledTasks` PowerShell module (matching `install-autoupgrade.ps1`'s
+  existing style): `schtasks.exe`'s `/TR` value has a hard, largely undocumented
+  261-character limit, and this repo's own path (nested under a synced "OneDrive -
+  WIOCC\Documents" folder) plus the hidden-runner wrapper routinely exceeds it.
+  Eased the interval from every 1 minute to every 5 minutes while at it, matching
+  the WSL/macOS-side interval change already made in 3.8.3's autosync work.
+- Found along the way: re-registering an *already-existing* scheduled task via
+  `Register-ScheduledTask -Force` can fail with `Access is denied` from a
+  non-elevated session, even though the task itself runs unelevated as a normal
+  user — Andrew had to run the install script himself in an elevated PowerShell.
+  Verified end-to-end afterward via `Get-ScheduledTaskInfo`: two consecutive runs
+  exactly 5 minutes apart, both `LastTaskResult: 0`, zero missed runs.
+
 ## 3.8.4
 
 - Found and fixed the last real blocker in the `workstation project open wiocchub-api`

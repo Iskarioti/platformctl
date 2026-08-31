@@ -1,7 +1,7 @@
 {
   "$schema": "./schema/workstation.schema.json",
   "name": "system-platform-architect-workstation",
-  "version": "3.8.4",
+  "version": "3.8.5",
   "role": "Systems & Platform Architect",
   "sourceOfTruth": "git",
   "developmentPolicy": "policy/development.json",
