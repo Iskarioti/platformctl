@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.8.1
+
+- Investigated whether VS Code's Dev Containers `dev.containers.copyGitConfig` setting
+  (client-side, on by default) could replace the direct `.gitconfig` bind mount that
+  `wiocchub-api`'s devcontainer.json already had — verified against a real container
+  attached through this repo's own `project-open.sh` flow (`devcontainer up` via the
+  CLI, then `code --folder-uri` to attach) that it does **not** fire: no `.gitconfig`
+  ever appeared inside the container, even minutes after a confirmed-connected
+  attach. Kept the direct mount rather than removing it on an unverified assumption.
+- Added that same `.gitconfig` mount (read-only, unlike SSH keys this isn't a secret
+  so a direct mount is fine — but read-only so a container process can't write back
+  and mutate the host's real file) to all 8 platformctl project templates and to
+  `wiocchub-app` (neither had one before, so `git commit` inside their Dev Containers
+  previously had no identity at all). `wiocchub-api` already had one — read-write,
+  since its `postCreateCommand` writes `git config --global --add safe.directory`
+  through it — left as-is, not read-only.
+
 ## 3.8.0
 
 - Every governed Dev Container (this repo's 8 project templates, plus the adopted
