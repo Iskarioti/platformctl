@@ -30,9 +30,12 @@ $Action = New-ScheduledTaskAction `
     -Execute "wscript.exe" `
     -Argument "//B `"$HiddenRunner`" `"$PwshPath`" -NoLogo -NoProfile -File `"$Script`" -Once"
 
+# RepetitionDuration must be a bounded value Task Scheduler's XML schema
+# accepts - [TimeSpan]::MaxValue serializes to a duration string out of
+# range. 10 years is effectively "indefinitely" for a workstation task.
 $Trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) `
     -RepetitionInterval (New-TimeSpan -Minutes 5) `
-    -RepetitionDuration ([TimeSpan]::MaxValue)
+    -RepetitionDuration (New-TimeSpan -Days 3650)
 
 $Settings = New-ScheduledTaskSettingsSet `
     -StartWhenAvailable `
