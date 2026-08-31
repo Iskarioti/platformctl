@@ -3,11 +3,11 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 POLICY="$ROOT/policy/development.json"
-TARGET="${1:-$PWD}"
 
 command -v jq >/dev/null 2>&1 || { echo "FAIL  jq is required" >&2; exit 2; }
 
-TARGET="$(realpath "$TARGET" 2>/dev/null || printf '%s' "$TARGET")"
+source "$ROOT/scripts/posix/resolve-project.sh"
+TARGET="$(resolve_project_target "$ROOT" "${1:-$PWD}")" || exit 2
 failures=0
 warnings=0
 pass() { printf 'PASS  %s\n' "$1"; }
@@ -70,9 +70,25 @@ done
 
 DEV="$TARGET/.devcontainer/devcontainer.json"
 if [[ -f "$DEV" ]]; then
-  if jq empty "$DEV" >/dev/null 2>&1; then
+  # devcontainer.json legitimately allows JSONC comments/trailing commas per
+  # the Dev Container spec - plain "jq empty" rejects any file that actually
+  # uses them (a real gap: wiocchub-api's own devcontainer.json has "//"
+  # comments and always failed this check, invisibly, until "project check"
+  # could even resolve to the right directory to test it against). Prefer
+  # the Dev Container CLI's own parser (authoritative, comment-aware) when
+  # it's installed; fall back to plain jq otherwise (fine for every
+  # platformctl template, none of which use comments).
+  DEVCONTAINER_BIN="$HOME/.local/bin/devcontainer"
+  MISE_SHIMS="$HOME/.local/share/mise/shims"
+  resolved=""
+  if [[ -x "$DEVCONTAINER_BIN" ]]; then
+    resolved="$(PATH="$MISE_SHIMS:$PATH" "$DEVCONTAINER_BIN" read-configuration --workspace-folder "$TARGET" 2>/dev/null | tail -1)"
+  fi
+  [[ -n "$resolved" ]] && jq empty <<<"$resolved" >/dev/null 2>&1 || resolved="$(jq -c . "$DEV" 2>/dev/null || true)"
+
+  if [[ -n "$resolved" ]] && jq empty <<<"$resolved" >/dev/null 2>&1; then
     pass "devcontainer.json is valid JSON"
-    remote_user="$(jq -r '.remoteUser // empty' "$DEV")"
+    remote_user="$(jq -r '.configuration.remoteUser // .remoteUser // empty' <<<"$resolved")"
     if jq -e '.containers.requireNonRootDevContainer' "$POLICY" >/dev/null; then
       if [[ -n "$remote_user" && "$remote_user" != "root" ]]; then
         pass "Dev Container remoteUser is non-root ($remote_user)"

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-TARGET="${1:-$PWD}"
-TARGET="$(cd "$TARGET" && pwd)"
+source "$ROOT/scripts/posix/resolve-project.sh"
+TARGET="$(resolve_project_target "$ROOT" "${1:-$PWD}")" || exit 2
 
 # Informational only: a non-compliant project must still be openable, just
 # flagged. (Previously this ran under "set -e", so any FAIL here aborted the

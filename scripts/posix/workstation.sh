@@ -101,10 +101,10 @@ workstation commands:
   doctor
   enforce [--repair]
   project init <template> <name> [--area company|platform|automation|labs|tooling]
-  project adopt [path]
-  project check [path]
-  project doctor [path]
-  project open [path]
+  project adopt [path|name]
+  project check [path|name]
+  project doctor [path|name]
+  project open [path|name]
   project templates
   services init
   services list

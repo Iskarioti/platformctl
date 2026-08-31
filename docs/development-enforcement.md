@@ -40,6 +40,16 @@ workstation project doctor
 workstation project open
 ```
 
+`adopt`/`check`/`doctor`/`open` all take either a real path or a bare project name
+(e.g. `workstation project open wiocchub-api`), resolved by searching
+`policy/development.json`'s `projectRoots` (`scripts/posix/resolve-project.sh`) — a
+name that matches nothing, as a path or under any configured root, is a hard error
+listing the configured roots, never a silent fallback to `$PWD`. That silent fallback
+was a real bug: running a bare project name from the wrong directory used to check
+whatever directory you happened to be in instead (once even flagging unrelated
+`Dockerfile.template` files under `~/.vscode-server/extensions/` as if they belonged
+to the named project), rather than failing loudly.
+
 `init` scaffolds a brand-new project from a template. `adopt` is for a project that
 already exists — pre-existing, or freshly `git clone`d — and registers it by writing
 `.platformctl/project.json` only; it never touches any other file, never runs
@@ -68,6 +78,13 @@ A CI workflow is also required, but which file depends on the project's `origin`
 remote: `.github/workflows/ci.yml` + `.github/workflows/policy.yml` for GitHub-hosted
 projects, `azure-pipelines.yml` for Azure DevOps-hosted ones (`.github/workflows/*`
 never executes there) — detected automatically, not configured.
+
+`devcontainer.json` validity is checked with the Dev Container CLI's own parser when
+it's installed, not plain `jq empty` — `jq` rejects the JSONC comments/trailing commas
+the Dev Container spec legitimately allows (a real project's devcontainer.json using
+`//` comments always failed this check silently until it did). Falls back to plain
+`jq` when the CLI isn't installed, which is fine for every platformctl template (none
+use comments).
 
 Lockfiles begin as a warning in v3.1 so a freshly generated project can install its
 dependencies first. Change `projects.lockfilePolicy` to `required` once every active

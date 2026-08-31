@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-TARGET="${1:-$PWD}"
+source "$ROOT/scripts/posix/resolve-project.sh"
+TARGET="$(resolve_project_target "$ROOT" "${1:-$PWD}")" || exit 2
 
 "$ROOT/scripts/posix/project-check.sh" "$TARGET"
 status=$?
 
 echo
 echo "=== Project Doctor ==="
-echo "Path: $(realpath "$TARGET" 2>/dev/null || printf '%s' "$TARGET")"
+echo "Path: $TARGET"
 echo "Filesystem: $(df -T "$TARGET" 2>/dev/null | awk 'NR==2 {print $2}' || true)"
 echo "Branch: $(git -C "$TARGET" branch --show-current 2>/dev/null || echo n/a)"
 echo "Git: $(git --version 2>/dev/null || echo missing)"

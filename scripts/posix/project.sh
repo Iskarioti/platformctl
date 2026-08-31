@@ -16,10 +16,13 @@ case "$ACTION" in
 workstation project commands:
   project templates
   project init <template> <name> [--area company|platform|automation|labs|tooling]
-  project adopt [path]   register an existing/cloned project (.platformctl/project.json only - nothing else is touched)
-  project check [path]
-  project doctor [path]
-  project open [path]
+  project adopt [path|name]   register an existing/cloned project (.platformctl/project.json only - nothing else is touched)
+  project check [path|name]
+  project doctor [path|name]
+  project open [path|name]
+
+[path|name]: a real path, OR a bare project name (e.g. "wiocchub-api") resolved
+by searching policy/development.json's projectRoots - defaults to $PWD if omitted.
 EOF
     ;;
 esac

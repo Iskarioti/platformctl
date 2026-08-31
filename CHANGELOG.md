@@ -1,5 +1,27 @@
 # Changelog
 
+## 3.8.2
+
+- Fixed a real bug reported live: `workstation project open wiocchub-api` (run from
+  `$HOME`, not the project itself) silently checked `$HOME` instead — `cd
+  "wiocchub-api"` failed (no such relative path), the failed command substitution
+  returned empty, and `"${1:-$PWD}"` treated that empty string as "unset" and quietly
+  defaulted to `$PWD`, reporting 11 unrelated failures (including flagging
+  `Dockerfile.template` files under `~/.vscode-server/extensions/` as if they were the
+  named project's).
+- New `scripts/posix/resolve-project.sh` (shared by `project-open.sh`,
+  `project-check.sh`, `project-doctor.sh`, `project-adopt.sh`): a bare project name is
+  now resolved by searching `policy/development.json`'s `projectRoots`
+  (`~/src/company`, `~/src/platform`, etc.) — `workstation project open wiocchub-api`
+  now works from anywhere. A name that resolves nowhere is a hard error listing the
+  configured roots, never a silent fallback.
+- Fixed `project-check.sh` validating `devcontainer.json` with plain `jq empty`, which
+  rejects the JSONC comments/trailing commas the Dev Container spec legitimately
+  allows — surfaced immediately once the resolve fix above let `project check` reach
+  `wiocchub-api`'s real devcontainer.json (which uses `//` comments) for the first
+  time. Now uses the Dev Container CLI's own parser when installed, falling back to
+  plain `jq` (fine for every platformctl template, none of which use comments).
+
 ## 3.8.1
 
 - Investigated whether VS Code's Dev Containers `dev.containers.copyGitConfig` setting

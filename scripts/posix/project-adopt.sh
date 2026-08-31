@@ -15,11 +15,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 POLICY="$ROOT/policy/development.json"
 
-TARGET="${1:-$PWD}"
-TARGET="$(cd "$TARGET" && pwd)"
-
 command -v jq >/dev/null 2>&1 || { echo "jq is required." >&2; exit 2; }
-[[ -d "$TARGET" ]] || { echo "Target does not exist: $TARGET" >&2; exit 2; }
+
+source "$ROOT/scripts/posix/resolve-project.sh"
+TARGET="$(resolve_project_target "$ROOT" "${1:-$PWD}")" || exit 2
 
 if git -C "$TARGET" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "Existing git repository detected - left untouched (no git init, no auto-commit)."
