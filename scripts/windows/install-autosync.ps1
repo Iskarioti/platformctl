@@ -17,12 +17,33 @@ if (-not $PwshCommand) {
 }
 $PwshPath = $PwshCommand.Source
 
+# Uses the ScheduledTasks module rather than schtasks.exe: schtasks.exe's
+# /TR value has a hard 261-character limit, and this repo's own path (nested
+# under a synced "OneDrive - WIOCC\Documents" folder) plus pwsh.exe's path
+# plus the hidden-runner wrapper below routinely exceeds that.
+#
 # Route through wscript.exe + run-hidden.vbs rather than launching pwsh.exe
 # directly - see run-hidden.vbs for why a bare scheduled pwsh.exe task
 # flashes a visible console window every run regardless of the task's own
 # "Hidden" setting.
-$TaskCommand = "wscript.exe //B `"$HiddenRunner`" `"$PwshPath`" -NoLogo -NoProfile -File `"$Script`" -Once"
-schtasks.exe /Create /F /SC MINUTE /MO 5 /TN "WorkstationSetupAutoSync" /TR $TaskCommand
-if ($LASTEXITCODE -ne 0) { throw "Could not create autosync scheduled task." }
+$Action = New-ScheduledTaskAction `
+    -Execute "wscript.exe" `
+    -Argument "//B `"$HiddenRunner`" `"$PwshPath`" -NoLogo -NoProfile -File `"$Script`" -Once"
+
+$Trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) `
+    -RepetitionInterval (New-TimeSpan -Minutes 5) `
+    -RepetitionDuration ([TimeSpan]::MaxValue)
+
+$Settings = New-ScheduledTaskSettingsSet `
+    -StartWhenAvailable `
+    -MultipleInstances IgnoreNew
+
+Register-ScheduledTask `
+    -TaskName "WorkstationSetupAutoSync" `
+    -Action $Action `
+    -Trigger $Trigger `
+    -Settings $Settings `
+    -Force |
+    Out-Null
 
 Write-Host "Autosync enabled: every 5 minutes (hidden), validate -> apply -> commit -> push current branch."
