@@ -2,6 +2,7 @@
 $ErrorActionPreference = "Stop"
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $Script = Join-Path $Root "scripts\common\autosync.ps1"
+$HiddenRunner = Join-Path $PSScriptRoot "run-hidden.vbs"
 
 # Resolve the real pwsh.exe binary path rather than relying on the bare
 # "pwsh.exe" name. When PowerShell resolves through a Store/MSIX App
@@ -16,8 +17,12 @@ if (-not $PwshCommand) {
 }
 $PwshPath = $PwshCommand.Source
 
-$TaskCommand = "`"$PwshPath`" -NoLogo -NoProfile -File `"$Script`" -Once"
-schtasks.exe /Create /F /SC MINUTE /MO 1 /TN "WorkstationSetupAutoSync" /TR $TaskCommand
+# Route through wscript.exe + run-hidden.vbs rather than launching pwsh.exe
+# directly - see run-hidden.vbs for why a bare scheduled pwsh.exe task
+# flashes a visible console window every run regardless of the task's own
+# "Hidden" setting.
+$TaskCommand = "wscript.exe //B `"$HiddenRunner`" `"$PwshPath`" -NoLogo -NoProfile -File `"$Script`" -Once"
+schtasks.exe /Create /F /SC MINUTE /MO 5 /TN "WorkstationSetupAutoSync" /TR $TaskCommand
 if ($LASTEXITCODE -ne 0) { throw "Could not create autosync scheduled task." }
 
-Write-Host "Autosync enabled: every minute, validate -> apply -> commit -> push current branch."
+Write-Host "Autosync enabled: every 5 minutes (hidden), validate -> apply -> commit -> push current branch."

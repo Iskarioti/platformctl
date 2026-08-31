@@ -23,10 +23,17 @@ if (-not $PwshCommand) {
     throw "pwsh.exe could not be resolved; cannot install autoupgrade scheduled task."
 }
 $PwshPath = $PwshCommand.Source
+$HiddenRunner = Join-Path $PSScriptRoot "run-hidden.vbs"
 
+# Route through wscript.exe + run-hidden.vbs rather than launching pwsh.exe
+# directly - see run-hidden.vbs for why a scheduled pwsh.exe task flashes a
+# visible console window every run regardless of the task's own "Hidden"
+# setting. The elevated RunLevel below still applies: Task Scheduler elevates
+# whatever it directly launches (wscript.exe here), and Shell.Run's child
+# process inherits that same token.
 $Action = New-ScheduledTaskAction `
-    -Execute $PwshPath `
-    -Argument "-NoLogo -NoProfile -File `"$Script`" -Unattended"
+    -Execute "wscript.exe" `
+    -Argument "//B `"$HiddenRunner`" `"$PwshPath`" -NoLogo -NoProfile -File `"$Script`" -Unattended"
 
 $Trigger = New-ScheduledTaskTrigger -Daily -At $WindowStart
 
