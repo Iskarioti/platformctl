@@ -52,7 +52,18 @@ outcome="$(printf '%s' "$result_json" | jq -r '.outcome // empty' 2>/dev/null ||
 
 if [[ $up_status -ne 0 || "$outcome" != "success" ]]; then
   echo "Dev Container build/start failed:" >&2
-  jq -r 'select(.text != null) | .text' "$log_file" 2>/dev/null >&2
+  # --log-format json doesn't guarantee every line is JSON (a hard failure
+  # like a DNS/network error can print plain text before the CLI's own
+  # structured logger ever engages) - jq errors out on the first invalid
+  # line and produces nothing, so a bare `jq ... 2>/dev/null` here silently
+  # discards the one thing that would explain the failure. Fall back to the
+  # raw log whenever the pretty extraction comes up empty.
+  extracted="$(jq -r 'select(.text != null) | .text' "$log_file" 2>/dev/null)"
+  if [[ -n "$extracted" ]]; then
+    printf '%s\n' "$extracted" >&2
+  else
+    cat "$log_file" >&2
+  fi
   echo "Opening the folder without a container." >&2
   open_plain
 fi
