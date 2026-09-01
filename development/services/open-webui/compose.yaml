@@ -1,0 +1,28 @@
+services:
+  open-webui:
+    image: ${OPEN_WEBUI_IMAGE}:${OPEN_WEBUI_VERSION}
+    container_name: dev-open-webui
+    hostname: dev-open-webui
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY}
+    ports:
+      - "127.0.0.1:${OPEN_WEBUI_HOST_PORT:-8081}:8080"
+    volumes:
+      - open-webui-data:/app/backend/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' 2>/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [platform-dev]
+    mem_limit: 2g
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev
+
+volumes:
+  open-webui-data:
+    name: platform-open-webui-data

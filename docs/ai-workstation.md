@@ -4,8 +4,8 @@ A governed, local-first lifecycle for testing models, building MCP servers, and
 developing RAG/agentic architectures before anything reaches production. It follows
 this repo's existing three-tier mechanism instead of inventing a fourth one:
 
-- **dev-service** (stable, shared, always-on infra) — `ai-runtime` (Ollama) and the
-  `qdrant` dev-service.
+- **dev-service** (stable, shared, always-on infra) — `ai-runtime` (Ollama), the
+  `qdrant` dev-service, and `open-webui` (chat UI / prompt-engineering interface).
 - **project template** (one-off app scaffolding) — `mcp-server`, `rag-app`,
   `agent-app`.
 - **lab** (disposable, pre-production architecture validation) — `labs/ai/rag-pipeline`
@@ -40,7 +40,22 @@ Its API key is a generated secret at `~/.config/workstation/services/qdrant.env`
 copy the real value into a project's own `.env` (never commit it); any app using it
 must actually call `load_dotenv()` to pick it up.
 
-## 3. Project templates
+## 3. Prompt engineering interface
+
+```bash
+workstation services up open-webui
+```
+
+Self-hosted chat UI (`ghcr.io/open-webui/open-webui`) for the shared Ollama
+runtime — reaches `ollama:11434` over `platform-dev`, same as every other
+service. Open `http://127.0.0.1:8081` and create the first account (becomes the
+local admin); its API routes (`/ollama/api/*`) require that login, by design.
+Its data volume (`platform-open-webui-data`) also caches a small embedding model
+it downloads from Hugging Face on first boot - if that first boot gets
+interrupted mid-download, the next restart just re-downloads it, it does not
+loop or fail permanently.
+
+## 4. Project templates
 
 ```bash
 workstation project init mcp-server <name> --area labs   # or company/platform/...
@@ -64,7 +79,7 @@ All three's FastAPI endpoints take plain scalar parameters (`text: str`,
 parameters** even on `POST` — test with `curl -X POST '.../invoke?question=...'`,
 not a JSON body.
 
-## 4. Architecture validation before production
+## 5. Architecture validation before production
 
 ```bash
 workstation lab toolchain install         # kubectl, helm, k3d (one-time)
@@ -103,7 +118,7 @@ Kubernetes runtime manifests exist for both labs (Deployments/Services behind
 kubernetes`) to build its app image and `k3d image import` it into the
 `platform-labs` cluster, since it isn't published to a registry.
 
-## 5. Production
+## 6. Production
 
 Never deploy from lab or dev-service state directly. Package a template's own
 `.devcontainer/Dockerfile` as the production image base (swap the dev

@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.9.1
+
+Added the "prompt engineering interface" piece from Andrew's target AI
+architecture diagram (`IMG_4954.PNG`): a new `open-webui` dev-service
+(`ghcr.io/open-webui/open-webui:v0.11.3`), same 7-file pattern as `qdrant`,
+joining `platform-dev` to reach the shared `ollama` runtime by name. Its
+`WEBUI_SECRET_KEY` is a generated secret (same `generate_secret_file` mechanism
+as every other service's credential). Added to the `ai` profile in both
+`development/catalog.json` and `policy/development.json`, plus a dashboard tile.
+
+Verified live: builds and passes its health check, serves `http://127.0.0.1:8081`
+(HTTP 200), and its `/ollama/api/*` routes correctly reach the configured
+`OLLAMA_BASE_URL` (confirmed via a `401 Not Authenticated` rather than a
+connection error - full chat verification needs a logged-in browser session,
+which is expected: the first account created becomes the local admin). Its
+first-boot Hugging Face embedding-model download is resumable across restarts
+via its own data volume once it completes once.
+
 ## 3.9.0
 
 Holistic AI/ML workstation: local model testing, an MCP server dev/test/deploy

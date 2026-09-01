@@ -1,0 +1,26 @@
+{
+  "id": "open-webui",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": "~/.config/workstation/services/open-webui.env",
+  "secretKeys": [
+    "WEBUI_SECRET_KEY"
+  ],
+  "dependsOn": [],
+  "volumes": [
+    "platform-open-webui-data"
+  ],
+  "hostEndpoints": [
+    {
+      "label": "Open WebUI",
+      "endpoint": "http://127.0.0.1:${OPEN_WEBUI_HOST_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "Open WebUI",
+      "endpoint": "dev-open-webui:8080"
+    }
+  ]
+}
