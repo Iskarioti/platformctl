@@ -14,16 +14,32 @@ and `garage` dev-services rather than running private copies of each -
 `workstation services up langfuse` brings all four up automatically. Garage
 (not MinIO: MinIO's open-source project was archived in April 2026 with no
 further community builds) provides S3-compatible blob storage for events and
-media, in the shared `${GARAGE_DEFAULT_BUCKET:-shared}` bucket under a
+media, in the shared `${LANGFUSE_STORAGE_BUCKET:-shared}` bucket under a
 `langfuse/` key prefix (see `development/services/garage/README.md` for why
 there's no per-consumer bucket isolation yet).
 
+**Configuration independence** (AGENTS.md): `compose.yaml` here never
+references another service's variable names directly (no
+`${POSTGRES_PASSWORD}`, `${CLICKHOUSE_USER}`, etc.) - it only ever uses its
+own `${LANGFUSE_*}` names. `service.json`'s `consumes` map declares which of
+those come from which dependency (`"LANGFUSE_DB_PASSWORD":
+"postgres:POSTGRES_PASSWORD"` and so on); `services.sh`'s
+`generate_consumed_env()` resolves the actual values into a generated env
+file at `up` time. If `postgres` ever renames or replaces
+`POSTGRES_PASSWORD`, only the one line in `consumes` needs to change - not
+anything inside this compose.yaml.
+
 Tracked configuration:
-- `service.json` — catalog metadata and dependencies.
+- `service.json` — catalog metadata, dependencies, and the `consumes` map.
 - `versions.env` — pinned image/version for `langfuse-web`/`langfuse-worker`
-  only (Postgres/Redis/ClickHouse/Garage versions are each service's own).
+  only (Postgres/Redis/ClickHouse/Garage versions are each service's own -
+  the init containers consume `LANGFUSE_DB_INIT_IMAGE`/`_VERSION` and
+  `LANGFUSE_ANALYTICS_INIT_IMAGE`/`_VERSION` from those services instead of
+  duplicating their pins here).
 - `defaults.env` — non-secret runtime defaults (host port).
-- `.env.example` — required secret/runtime variable documentation.
+- `.env.example` — required secret/runtime variable documentation (only
+  langfuse's own secrets - consumed values are documented in each
+  dependency's own `.env.example`).
 - `compose.yaml` — service topology.
 
 Runtime secrets, when needed, are generated outside Git under:

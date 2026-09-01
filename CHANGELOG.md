@@ -1,5 +1,37 @@
 # Changelog
 
+## 3.9.6
+
+New AGENTS.md rule 15: every dev-service's own configuration
+(`compose.yaml`/`versions.env`/`defaults.env`/`.env.example`) must stay
+independent of every other service's - never reference another service's
+variable names directly, even when depending on it for actual
+infrastructure. Prompted by the v3.9.5 langfuse refactor directly
+referencing `${POSTGRES_PASSWORD}`, `${CLICKHOUSE_USER}`, etc. inside
+langfuse's own `compose.yaml`.
+
+- New `service.json` field `consumes`: a map of `"OWN_VAR_NAME":
+  "dependency-id:DEPENDENCY_VAR_NAME"`. `scripts/posix/services.sh`'s new
+  `generate_consumed_env()` resolves each entry (searching the dependency's
+  `versions.env`, `defaults.env`, and generated secret file) into a
+  generated env file merged into the same `docker compose` invocation - a
+  service's `compose.yaml` only ever needs to know its own variable names.
+  Documented in `docs/development-services-v2.md`.
+- Rewired `langfuse` fully onto `consumes` (Postgres user/password, Redis
+  password, ClickHouse user/password + both dependencies' own pinned
+  image/version for the init containers, Garage access/secret key/bucket) -
+  `compose.yaml` no longer references any other service's variable names at
+  all.
+- Found and fixed the same class of violation in three already-shipped
+  services while auditing for it: `opensearch-dashboards` (read
+  `${OPENSEARCH_INITIAL_ADMIN_PASSWORD}` directly), `pgbouncer` (read
+  `${POSTGRES_USER}`/`${POSTGRES_PASSWORD}`/`${POSTGRES_DB}` directly), and
+  `redisinsight` (read `${REDIS_PASSWORD}` directly) - all three now consume
+  their dependency's credential through the same declarative mechanism.
+  Verified live: `langfuse`, `pgbouncer`, and `redisinsight` all rebuilt
+  cleanly with their new consumed variables correctly resolved to the real
+  underlying secret values.
+
 ## 3.9.5
 
 Two changes: extracted `clickhouse` and `garage` as their own shared

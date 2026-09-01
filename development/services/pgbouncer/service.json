@@ -8,11 +8,16 @@
   "dependsOn": [
     "postgres"
   ],
+  "consumes": {
+    "PGBOUNCER_DB_USER": "postgres:POSTGRES_USER",
+    "PGBOUNCER_DB_PASSWORD": "postgres:POSTGRES_PASSWORD",
+    "PGBOUNCER_DB_NAME": "postgres:POSTGRES_DB"
+  },
   "volumes": [],
   "hostEndpoints": [
     {
       "label": "PgBouncer",
-      "endpoint": "postgresql://${POSTGRES_USER}@127.0.0.1:${PGBOUNCER_HOST_PORT}/${POSTGRES_DB}"
+      "endpoint": "postgresql://${PGBOUNCER_DB_USER}@127.0.0.1:${PGBOUNCER_HOST_PORT}/${PGBOUNCER_DB_NAME}"
     }
   ],
   "dockerEndpoints": [

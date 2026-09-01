@@ -8,6 +8,9 @@
   "dependsOn": [
     "opensearch"
   ],
+  "consumes": {
+    "OPENSEARCH_DASHBOARDS_ADMIN_PASSWORD": "opensearch:OPENSEARCH_INITIAL_ADMIN_PASSWORD"
+  },
   "volumes": [],
   "hostEndpoints": [
     {

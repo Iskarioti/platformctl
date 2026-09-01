@@ -37,6 +37,14 @@ environments for projects created or operated through `platformctl`.
     `workstation autosync pause` (default 30 min, auto-expires); run
     `workstation autosync resume` once the work is committed or abandoned. See
     `docs/autosync.md`.
+15. Every dev-service's own configuration (`compose.yaml`, `versions.env`,
+    `defaults.env`, `.env.example`) must be independent of every other service's:
+    never reference another service's variable names directly (no
+    `${POSTGRES_PASSWORD}` inside a different service's `compose.yaml`), even when
+    depending on it for actual infrastructure (`dependsOn` for startup ordering and
+    shared network reachability is fine). When a value can only come from a
+    dependency, declare it in `service.json`'s `consumes` map instead - see
+    `docs/development-services-v2.md`.
 
 ## Development policy
 

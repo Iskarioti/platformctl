@@ -4,40 +4,45 @@ services:
   # to project bootstrap" - postgres/config/init/00-platform.sql says so
   # explicitly). Langfuse gets its own logical database inside each shared
   # instance rather than writing into the shared default one.
+  #
+  # Configuration independence (AGENTS.md): every ${LANGFUSE_*} variable
+  # below is langfuse's OWN name, resolved from the actual dependency via
+  # service.json's "consumes" map - this file never references
+  # ${POSTGRES_*}/${CLICKHOUSE_*}/${REDIS_*}/${GARAGE_*} directly, so it
+  # can't silently break if a dependency renames or replaces one of those.
   langfuse-postgres-init:
-    image: ${POSTGRES_IMAGE}:${POSTGRES_VERSION}
+    image: ${LANGFUSE_DB_INIT_IMAGE}:${LANGFUSE_DB_INIT_VERSION}
     container_name: dev-langfuse-postgres-init
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      PGPASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_DB: ${POSTGRES_DB}
+      PGPASSWORD: ${LANGFUSE_DB_PASSWORD}
+      LANGFUSE_DB_USER: ${LANGFUSE_DB_USER}
     entrypoint:
       - bash
       - -ec
       - |
-        exists="$$(psql -h dev-postgres -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -tAc "SELECT 1 FROM pg_database WHERE datname='langfuse'")"
+        exists="$$(psql -h dev-postgres -U "$$LANGFUSE_DB_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='langfuse'")"
         if [ "$$exists" != "1" ]; then
-          psql -h dev-postgres -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -c "CREATE DATABASE langfuse"
+          psql -h dev-postgres -U "$$LANGFUSE_DB_USER" -d postgres -c "CREATE DATABASE langfuse"
         fi
     networks: [platform-dev]
 
   langfuse-clickhouse-init:
-    image: ${CLICKHOUSE_IMAGE}:${CLICKHOUSE_VERSION}
+    image: ${LANGFUSE_ANALYTICS_INIT_IMAGE}:${LANGFUSE_ANALYTICS_INIT_VERSION}
     container_name: dev-langfuse-clickhouse-init
     depends_on:
       clickhouse:
         condition: service_healthy
     environment:
-      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      LANGFUSE_ANALYTICS_USER: ${LANGFUSE_ANALYTICS_USER}
+      LANGFUSE_ANALYTICS_PASSWORD: ${LANGFUSE_ANALYTICS_PASSWORD}
     entrypoint:
       - bash
       - -ec
       - |
-        clickhouse-client --host dev-clickhouse --user "$$CLICKHOUSE_USER" --password "$$CLICKHOUSE_PASSWORD" --query "CREATE DATABASE IF NOT EXISTS langfuse"
+        clickhouse-client --host dev-clickhouse --user "$$LANGFUSE_ANALYTICS_USER" --password "$$LANGFUSE_ANALYTICS_PASSWORD" --query "CREATE DATABASE IF NOT EXISTS langfuse"
     networks: [platform-dev]
 
   langfuse-worker:
@@ -65,31 +70,31 @@ services:
       # healthcheck below and any other same-container caller).
       HOSTNAME: "0.0.0.0"
       NODE_OPTIONS: --max-old-space-size=768
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@dev-postgres:5432/langfuse
+      DATABASE_URL: postgresql://${LANGFUSE_DB_USER}:${LANGFUSE_DB_PASSWORD}@dev-postgres:5432/langfuse
       SALT: ${LANGFUSE_SALT}
       ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY}
       NEXTAUTH_URL: http://localhost:${LANGFUSE_HOST_PORT:-3001}
       TELEMETRY_ENABLED: "false"
       CLICKHOUSE_MIGRATION_URL: clickhouse://dev-clickhouse:9000
       CLICKHOUSE_URL: http://dev-clickhouse:8123
-      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_USER: ${LANGFUSE_ANALYTICS_USER}
+      CLICKHOUSE_PASSWORD: ${LANGFUSE_ANALYTICS_PASSWORD}
       CLICKHOUSE_DB: langfuse
       CLICKHOUSE_CLUSTER_ENABLED: "false"
       REDIS_HOST: dev-redis
       REDIS_PORT: "6379"
-      REDIS_AUTH: ${REDIS_PASSWORD}
-      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: ${GARAGE_DEFAULT_BUCKET:-shared}
+      REDIS_AUTH: ${LANGFUSE_CACHE_PASSWORD}
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: ${LANGFUSE_STORAGE_BUCKET:-shared}
       LANGFUSE_S3_EVENT_UPLOAD_REGION: garage
-      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${GARAGE_ACCESS_KEY}
-      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${GARAGE_SECRET_KEY}
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_STORAGE_ACCESS_KEY}
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_STORAGE_SECRET_KEY}
       LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://dev-garage:3900
       LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
       LANGFUSE_S3_EVENT_UPLOAD_PREFIX: langfuse/events/
-      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: ${GARAGE_DEFAULT_BUCKET:-shared}
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: ${LANGFUSE_STORAGE_BUCKET:-shared}
       LANGFUSE_S3_MEDIA_UPLOAD_REGION: garage
-      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${GARAGE_ACCESS_KEY}
-      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${GARAGE_SECRET_KEY}
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_STORAGE_ACCESS_KEY}
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_STORAGE_SECRET_KEY}
       LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://dev-garage:3900
       LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
       LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: langfuse/media/
