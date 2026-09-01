@@ -1,5 +1,33 @@
 # Changelog
 
+## 3.9.3
+
+Fixed a real bug found while finally live-verifying the Kubernetes runtime for
+`labs/ai/rag-pipeline` and `labs/ai/agent-mesh` (previously only Docker-runtime
+verified - `kubectl`/`helm`/`k3d` weren't installed on this machine until now):
+`scripts/posix/install-lab-toolchain.sh`'s k3d checksum lookup did an exact
+match against a bare filename (`k3d-linux-amd64`), but k3d's own
+`checksums.txt` lists entries path-prefixed (`_dist/k3d-linux-amd64`) - the
+exact match always failed with "k3d checksum entry not found", so
+`workstation lab toolchain install` could never actually install k3d. Fixed to
+match on the checksum file's path basename instead of the full field.
+
+With that fixed: `workstation lab toolchain install` + `workstation lab
+cluster create` (a real `platform-labs` k3d cluster, 1 server + 2 agents) both
+labs' full test suites now verified end-to-end under `--runtime kubernetes`
+too - `rag-pipeline`'s `smoke` (real retrieval) and `qdrant-outage` (pod
+replacement recovery), `agent-mesh`'s `smoke` (three independently-answering
+replicas via k8s Service load-balancing) and `node-failure` (deployment stays
+available through a pod deletion). Both namespaces destroyed after
+verification; the `platform-labs` cluster itself is left running for reuse.
+
+Also, separately: Windows was configured to sleep after only 5 minutes idle on
+AC power - almost certainly the root cause of containers (and, once, the shell
+driving them) repeatedly and silently dying mid-task throughout this session's
+AI-workstation work. Changed `powercfg` AC sleep timeout to Never; display
+timeout, battery (DC) behavior, and hibernate settings are all untouched, so
+this only affects whether the system suspends while plugged in.
+
 ## 3.9.2
 
 Added `workstation autosync pause [minutes]` / `resume`: autosync fires every 5

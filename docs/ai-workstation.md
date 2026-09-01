@@ -111,9 +111,10 @@ Both labs' Qdrant/Ollama data volumes persist across `lab up`/`lab down` (only
 `lab destroy` clears them) — their test scripts tolerate re-running against an
 already-seeded lab (a `409` on collection creation is not a failure).
 
-Kubernetes runtime manifests exist for both labs (Deployments/Services behind
-`kubectl apply -k`, matching `redis-cluster`'s established layout) but require
-`workstation lab toolchain install` first. `agent-mesh` additionally needs its
+Both labs also run under `--runtime kubernetes` (Deployments/Services behind
+`kubectl apply -k`, matching `redis-cluster`'s established layout) - requires
+`workstation lab toolchain install` first (`kubectl`, Helm, `k3d`) and
+`workstation lab cluster create`. `agent-mesh` additionally needs its
 `prepare-kubernetes.sh` hook (invoked automatically by `lab up --runtime
 kubernetes`) to build its app image and `k3d image import` it into the
 `platform-labs` cluster, since it isn't published to a registry.

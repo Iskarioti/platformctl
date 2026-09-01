@@ -59,7 +59,10 @@ install_k3d() {
   curl --fail --location --retry 3 \
     "https://github.com/k3d-io/k3d/releases/download/${K3D_VERSION}/checksums.txt" \
     -o "$tmp/k3d-checksums.txt"
-  expected="$(awk -v n="$binary" '$2 == n {print $1}' "$tmp/k3d-checksums.txt" | head -n1)"
+  # k3d's checksums.txt lists the binary path with a leading "_dist/" (e.g.
+  # "_dist/k3d-linux-amd64") rather than the bare filename - match on the
+  # path's last component so this doesn't break if that prefix changes again.
+  expected="$(awk -v n="$binary" '{split($2, p, "/"); if (p[length(p)] == n) print $1}' "$tmp/k3d-checksums.txt" | head -n1)"
   [[ -n "$expected" ]] || {
     echo "ERROR: k3d checksum entry not found." >&2
     exit 3
