@@ -5,7 +5,8 @@ developing RAG/agentic architectures before anything reaches production. It foll
 this repo's existing three-tier mechanism instead of inventing a fourth one:
 
 - **dev-service** (stable, shared, always-on infra) — `ai-runtime` (Ollama), the
-  `qdrant` dev-service, and `open-webui` (chat UI / prompt-engineering interface).
+  `qdrant` dev-service, `open-webui` (chat UI / prompt-engineering interface), and
+  `langfuse` (LLM tracing/observability).
 - **project template** (one-off app scaffolding) — `mcp-server`, `rag-app`,
   `agent-app`.
 - **lab** (disposable, pre-production architecture validation) — `labs/ai/rag-pipeline`
@@ -55,7 +56,56 @@ it downloads from Hugging Face on first boot - if that first boot gets
 interrupted mid-download, the next restart just re-downloads it, it does not
 loop or fail permanently.
 
-## 4. Project templates
+## 4. LLM tracing/observability
+
+```bash
+workstation services up langfuse
+```
+
+Self-hosted [Langfuse](https://langfuse.com/) (`langfuse/langfuse` + `langfuse/langfuse-worker`,
+both `4.27.0`) - six containers behind one catalog entry: the two Langfuse
+services plus their own private Postgres, Redis, ClickHouse, and
+[Garage](https://garagehq.deuxfleurs.fr/) (S3-compatible blob storage - not
+MinIO, whose open-source project was archived in April 2026 with no further
+community builds). Only `langfuse-web` publishes a host port
+(`http://127.0.0.1:3001`); the rest are reachable only from `platform-dev`.
+
+A local admin account and a default project's API keys are pre-seeded on first
+boot (`LANGFUSE_INIT_*`, generated into `~/.config/workstation/services/langfuse.env`
+alongside every other secret this service needs) - a project can start sending
+traces immediately with the `langfuse` Python SDK:
+
+```python
+import os
+os.environ["LANGFUSE_HOST"] = "http://dev-langfuse:3000"  # from a container on platform-dev
+os.environ["LANGFUSE_PUBLIC_KEY"] = "..."  # LANGFUSE_INIT_PROJECT_PUBLIC_KEY
+os.environ["LANGFUSE_SECRET_KEY"] = "..."  # LANGFUSE_INIT_PROJECT_SECRET_KEY
+
+from langfuse import Langfuse
+lf = Langfuse()
+with lf.start_as_current_observation(as_type="span", name="my-trace") as span:
+    span.update(input=..., output=...)
+```
+
+Two real issues surfaced verifying this end-to-end, worth knowing if this
+service ever needs rebuilding from scratch:
+- Its ClickHouse version is pinned to `25.12.11` deliberately, not "the
+  actual latest" (26.x, which this repo would normally prefer) - Langfuse
+  4.27.0's worker hit `Numeric value is out of range for DateTime64` and
+  silently dropped every event against ClickHouse 26.8.2. For a
+  vendor-tested multi-service stack like this, match the vendor's own pinned
+  companion version rather than grabbing the newest independently-verified
+  tag for each component.
+- Langfuse v4 replaced the old REST trace-ingestion/fetch API
+  (`/api/public/ingestion` with `trace-create` events, `GET
+  /api/public/traces/{id}`) with OTLP-based ingestion - use the SDK (as
+  above), not hand-rolled REST calls against those old endpoints. Newly
+  ingested events land first in ClickHouse's raw `events_full`/`events_core`
+  tables; the `analytics_traces`/`observations` tables (and the UI) are
+  populated from those by a separate scheduled propagation job, not
+  synchronously.
+
+## 5. Project templates
 
 ```bash
 workstation project init mcp-server <name> --area labs   # or company/platform/...
@@ -79,7 +129,7 @@ All three's FastAPI endpoints take plain scalar parameters (`text: str`,
 parameters** even on `POST` — test with `curl -X POST '.../invoke?question=...'`,
 not a JSON body.
 
-## 5. Architecture validation before production
+## 6. Architecture validation before production
 
 ```bash
 workstation lab toolchain install         # kubectl, helm, k3d (one-time)
@@ -119,7 +169,7 @@ Both labs also run under `--runtime kubernetes` (Deployments/Services behind
 kubernetes`) to build its app image and `k3d image import` it into the
 `platform-labs` cluster, since it isn't published to a registry.
 
-## 6. Production
+## 7. Production
 
 Never deploy from lab or dev-service state directly. Package a template's own
 `.devcontainer/Dockerfile` as the production image base (swap the dev

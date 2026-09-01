@@ -44,7 +44,8 @@
     ],
     "ai": [
       "qdrant",
-      "open-webui"
+      "open-webui",
+      "langfuse"
     ],
     "all": [
       "postgres",
@@ -69,7 +70,8 @@
       "cadvisor",
       "node-exporter",
       "qdrant",
-      "open-webui"
+      "open-webui",
+      "langfuse"
     ]
   },
   "services": {
@@ -141,6 +143,9 @@
     },
     "open-webui": {
       "path": "development/services/open-webui"
+    },
+    "langfuse": {
+      "path": "development/services/langfuse"
     }
   }
 }

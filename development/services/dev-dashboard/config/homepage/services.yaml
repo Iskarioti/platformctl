@@ -72,3 +72,8 @@
         href: http://localhost:8081
         description: Chat UI for the shared Ollama runtime
         siteMonitor: http://dev-open-webui:8080/
+    - Langfuse:
+        icon: langfuse.png
+        href: http://localhost:3001
+        description: LLM tracing/observability for RAG and agent apps
+        siteMonitor: http://dev-langfuse:3000/api/public/health

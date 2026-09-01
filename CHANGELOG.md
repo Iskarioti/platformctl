@@ -1,5 +1,47 @@
 # Changelog
 
+## 3.9.4
+
+Added the last piece from Andrew's target AI architecture diagram: LLM
+tracing/observability via a new `langfuse` dev-service
+(`langfuse/langfuse`+`langfuse/langfuse-worker` 4.27.0), same catalog pattern
+as `qdrant`/`open-webui` but six containers behind one entry - Langfuse's own
+private Postgres, Redis, ClickHouse, and Garage (S3-compatible storage;
+deliberately not MinIO, whose open-source project was archived in April 2026
+with no further community builds). A local admin account and a default
+project's API keys are pre-seeded on first boot, so a project can start
+sending traces immediately via the `langfuse` Python SDK - see
+`docs/ai-workstation.md`.
+
+Found and fixed four real bugs verifying this live end-to-end (build, health,
+and an actual trace round-tripped through to ClickHouse - not just "should
+work"):
+- A bind-mount path (`./config/garage.toml`) resolved against the wrong
+  directory: `services.sh` sets `--project-directory` to the **repo root**
+  for every dev-service, not the service's own directory, so relative
+  compose paths must be written `./development/services/<name>/...` in
+  full - Docker silently created an empty directory instead of finding the
+  file, crashing Garage with "IO error: Is a directory".
+- Both Langfuse containers OOM-crashed (`FATAL ERROR: Reached heap limit`):
+  `mem_limit` was too tight for Node's default heap sizing, and without an
+  explicit `NODE_OPTIONS=--max-old-space-size`, Node doesn't reliably respect
+  a cgroup memory limit anyway. Fixed both container sizing and heap sizing
+  together.
+- The web container's own in-container healthcheck could never pass:
+  Docker auto-injects `HOSTNAME=<the compose "hostname:" field>` into the
+  container's env, and Langfuse's server binds to whatever that resolves to
+  instead of all interfaces - fine for the host-published port (Docker's NAT
+  targets the container's real IP directly) but unreachable from a
+  healthcheck running inside that same container via `127.0.0.1`. Fixed by
+  overriding `HOSTNAME=0.0.0.0` in the container's own environment.
+- ClickHouse was pinned to the actual-latest `26.8.2` instead of matching
+  Langfuse's own tested companion version - the worker hit `Numeric value is
+  out of range for DateTime64` and silently dropped every event. Repinned to
+  `25.12.11` (the exact patch the vendor's own compose references as
+  `25.12`). Lesson for future vendor-coupled multi-service stacks: match the
+  vendor's tested version, don't independently grab the newest tag per
+  component.
+
 ## 3.9.3
 
 Fixed a real bug found while finally live-verifying the Kubernetes runtime for

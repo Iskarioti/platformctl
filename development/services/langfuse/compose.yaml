@@ -1,0 +1,169 @@
+services:
+  langfuse-postgres:
+    image: ${LANGFUSE_POSTGRES_IMAGE}:${LANGFUSE_POSTGRES_VERSION}
+    container_name: dev-langfuse-postgres
+    hostname: langfuse-postgres
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: ${LANGFUSE_POSTGRES_PASSWORD}
+      POSTGRES_DB: langfuse
+    volumes:
+      - langfuse-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [platform-dev]
+    mem_limit: 512m
+
+  langfuse-redis:
+    image: ${LANGFUSE_REDIS_IMAGE}:${LANGFUSE_REDIS_VERSION}
+    container_name: dev-langfuse-redis
+    hostname: langfuse-redis
+    command: ["--requirepass", "${LANGFUSE_REDIS_AUTH}", "--maxmemory-policy", "noeviction"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${LANGFUSE_REDIS_AUTH}", "--no-auth-warning", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [platform-dev]
+    mem_limit: 256m
+
+  langfuse-clickhouse:
+    image: ${CLICKHOUSE_IMAGE}:${CLICKHOUSE_VERSION}
+    container_name: dev-langfuse-clickhouse
+    hostname: langfuse-clickhouse
+    user: "101:101"
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: langfuse
+      CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD}
+    volumes:
+      - langfuse-clickhouse-data:/var/lib/clickhouse
+      - langfuse-clickhouse-logs:/var/log/clickhouse-server
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    networks: [platform-dev]
+    mem_limit: 1g
+
+  langfuse-garage:
+    image: ${GARAGE_IMAGE}:${GARAGE_VERSION}
+    container_name: dev-langfuse-garage
+    hostname: langfuse-garage
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    environment:
+      GARAGE_CONFIG_FILE: /etc/garage.toml
+      GARAGE_RPC_SECRET: ${LANGFUSE_GARAGE_RPC_SECRET}
+      GARAGE_ADMIN_TOKEN: ${LANGFUSE_GARAGE_ADMIN_TOKEN}
+      GARAGE_DEFAULT_ACCESS_KEY: ${LANGFUSE_GARAGE_S3_ACCESS_KEY}
+      GARAGE_DEFAULT_SECRET_KEY: ${LANGFUSE_GARAGE_S3_SECRET_KEY}
+      GARAGE_DEFAULT_BUCKET: langfuse
+    volumes:
+      - ./development/services/langfuse/config/garage.toml:/etc/garage.toml:ro
+      - langfuse-garage-data:/data
+    # No healthcheck: dxflrs/garage is a "scratch"-based image (just the
+    # static binary, no shell/wget/curl at all) - Docker's CMD-SHELL health
+    # form requires /bin/sh to even launch, which doesn't exist here.
+    # Dependents below use condition: service_started instead.
+    networks: [platform-dev]
+    mem_limit: 256m
+
+  langfuse-worker:
+    image: ${LANGFUSE_WORKER_IMAGE}:${LANGFUSE_WORKER_VERSION}
+    container_name: dev-langfuse-worker
+    hostname: langfuse-worker
+    depends_on: &langfuse-depends-on
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-garage:
+        condition: service_started
+    environment: &langfuse-env
+      # Docker auto-injects HOSTNAME=<the "hostname:" below> into the
+      # container's env, and Langfuse's Next.js server binds to whatever
+      # HOSTNAME resolves to instead of all interfaces - override it so the
+      # server actually binds 0.0.0.0 (matters for both the in-container
+      # healthcheck below and any other same-container caller).
+      HOSTNAME: "0.0.0.0"
+      NODE_OPTIONS: --max-old-space-size=768
+      DATABASE_URL: postgresql://langfuse:${LANGFUSE_POSTGRES_PASSWORD}@langfuse-postgres:5432/langfuse
+      SALT: ${LANGFUSE_SALT}
+      ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY}
+      NEXTAUTH_URL: http://localhost:${LANGFUSE_HOST_PORT:-3001}
+      TELEMETRY_ENABLED: "false"
+      CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
+      CLICKHOUSE_URL: http://langfuse-clickhouse:8123
+      CLICKHOUSE_USER: langfuse
+      CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      REDIS_HOST: langfuse-redis
+      REDIS_PORT: "6379"
+      REDIS_AUTH: ${LANGFUSE_REDIS_AUTH}
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: garage
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_GARAGE_S3_ACCESS_KEY}
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_GARAGE_S3_SECRET_KEY}
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-garage:3900
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: garage
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${LANGFUSE_GARAGE_S3_ACCESS_KEY}
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${LANGFUSE_GARAGE_S3_SECRET_KEY}
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://langfuse-garage:3900
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+    networks: [platform-dev]
+    mem_limit: 1g
+
+  langfuse-web:
+    image: ${LANGFUSE_IMAGE}:${LANGFUSE_VERSION}
+    container_name: dev-langfuse
+    hostname: dev-langfuse
+    depends_on: *langfuse-depends-on
+    environment:
+      <<: *langfuse-env
+      NODE_OPTIONS: --max-old-space-size=1536
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET}
+      LANGFUSE_INIT_ORG_ID: platformctl
+      LANGFUSE_INIT_ORG_NAME: platformctl
+      LANGFUSE_INIT_PROJECT_ID: default
+      LANGFUSE_INIT_PROJECT_NAME: default
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_INIT_PROJECT_PUBLIC_KEY}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_INIT_PROJECT_SECRET_KEY}
+      LANGFUSE_INIT_USER_EMAIL: admin@platformctl.local
+      LANGFUSE_INIT_USER_NAME: admin
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD}
+    ports:
+      - "127.0.0.1:${LANGFUSE_HOST_PORT:-3001}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/public/health?failIfDatabaseUnavailable=true"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    networks: [platform-dev]
+    mem_limit: 2g
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev
+
+volumes:
+  langfuse-postgres-data:
+    name: platform-langfuse-postgres-data
+  langfuse-clickhouse-data:
+    name: platform-langfuse-clickhouse-data
+  langfuse-clickhouse-logs:
+    name: platform-langfuse-clickhouse-logs
+  langfuse-garage-data:
+    name: platform-langfuse-garage-data
