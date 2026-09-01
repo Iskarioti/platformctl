@@ -110,3 +110,4 @@ required engineering plane.
 - `docs/control-plane.md`
 - `docs/reliability.md`
 - `docs/ai-agent-maintenance.md`
+- `docs/ai-workstation.md`

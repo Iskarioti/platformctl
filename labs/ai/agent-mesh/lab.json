@@ -1,0 +1,12 @@
+{
+  "path": "labs/ai/agent-mesh",
+  "runtimes": [
+    "docker",
+    "kubernetes"
+  ],
+  "tests": [
+    "smoke",
+    "node-failure"
+  ],
+  "purpose": "Multi-replica LangGraph agent mesh scaling and node-failure resilience validation"
+}

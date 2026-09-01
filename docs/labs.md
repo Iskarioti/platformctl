@@ -8,6 +8,10 @@ Initial labs:
 - `redis-cluster` — six-node Redis Cluster; smoke and failover tests.
 - `kafka-kraft-3` — three-node Kafka KRaft; smoke and broker-failure tests.
 - `redis-security` — Redis TLS/mTLS and ACL authorization checks.
+- `rag-pipeline` — Ollama + Qdrant RAG retrieval pipeline; smoke and
+  Qdrant-outage tests. See `docs/ai-workstation.md`.
+- `agent-mesh` — three-replica LangGraph agent mesh behind Ollama; smoke and
+  node-failure tests. See `docs/ai-workstation.md`.
 
 Each supports Docker and Kubernetes.
 

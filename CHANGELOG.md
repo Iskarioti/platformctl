@@ -1,5 +1,52 @@
 # Changelog
 
+## 3.9.0
+
+Holistic AI/ML workstation: local model testing, an MCP server dev/test/deploy
+lifecycle, and RAG/agentic ("AgentOS") architecture validation before production —
+following the repo's existing dev-service/project-template/lab three-tier mechanism
+rather than inventing a new one. See `docs/ai-workstation.md`.
+
+- **`ai-runtime` fixed and wired into `workstation`.** Its `compose.yaml` pinned
+  `OLLAMA_VERSION:-latest` — a live violation of this repo's own `forbidLatestTag`
+  policy enforced everywhere else — now pinned via `ai-runtime/versions.env`. Its
+  `ollama` service now also joins `platform-dev` (Compose services can belong to
+  multiple networks at once), so any project already joined there reaches
+  `ollama:11434` with zero extra wiring. New `workstation models
+  up|down|status|pull|list|run`, wired via `scripts/posix/models.sh` /
+  `scripts/common/models.ps1` — previously Taskfile-only and outside the CLI
+  entirely (`ai-runtime/Taskfile.yml` removed).
+- **New `qdrant` dev-service** (`development/catalog.json`, `policy/development.json`
+  `ai` profile) — the same 7-file pattern as every other service. Its API key is a
+  real generated secret (`generate_secret_file`, same mechanism as Redis).
+- **Three new project templates**: `mcp-server` (Python, official `mcp` SDK, Node
+  feature for the MCP Inspector), `rag-app` (FastAPI + LangChain + Qdrant + Ollama),
+  `agent-app` (FastAPI + LangGraph + Ollama). Verified by actually building each
+  template's Dev Container and exercising it live — not just `pytest` — per this
+  repo's standing "never trust an unverified 'should work'" discipline: `rag-app`'s
+  `/ingest`+`/query` round-tripped a real fact through Qdrant + `nomic-embed-text` +
+  `gemma3:4b`; `agent-app`'s LangGraph `/invoke` got a real `gemma3:4b` response;
+  `mcp-server`'s scaffolded tool was listed and called successfully via the real MCP
+  Inspector CLI. Found and fixed two real bugs this way: `rag-app`'s and
+  `agent-app`'s `requirements.txt` used open version ranges that resolve fine on the
+  WSL host's Python 3.12 but hit a genuine pip `ResolutionImpossible` inside the Dev
+  Container's actual Python 3.13 — now pinned to exact, mutually-compatible
+  versions; and `rag-app`'s `app/main.py` never called `load_dotenv()` despite
+  depending on `python-dotenv` and despite `.env.example` documenting that
+  `QDRANT_API_KEY` must be loaded from `.env`.
+- **Two new labs**: `labs/ai/rag-pipeline` (disposable Ollama+Qdrant; `smoke` and
+  `qdrant-outage` tests) and `labs/ai/agent-mesh` (three-replica LangGraph mesh
+  behind Ollama; `smoke` and `node-failure` tests), both Docker- and
+  Kubernetes-runtime manifests following `redis-cluster`'s established layout.
+  Docker runtime verified end-to-end for both (real retrieval scores, real
+  independent per-replica model output, real outage/node-failure recovery);
+  Kubernetes runtime not live-verified this round (needs `workstation lab
+  toolchain install` first).
+- **Found and fixed a real, pre-existing gap while verifying Phase D**: `labs.sh`
+  has always existed, fully implemented, but `lab` was never wired into
+  `workstation.sh`'s command dispatch, `setup`'s command allow-list, or
+  `setup.ps1` — `workstation lab ...` had likely never worked at all before this.
+
 ## 3.8.5
 
 - Fixed the Windows autosync scheduled task flashing a visible PowerShell console

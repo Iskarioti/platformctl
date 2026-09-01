@@ -2,7 +2,7 @@ name: ai-runtime
 
 services:
   ollama:
-    image: ollama/ollama:${OLLAMA_VERSION:-latest}
+    image: ollama/ollama:${OLLAMA_VERSION:?OLLAMA_VERSION must be set - see versions.env}
     container_name: ollama-local
     restart: unless-stopped
     ports:
@@ -11,6 +11,11 @@ services:
       - ollama-models:/root/.ollama
     networks:
       - ai-runtime
+      # Also on platform-dev so any project container already joined there
+      # (the same "runArgs": ["--network=platform-dev"] pattern used to reach
+      # redis/qdrant) can reach "ollama:11434" directly with no extra
+      # networking work per project.
+      - platform-dev
 
 volumes:
   ollama-models:
@@ -20,3 +25,6 @@ networks:
   ai-runtime:
     external: true
     name: ai-runtime
+  platform-dev:
+    external: true
+    name: platform-dev

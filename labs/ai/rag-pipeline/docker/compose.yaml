@@ -1,0 +1,42 @@
+services:
+  ollama:
+    image: ollama/ollama:0.33.2
+    container_name: lab-rag-ollama
+    hostname: ollama
+    volumes: [ollama-data:/root/.ollama]
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [lab]
+
+  qdrant:
+    image: qdrant/qdrant:v1.19.0
+    container_name: lab-rag-qdrant
+    hostname: qdrant
+    volumes: [qdrant-data:/qdrant/storage]
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/6333' 2>/dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [lab]
+
+  model-pull:
+    image: ollama/ollama:0.33.2
+    container_name: lab-rag-model-pull
+    depends_on:
+      ollama: {condition: service_healthy}
+    environment:
+      OLLAMA_HOST: ollama:11434
+    entrypoint: ["sh", "-ec", "ollama pull nomic-embed-text && ollama pull gemma3:1b"]
+    networks: [lab]
+
+networks:
+  lab:
+    name: platform-lab-rag-pipeline
+
+volumes:
+  ollama-data:
+  qdrant-data:

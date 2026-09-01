@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      platformctl.lab: agent-mesh
+      app: ollama
+  template:
+    metadata:
+      labels:
+        platformctl.lab: agent-mesh
+        app: ollama
+    spec:
+      containers:
+        - name: ollama
+          image: ollama/ollama:0.33.2
+          ports:
+            - containerPort: 11434
+              name: ollama
+          readinessProbe:
+            exec:
+              command: ["ollama", "list"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          volumeMounts:
+            - name: data
+              mountPath: /root/.ollama
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+spec:
+  selector:
+    platformctl.lab: agent-mesh
+    app: ollama
+  ports:
+    - name: ollama
+      port: 11434

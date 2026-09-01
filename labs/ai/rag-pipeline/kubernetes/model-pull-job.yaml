@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: model-pull
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        platformctl.lab: rag-pipeline
+        app: model-pull
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: model-pull
+          image: ollama/ollama:0.33.2
+          env:
+            - name: OLLAMA_HOST
+              value: ollama:11434
+          command: ["sh", "-ec", "ollama pull nomic-embed-text && ollama pull gemma3:1b"]

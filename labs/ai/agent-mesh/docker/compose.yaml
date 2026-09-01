@@ -1,0 +1,65 @@
+x-agent-env: &agent-env
+  OLLAMA_BASE_URL: http://ollama:11434
+  CHAT_MODEL: gemma3:1b
+
+x-agent-common: &agent-common
+  build:
+    context: ../app
+  networks: [lab]
+  depends_on:
+    model-pull:
+      condition: service_completed_successfully
+
+services:
+  ollama:
+    image: ollama/ollama:0.33.2
+    container_name: lab-agent-ollama
+    hostname: ollama
+    volumes: [ollama-data:/root/.ollama]
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [lab]
+
+  model-pull:
+    image: ollama/ollama:0.33.2
+    container_name: lab-agent-model-pull
+    depends_on:
+      ollama: {condition: service_healthy}
+    environment:
+      OLLAMA_HOST: ollama:11434
+    entrypoint: ["sh", "-ec", "ollama pull gemma3:1b"]
+    networks: [lab]
+
+  agent-1:
+    <<: *agent-common
+    container_name: lab-agent-1
+    hostname: agent-1
+    environment:
+      <<: *agent-env
+      NODE_ID: agent-1
+
+  agent-2:
+    <<: *agent-common
+    container_name: lab-agent-2
+    hostname: agent-2
+    environment:
+      <<: *agent-env
+      NODE_ID: agent-2
+
+  agent-3:
+    <<: *agent-common
+    container_name: lab-agent-3
+    hostname: agent-3
+    environment:
+      <<: *agent-env
+      NODE_ID: agent-3
+
+networks:
+  lab:
+    name: platform-lab-agent-mesh
+
+volumes:
+  ollama-data:

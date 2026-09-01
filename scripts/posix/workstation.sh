@@ -25,6 +25,8 @@ case "$CMD" in
   enforce) exec "$ROOT/scripts/posix/enforce.sh" "$@" ;;
   project) exec "$ROOT/scripts/posix/project.sh" "$@" ;;
   services) exec "$ROOT/scripts/posix/services.sh" "$@" ;;
+  models) exec "$ROOT/scripts/posix/models.sh" "$@" ;;
+  lab) exec "$ROOT/scripts/posix/labs.sh" "$@" ;;
   editor) exec "$ROOT/scripts/posix/editor.sh" "$@" ;;
   sync) exec "$ROOT/scripts/common/autosync.sh" --once ;;
   publish)
@@ -119,6 +121,8 @@ workstation commands:
   services pull [service|profile ...]
   services project-up [path]
   services reset <service> [--yes]
+  models up|down|status|pull <model>|list|run <model>   shared local Ollama runtime
+  lab list|info|toolchain|cluster|up|status|logs|test|stop|destroy|report   pre-production architecture labs
   editor install|apply|doctor|list|profile|sync|clean
   sync
   autosync enable|disable|once

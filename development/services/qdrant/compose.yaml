@@ -1,0 +1,28 @@
+services:
+  qdrant:
+    image: ${QDRANT_IMAGE}:${QDRANT_VERSION}
+    container_name: dev-qdrant
+    hostname: dev-qdrant
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY}
+    ports:
+      - "127.0.0.1:${QDRANT_HTTP_PORT:-6333}:6333"
+      - "127.0.0.1:${QDRANT_GRPC_PORT:-6334}:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/6333' 2>/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [platform-dev]
+    mem_limit: 512m
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev
+
+volumes:
+  qdrant-data:
+    name: platform-qdrant-data

@@ -1,0 +1,15 @@
+{
+  "name": "__PROJECT_NAME__",
+  "build": {"dockerfile":"Dockerfile","context":".."},
+  "remoteUser": "vscode",
+  "forwardPorts": [8000],
+  "runArgs": ["--network=platform-dev"],
+  "postCreateCommand": "python -m pip install -r requirements-dev.txt",
+  "mounts": ["source=${localEnv:HOME}/.ssh/agent.sock,target=/ssh-agent,type=bind", "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly"],
+  "containerEnv": {
+    "SSH_AUTH_SOCK": "/ssh-agent",
+    "OLLAMA_BASE_URL": "http://ollama:11434",
+    "QDRANT_URL": "http://dev-qdrant:6333"
+  },
+  "customizations": {"vscode":{"extensions":["ms-python.python","ms-python.vscode-pylance","charliermarsh.ruff"]}}
+}

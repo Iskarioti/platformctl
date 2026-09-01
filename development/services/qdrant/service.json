@@ -1,0 +1,34 @@
+{
+  "id": "qdrant",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": "~/.config/workstation/services/qdrant.env",
+  "secretKeys": [
+    "QDRANT_API_KEY"
+  ],
+  "dependsOn": [],
+  "volumes": [
+    "platform-qdrant-data"
+  ],
+  "hostEndpoints": [
+    {
+      "label": "Qdrant REST",
+      "endpoint": "http://127.0.0.1:${QDRANT_HTTP_PORT}"
+    },
+    {
+      "label": "Qdrant gRPC",
+      "endpoint": "127.0.0.1:${QDRANT_GRPC_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "Qdrant REST",
+      "endpoint": "dev-qdrant:6333"
+    },
+    {
+      "label": "Qdrant gRPC",
+      "endpoint": "dev-qdrant:6334"
+    }
+  ]
+}

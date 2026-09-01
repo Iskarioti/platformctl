@@ -78,6 +78,23 @@ switch ($Command.ToLowerInvariant()) {
             exit $LASTEXITCODE
         }
     }
+    "models" {
+        if ($IsWindows -or $env:OS -eq "Windows_NT") {
+            Invoke-RepoScript -Path "scripts\common\models.ps1" -Arguments $Rest
+        } else {
+            & bash (Join-Path $Root "scripts/posix/models.sh") @Rest
+            exit $LASTEXITCODE
+        }
+    }
+
+    "lab" {
+        if ($IsWindows -or $env:OS -eq "Windows_NT") {
+            Invoke-RepoScript -Path "scripts\common\labs.ps1" -Arguments $Rest
+        } else {
+            & bash (Join-Path $Root "scripts/posix/labs.sh") @Rest
+            exit $LASTEXITCODE
+        }
+    }
 
     "editor" {
         if ($IsWindows -or $env:OS -eq "Windows_NT") {
@@ -174,6 +191,9 @@ workstation setup commands
   services project-up [path]        start services declared by a governed project
   services doctor                   check shared development service health
   services down                     stop catalog containers, preserve data
+  models up|down|status             shared local Ollama runtime for testing models
+  models pull|list|run <model>      manage/use models in the shared runtime
+  lab list|info|up|status|test|...  pre-production architecture validation labs (see docs/labs.md)
   editor install|apply|doctor       manage Neovim/NvChad/Vim editor profiles
   sync                              validate -> apply -> commit -> push once
   autosync enable|disable           manage background platformctl autosync

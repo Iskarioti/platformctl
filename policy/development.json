@@ -29,7 +29,10 @@
       "react-app",
       "python-service",
       "terraform",
-      "research-python"
+      "research-python",
+      "mcp-server",
+      "rag-app",
+      "agent-app"
     ]
   },
   "git": {
@@ -78,7 +81,8 @@
       "tempo",
       "grafana",
       "cadvisor",
-      "node-exporter"
+      "node-exporter",
+      "qdrant"
     ],
     "profiles": {
       "core": ["postgres", "redis"],
@@ -88,6 +92,7 @@
       "integration": ["minio", "mailpit"],
       "ui": ["dev-dashboard", "pgadmin", "redisinsight", "kafbat-ui", "opensearch-dashboards"],
       "observability": ["otel-collector", "prometheus", "loki", "tempo", "grafana", "cadvisor", "node-exporter"],
+      "ai": ["qdrant"],
       "all": [
         "postgres",
         "pgbouncer",
@@ -109,7 +114,8 @@
         "tempo",
         "grafana",
         "cadvisor",
-        "node-exporter"
+        "node-exporter",
+        "qdrant"
       ]
     }
   },

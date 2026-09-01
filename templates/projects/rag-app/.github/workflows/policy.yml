@@ -1,0 +1,70 @@
+name: policy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enforce project contract
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          required=(
+            ".devcontainer/devcontainer.json"
+            ".editorconfig"
+            ".gitignore"
+            "README.md"
+            ".env.example"
+            ".platformctl/project.json"
+            ".github/workflows/ci.yml"
+          )
+
+          for file in "${required[@]}"; do
+            test -e "$file" || { echo "Missing required file: $file"; exit 1; }
+          done
+
+          jq -e '.remoteUser != null and .remoteUser != "root"' \
+            .devcontainer/devcontainer.json >/dev/null
+
+          tracked_env="$(
+            git ls-files |
+              grep -E '(^|/)\.env($|\.)' |
+              grep -vE '(^|/)\.env\.example$' || true
+          )"
+          test -z "$tracked_env" || {
+            echo "Tracked .env-style files are forbidden:"
+            echo "$tracked_env"
+            exit 1
+          }
+
+          secret_names="$(
+            git ls-files |
+              grep -Ei '(^|/)(id_rsa|id_ed25519|secrets?|credentials?)(/|$)|\.(pem|key|pfx|p12|kdbx)$' || true
+          )"
+          test -z "$secret_names" || {
+            echo "Secret-like filenames are forbidden:"
+            echo "$secret_names"
+            exit 1
+          }
+
+          latest_hits="$(
+            find . -type f \( -name 'Dockerfile' -o -name 'Dockerfile.*' \) \
+              -not -path './.git/*' -print0 |
+              xargs -0 grep -HnEi '^[[:space:]]*FROM[[:space:]]+[^[:space:]]+:latest([[:space:]]|$)' \
+              2>/dev/null || true
+          )"
+          test -z "$latest_hits" || {
+            echo "Docker :latest base images are forbidden:"
+            echo "$latest_hits"
+            exit 1
+          }

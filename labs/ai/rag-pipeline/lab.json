@@ -1,0 +1,12 @@
+{
+  "path": "labs/ai/rag-pipeline",
+  "runtimes": [
+    "docker",
+    "kubernetes"
+  ],
+  "tests": [
+    "smoke",
+    "qdrant-outage"
+  ],
+  "purpose": "RAG retrieval pipeline correctness/latency baseline and Qdrant-outage resilience validation"
+}

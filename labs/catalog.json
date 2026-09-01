@@ -42,6 +42,30 @@
         "smoke"
       ],
       "purpose": "Redis TLS/mTLS plus ACL authorization validation"
+    },
+    "rag-pipeline": {
+      "path": "labs/ai/rag-pipeline",
+      "runtimes": [
+        "docker",
+        "kubernetes"
+      ],
+      "tests": [
+        "smoke",
+        "qdrant-outage"
+      ],
+      "purpose": "RAG retrieval pipeline correctness/latency baseline and Qdrant-outage resilience validation"
+    },
+    "agent-mesh": {
+      "path": "labs/ai/agent-mesh",
+      "runtimes": [
+        "docker",
+        "kubernetes"
+      ],
+      "tests": [
+        "smoke",
+        "node-failure"
+      ],
+      "purpose": "Multi-replica LangGraph agent mesh scaling and node-failure resilience validation"
     }
   }
 }

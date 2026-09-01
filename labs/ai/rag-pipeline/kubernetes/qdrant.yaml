@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qdrant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      platformctl.lab: rag-pipeline
+      app: qdrant
+  template:
+    metadata:
+      labels:
+        platformctl.lab: rag-pipeline
+        app: qdrant
+    spec:
+      containers:
+        - name: qdrant
+          image: qdrant/qdrant:v1.19.0
+          ports:
+            - containerPort: 6333
+              name: http
+            - containerPort: 6334
+              name: grpc
+          readinessProbe:
+            exec:
+              command: ["bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/6333"]
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            failureThreshold: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /qdrant/storage
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qdrant
+spec:
+  selector:
+    platformctl.lab: rag-pipeline
+    app: qdrant
+  ports:
+    - name: http
+      port: 6333
+    - name: grpc
+      port: 6334

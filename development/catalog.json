@@ -42,6 +42,9 @@
       "cadvisor",
       "node-exporter"
     ],
+    "ai": [
+      "qdrant"
+    ],
     "all": [
       "postgres",
       "pgbouncer",
@@ -63,7 +66,8 @@
       "tempo",
       "grafana",
       "cadvisor",
-      "node-exporter"
+      "node-exporter",
+      "qdrant"
     ]
   },
   "services": {
@@ -129,6 +133,9 @@
     },
     "node-exporter": {
       "path": "development/services/node-exporter"
+    },
+    "qdrant": {
+      "path": "development/services/qdrant"
     }
   }
 }

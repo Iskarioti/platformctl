@@ -64,22 +64,18 @@ git push -u origin HEAD
 
 Start shared runtime:
 ```bash
-cd ~/src/tooling/system-platform-architect-workstation-v2/ai-runtime
-task up
-task gemma4b
-task test4b
+workstation models up
+workstation models pull gemma3:4b
+workstation models status
 ```
 
-Inside any trusted project Dev Container:
-```bash
-task ai:status
-task ai:test
-```
+Inside any trusted project Dev Container joined to the `platform-dev` network
+(`"runArgs": ["--network=platform-dev"]`), reach it directly at `ollama:11434` -
+no extra networking needed.
 
 Stop when not required:
 ```bash
-cd ~/src/tooling/system-platform-architect-workstation-v2/ai-runtime
-task stop
+workstation models down
 ```
 
 ### Larger Gemma experiment
@@ -91,9 +87,8 @@ Switch Windows/WSL resource profile:
 
 Then in WSL:
 ```bash
-cd ai-runtime
-task up
-task gemma12b
+workstation models up
+workstation models pull gemma3:12b
 ```
 
 Close unnecessary Windows applications while benchmarking.

@@ -168,6 +168,9 @@ generate_secret_file() {
     grafana)
       [[ -f "$file" ]] || printf 'GRAFANA_ADMIN_PASSWORD=%s\n' "$(strong_password)" > "$file"
       ;;
+    qdrant)
+      [[ -f "$file" ]] || printf 'QDRANT_API_KEY=%s\n' "$(randhex)" > "$file"
+      ;;
     *)
       return 0
       ;;
