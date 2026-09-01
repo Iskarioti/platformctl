@@ -43,7 +43,8 @@
       "node-exporter"
     ],
     "ai": [
-      "qdrant"
+      "qdrant",
+      "open-webui"
     ],
     "all": [
       "postgres",
@@ -67,7 +68,8 @@
       "grafana",
       "cadvisor",
       "node-exporter",
-      "qdrant"
+      "qdrant",
+      "open-webui"
     ]
   },
   "services": {
@@ -136,6 +138,9 @@
     },
     "qdrant": {
       "path": "development/services/qdrant"
+    },
+    "open-webui": {
+      "path": "development/services/open-webui"
     }
   }
 }

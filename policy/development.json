@@ -82,7 +82,8 @@
       "grafana",
       "cadvisor",
       "node-exporter",
-      "qdrant"
+      "qdrant",
+      "open-webui"
     ],
     "profiles": {
       "core": ["postgres", "redis"],
@@ -92,7 +93,7 @@
       "integration": ["minio", "mailpit"],
       "ui": ["dev-dashboard", "pgadmin", "redisinsight", "kafbat-ui", "opensearch-dashboards"],
       "observability": ["otel-collector", "prometheus", "loki", "tempo", "grafana", "cadvisor", "node-exporter"],
-      "ai": ["qdrant"],
+      "ai": ["qdrant", "open-webui"],
       "all": [
         "postgres",
         "pgbouncer",
@@ -115,7 +116,8 @@
         "grafana",
         "cadvisor",
         "node-exporter",
-        "qdrant"
+        "qdrant",
+        "open-webui"
       ]
     }
   },

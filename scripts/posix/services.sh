@@ -171,6 +171,9 @@ generate_secret_file() {
     qdrant)
       [[ -f "$file" ]] || printf 'QDRANT_API_KEY=%s\n' "$(randhex)" > "$file"
       ;;
+    open-webui)
+      [[ -f "$file" ]] || printf 'WEBUI_SECRET_KEY=%s\n' "$(randhex)" > "$file"
+      ;;
     *)
       return 0
       ;;

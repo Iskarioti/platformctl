@@ -67,3 +67,8 @@
         href: http://localhost:6333/dashboard
         description: Vector database (RAG)
         siteMonitor: http://dev-qdrant:6333/healthz
+    - Open WebUI:
+        icon: open-webui.png
+        href: http://localhost:8081
+        description: Chat UI for the shared Ollama runtime
+        siteMonitor: http://dev-open-webui:8080/
