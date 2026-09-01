@@ -1,0 +1,35 @@
+{
+  "id": "clickhouse",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": "~/.config/workstation/services/clickhouse.env",
+  "secretKeys": [
+    "CLICKHOUSE_PASSWORD"
+  ],
+  "dependsOn": [],
+  "volumes": [
+    "platform-clickhouse-data",
+    "platform-clickhouse-logs"
+  ],
+  "hostEndpoints": [
+    {
+      "label": "ClickHouse HTTP",
+      "endpoint": "http://127.0.0.1:${CLICKHOUSE_HTTP_PORT}"
+    },
+    {
+      "label": "ClickHouse Native",
+      "endpoint": "127.0.0.1:${CLICKHOUSE_NATIVE_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "ClickHouse HTTP",
+      "endpoint": "dev-clickhouse:8123"
+    },
+    {
+      "label": "ClickHouse Native",
+      "endpoint": "dev-clickhouse:9000"
+    }
+  ]
+}

@@ -5,3 +5,4 @@ langchain-ollama==0.2.3
 langchain-qdrant==0.2.1
 qdrant-client==1.19.0
 python-dotenv==1.2.3
+langfuse==4.15.1

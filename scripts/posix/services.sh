@@ -176,21 +176,27 @@ generate_secret_file() {
       ;;
     langfuse)
       [[ -f "$file" ]] || {
-        access_key="GK$(openssl rand -hex 16)"
         {
-          printf 'LANGFUSE_POSTGRES_PASSWORD=%s\n' "$(randhex)"
-          printf 'LANGFUSE_CLICKHOUSE_PASSWORD=%s\n' "$(randhex)"
-          printf 'LANGFUSE_REDIS_AUTH=%s\n' "$(randhex)"
           printf 'LANGFUSE_SALT=%s\n' "$(randhex)"
           printf 'LANGFUSE_ENCRYPTION_KEY=%s\n' "$(openssl rand -hex 32)"
           printf 'LANGFUSE_NEXTAUTH_SECRET=%s\n' "$(randhex)"
-          printf 'LANGFUSE_GARAGE_RPC_SECRET=%s\n' "$(openssl rand -hex 32)"
-          printf 'LANGFUSE_GARAGE_ADMIN_TOKEN=%s\n' "$(randhex)"
-          printf 'LANGFUSE_GARAGE_S3_ACCESS_KEY=%s\n' "$access_key"
-          printf 'LANGFUSE_GARAGE_S3_SECRET_KEY=%s\n' "$(openssl rand -hex 32)"
           printf 'LANGFUSE_INIT_USER_PASSWORD=%s\n' "$(strong_password)"
           printf 'LANGFUSE_INIT_PROJECT_PUBLIC_KEY=pk-lf-%s\n' "$(randhex)"
           printf 'LANGFUSE_INIT_PROJECT_SECRET_KEY=sk-lf-%s\n' "$(randhex)"
+        } > "$file"
+      }
+      ;;
+    clickhouse)
+      [[ -f "$file" ]] || printf 'CLICKHOUSE_PASSWORD=%s\n' "$(randhex)" > "$file"
+      ;;
+    garage)
+      [[ -f "$file" ]] || {
+        access_key="GK$(openssl rand -hex 16)"
+        {
+          printf 'GARAGE_RPC_SECRET=%s\n' "$(openssl rand -hex 32)"
+          printf 'GARAGE_ADMIN_TOKEN=%s\n' "$(randhex)"
+          printf 'GARAGE_ACCESS_KEY=%s\n' "$access_key"
+          printf 'GARAGE_SECRET_KEY=%s\n' "$(openssl rand -hex 32)"
         } > "$file"
       }
       ;;

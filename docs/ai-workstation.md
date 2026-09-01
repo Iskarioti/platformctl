@@ -5,8 +5,10 @@ developing RAG/agentic architectures before anything reaches production. It foll
 this repo's existing three-tier mechanism instead of inventing a fourth one:
 
 - **dev-service** (stable, shared, always-on infra) — `ai-runtime` (Ollama), the
-  `qdrant` dev-service, `open-webui` (chat UI / prompt-engineering interface), and
-  `langfuse` (LLM tracing/observability).
+  `qdrant` dev-service, `open-webui` (chat UI / prompt-engineering interface),
+  and `langfuse` (LLM tracing/observability, itself depending on the shared
+  `postgres`/`redis`/`clickhouse`/`garage` dev-services rather than private
+  copies of each).
 - **project template** (one-off app scaffolding) — `mcp-server`, `rag-app`,
   `agent-app`.
 - **lab** (disposable, pre-production architecture validation) — `labs/ai/rag-pipeline`
@@ -62,40 +64,47 @@ loop or fail permanently.
 workstation services up langfuse
 ```
 
-Self-hosted [Langfuse](https://langfuse.com/) (`langfuse/langfuse` + `langfuse/langfuse-worker`,
-both `4.27.0`) - six containers behind one catalog entry: the two Langfuse
-services plus their own private Postgres, Redis, ClickHouse, and
-[Garage](https://garagehq.deuxfleurs.fr/) (S3-compatible blob storage - not
-MinIO, whose open-source project was archived in April 2026 with no further
-community builds). Only `langfuse-web` publishes a host port
-(`http://127.0.0.1:3001`); the rest are reachable only from `platform-dev`.
+Self-hosted [Langfuse](https://langfuse.com/) (`langfuse/langfuse` +
+`langfuse/langfuse-worker`, both `4.27.0`). Rather than bundling its own
+private Postgres/Redis/ClickHouse/S3, it **depends on and shares** the
+`postgres`, `redis`, `clickhouse`, and `garage` dev-services
+(`service.json` `dependsOn`) - `workstation services up langfuse` brings all
+four up automatically. Two one-shot init containers
+(`langfuse-postgres-init`, `langfuse-clickhouse-init`) idempotently create a
+dedicated `langfuse` database inside the shared Postgres/ClickHouse on first
+boot, so Langfuse doesn't pollute the shared `platformdev`/`default`
+databases other consumers use. [Garage](https://garagehq.deuxfleurs.fr/)
+(not MinIO: MinIO's open-source project was archived in April 2026 with no
+further community builds) provides S3-compatible blob storage - Langfuse
+uses the shared bucket under a `langfuse/` key prefix, since there's no
+per-consumer bucket isolation yet (see `development/services/garage/README.md`).
+Only `langfuse-web` publishes a host port (`http://127.0.0.1:3001`).
 
 A local admin account and a default project's API keys are pre-seeded on first
-boot (`LANGFUSE_INIT_*`, generated into `~/.config/workstation/services/langfuse.env`
-alongside every other secret this service needs) - a project can start sending
-traces immediately with the `langfuse` Python SDK:
+boot (`LANGFUSE_INIT_*`, generated into `~/.config/workstation/services/langfuse.env`) -
+`rag-app` and `agent-app` (below) already read these as `LANGFUSE_PUBLIC_KEY`/
+`LANGFUSE_SECRET_KEY` and trace every LLM call automatically via
+`langfuse.langchain.CallbackHandler`, with graceful no-op fallback if those
+keys aren't set. To instrument your own LangChain/LangGraph code the same way:
 
 ```python
-import os
-os.environ["LANGFUSE_HOST"] = "http://dev-langfuse:3000"  # from a container on platform-dev
-os.environ["LANGFUSE_PUBLIC_KEY"] = "..."  # LANGFUSE_INIT_PROJECT_PUBLIC_KEY
-os.environ["LANGFUSE_SECRET_KEY"] = "..."  # LANGFUSE_INIT_PROJECT_SECRET_KEY
+from langfuse.langchain import CallbackHandler  # reads LANGFUSE_* env vars
 
-from langfuse import Langfuse
-lf = Langfuse()
-with lf.start_as_current_observation(as_type="span", name="my-trace") as span:
-    span.update(input=..., output=...)
+handler = CallbackHandler()
+result = my_chain.invoke(input, config={"callbacks": [handler]})
 ```
 
-Two real issues surfaced verifying this end-to-end, worth knowing if this
-service ever needs rebuilding from scratch:
-- Its ClickHouse version is pinned to `25.12.11` deliberately, not "the
-  actual latest" (26.x, which this repo would normally prefer) - Langfuse
-  4.27.0's worker hit `Numeric value is out of range for DateTime64` and
-  silently dropped every event against ClickHouse 26.8.2. For a
-  vendor-tested multi-service stack like this, match the vendor's own pinned
-  companion version rather than grabbing the newest independently-verified
-  tag for each component.
+Real issues surfaced verifying this end-to-end, worth knowing if any of this
+ever needs rebuilding from scratch:
+- ClickHouse is pinned to `25.12.11` deliberately, not "the actual latest"
+  (26.x, which this repo would normally prefer) - Langfuse 4.27.0's worker hit
+  `Numeric value is out of range for DateTime64` and silently dropped every
+  event against ClickHouse 26.8.2. For a vendor-tested multi-service stack
+  like this, match the vendor's own pinned companion version rather than
+  grabbing the newest independently-verified tag for each component - if
+  another consumer of the shared `clickhouse` service needs a newer version,
+  verify Langfuse still works before bumping it, or give that consumer its
+  own private instance instead.
 - Langfuse v4 replaced the old REST trace-ingestion/fetch API
   (`/api/public/ingestion` with `trace-create` events, `GET
   /api/public/traces/{id}`) with OTLP-based ingestion - use the SDK (as
@@ -104,6 +113,9 @@ service ever needs rebuilding from scratch:
   tables; the `analytics_traces`/`observations` tables (and the UI) are
   populated from those by a separate scheduled propagation job, not
   synchronously.
+- `workstation services reset langfuse` is a no-op: `reset_service` maps its
+  argument to a literal Compose service name, and none of Langfuse's own
+  containers are literally named `langfuse`. Use `services down`/`up` instead.
 
 ## 5. Project templates
 
@@ -120,9 +132,14 @@ workstation project init agent-app <name>
   tools/list` / `--method tools/call --tool-name <name> --tool-arg k=v` for scripted
   checks.
 - **`rag-app`** — FastAPI + LangChain + `langchain-qdrant` + `langchain-ollama`.
-  Joins `platform-dev` to reach both `ollama` and `dev-qdrant` by name.
+  Joins `platform-dev` to reach `ollama`, `dev-qdrant`, and (optionally)
+  `dev-langfuse` by name.
 - **`agent-app`** — FastAPI + LangGraph (`StateGraph`, one `respond` node by
   default) + `langchain-ollama`. Same `platform-dev` join.
+
+Both `rag-app` and `agent-app` trace every LLM call to Langfuse automatically
+if `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` are set in `.env` (see section 4
+above) - unset, they just run without tracing.
 
 All three's FastAPI endpoints take plain scalar parameters (`text: str`,
 `question: str`) with no Pydantic body model, so FastAPI treats them as **query

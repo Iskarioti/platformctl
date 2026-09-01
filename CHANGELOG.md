@@ -1,5 +1,38 @@
 # Changelog
 
+## 3.9.5
+
+Two changes: extracted `clickhouse` and `garage` as their own shared
+dev-services (rather than private per-service copies), and wired real
+Langfuse tracing into `rag-app`/`agent-app`.
+
+- **New `clickhouse` and `garage` dev-services**, same 7-file pattern as
+  every other entry. `langfuse`'s `service.json` now declares
+  `"dependsOn": ["postgres", "redis", "clickhouse", "garage"]` instead of
+  bundling private copies of each - `workstation services up langfuse`
+  still brings all four up automatically (`resolve_targets` already expands
+  `dependsOn` recursively and merges every resolved service's compose file +
+  secrets into one `docker compose` invocation - the same mechanism
+  `pgadmin`'s `dependsOn: ["postgres"]` already relied on). Two new one-shot
+  init containers (`langfuse-postgres-init`, `langfuse-clickhouse-init`)
+  idempotently create a dedicated `langfuse` database inside the shared
+  Postgres/ClickHouse on first boot, so Langfuse doesn't write into the
+  shared `platformdev`/`default` databases other consumers use. Garage's
+  shared instance auto-bootstraps one bucket (`GARAGE_DEFAULT_BUCKET`,
+  default `shared`); Langfuse namespaces its objects under a `langfuse/`
+  prefix within it, since there's no per-consumer bucket isolation yet.
+  Verified live end-to-end after the refactor: a real trace round-tripped
+  through the shared ClickHouse's dedicated `langfuse` database with zero
+  errors.
+- **`rag-app` and `agent-app` now trace every LLM call to Langfuse
+  automatically** via `langfuse.langchain.CallbackHandler`, when
+  `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` are set in the project's own
+  `.env` (optional - both templates run standalone with no tracing if
+  unset). Verified live by building both templates' Dev Containers fresh,
+  hitting real endpoints, and confirming rich nested traces landed in
+  ClickHouse - not just the LLM call itself but, for `agent-app`, the full
+  LangGraph execution chain (`__start__`, `respond` node, channel writes).
+
 ## 3.9.4
 
 Added the last piece from Andrew's target AI architecture diagram: LLM

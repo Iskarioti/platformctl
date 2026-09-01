@@ -71,7 +71,9 @@
       "node-exporter",
       "qdrant",
       "open-webui",
-      "langfuse"
+      "langfuse",
+      "clickhouse",
+      "garage"
     ]
   },
   "services": {
@@ -146,6 +148,12 @@
     },
     "langfuse": {
       "path": "development/services/langfuse"
+    },
+    "clickhouse": {
+      "path": "development/services/clickhouse"
+    },
+    "garage": {
+      "path": "development/services/garage"
     }
   }
 }

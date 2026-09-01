@@ -21,6 +21,15 @@ app = FastAPI(title="__PROJECT_NAME__")
 embeddings = OllamaEmbeddings(base_url=OLLAMA_BASE_URL, model=EMBED_MODEL)
 client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
 
+# Optional: trace every LLM call to Langfuse (workstation services up
+# langfuse) if configured - see .env.example. Falls back to no tracing if
+# LANGFUSE_PUBLIC_KEY isn't set, so this template works standalone too.
+_callbacks = []
+if os.environ.get("LANGFUSE_PUBLIC_KEY"):
+    from langfuse.langchain import CallbackHandler
+
+    _callbacks = [CallbackHandler()]
+
 
 def ensure_collection() -> None:
     if not client.collection_exists(COLLECTION):
@@ -53,6 +62,7 @@ def query(question: str) -> dict[str, str]:
     llm = ChatOllama(base_url=OLLAMA_BASE_URL, model=CHAT_MODEL)
     response = llm.invoke(
         f"Answer the question using only the context below.\n\n"
-        f"Context:\n{context}\n\nQuestion: {question}"
+        f"Context:\n{context}\n\nQuestion: {question}",
+        config={"callbacks": _callbacks},
     )
     return {"answer": response.content}

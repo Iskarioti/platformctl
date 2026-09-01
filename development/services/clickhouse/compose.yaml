@@ -1,0 +1,36 @@
+services:
+  clickhouse:
+    image: ${CLICKHOUSE_IMAGE}:${CLICKHOUSE_VERSION}
+    container_name: dev-clickhouse
+    hostname: dev-clickhouse
+    user: "101:101"
+    environment:
+      TZ: UTC
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    ports:
+      - "127.0.0.1:${CLICKHOUSE_HTTP_PORT:-8123}:8123"
+      - "127.0.0.1:${CLICKHOUSE_NATIVE_PORT:-9000}:9000"
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - clickhouse-logs:/var/log/clickhouse-server
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    networks: [platform-dev]
+    mem_limit: 1g
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev
+
+volumes:
+  clickhouse-data:
+    name: platform-clickhouse-data
+  clickhouse-logs:
+    name: platform-clickhouse-logs

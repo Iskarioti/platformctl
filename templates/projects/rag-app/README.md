@@ -15,6 +15,11 @@ workstation services up qdrant
 Copy `~/.config/workstation/services/qdrant.env`'s `QDRANT_API_KEY` value into this
 project's own (gitignored) `.env` - see `.env.example`.
 
+Optionally, for LLM call tracing: `workstation services up langfuse`, then copy
+`~/.config/workstation/services/langfuse.env`'s `LANGFUSE_INIT_PROJECT_PUBLIC_KEY`/
+`_SECRET_KEY` into `.env` as `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY`. Leave them
+blank to run without Langfuse - the app works either way.
+
 ## Develop
 
 ```bash

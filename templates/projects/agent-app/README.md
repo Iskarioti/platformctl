@@ -10,6 +10,12 @@ workstation models up
 workstation models pull gemma3:4b
 ```
 
+Optionally, for LLM call tracing: `workstation services up langfuse`, then copy
+`~/.config/workstation/services/langfuse.env`'s `LANGFUSE_INIT_PROJECT_PUBLIC_KEY`/
+`_SECRET_KEY` into this project's own (gitignored) `.env` as `LANGFUSE_PUBLIC_KEY`/
+`LANGFUSE_SECRET_KEY` - see `.env.example`. Leave them blank to run without
+Langfuse - the app works either way.
+
 ## Develop
 
 ```bash

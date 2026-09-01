@@ -1,0 +1,29 @@
+{
+  "id": "garage",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": "~/.config/workstation/services/garage.env",
+  "secretKeys": [
+    "GARAGE_RPC_SECRET",
+    "GARAGE_ADMIN_TOKEN",
+    "GARAGE_ACCESS_KEY",
+    "GARAGE_SECRET_KEY"
+  ],
+  "dependsOn": [],
+  "volumes": [
+    "platform-garage-data"
+  ],
+  "hostEndpoints": [
+    {
+      "label": "Garage S3 API",
+      "endpoint": "http://127.0.0.1:${GARAGE_S3_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "Garage S3 API",
+      "endpoint": "dev-garage:3900"
+    }
+  ]
+}

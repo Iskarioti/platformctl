@@ -5,27 +5,20 @@
   "defaults": "defaults.env",
   "secrets": "~/.config/workstation/services/langfuse.env",
   "secretKeys": [
-    "LANGFUSE_POSTGRES_PASSWORD",
-    "LANGFUSE_CLICKHOUSE_PASSWORD",
-    "LANGFUSE_REDIS_AUTH",
     "LANGFUSE_SALT",
     "LANGFUSE_ENCRYPTION_KEY",
     "LANGFUSE_NEXTAUTH_SECRET",
-    "LANGFUSE_GARAGE_RPC_SECRET",
-    "LANGFUSE_GARAGE_ADMIN_TOKEN",
-    "LANGFUSE_GARAGE_S3_ACCESS_KEY",
-    "LANGFUSE_GARAGE_S3_SECRET_KEY",
     "LANGFUSE_INIT_USER_PASSWORD",
     "LANGFUSE_INIT_PROJECT_PUBLIC_KEY",
     "LANGFUSE_INIT_PROJECT_SECRET_KEY"
   ],
-  "dependsOn": [],
-  "volumes": [
-    "platform-langfuse-postgres-data",
-    "platform-langfuse-clickhouse-data",
-    "platform-langfuse-clickhouse-logs",
-    "platform-langfuse-garage-data"
+  "dependsOn": [
+    "postgres",
+    "redis",
+    "clickhouse",
+    "garage"
   ],
+  "volumes": [],
   "hostEndpoints": [
     {
       "label": "Langfuse",

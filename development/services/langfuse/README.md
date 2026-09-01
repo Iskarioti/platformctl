@@ -5,24 +5,26 @@ development service - a self-hosted LLM tracing/observability/eval platform for
 `templates/projects/rag-app` and `templates/projects/agent-app` (see
 `docs/ai-workstation.md`).
 
-Six containers behind one catalog entry: `langfuse-web` (UI + API),
-`langfuse-worker` (async ingestion), `langfuse-postgres` (app data),
-`langfuse-clickhouse` (trace/analytics storage), `langfuse-redis`
-(queue/cache), and `langfuse-garage` (S3-compatible blob storage for events
-and media - using [Garage](https://garagehq.deuxfleurs.fr/), not MinIO: MinIO's
-open-source project was archived in April 2026 with no further community
-builds, so Garage - actively maintained, built for exactly this use case - was
-used instead). Only `langfuse-web` publishes a host port; the other five are
-reachable only from containers already on `platform-dev`.
+Two containers of its own (`langfuse-web`, `langfuse-worker`), plus two
+one-shot init containers (`langfuse-postgres-init`, `langfuse-clickhouse-init`)
+that idempotently create a dedicated `langfuse` database inside the **shared**
+`postgres` and `clickhouse` dev-services on first boot. Langfuse depends on
+(`service.json` `dependsOn`) and shares the `postgres`, `redis`, `clickhouse`,
+and `garage` dev-services rather than running private copies of each -
+`workstation services up langfuse` brings all four up automatically. Garage
+(not MinIO: MinIO's open-source project was archived in April 2026 with no
+further community builds) provides S3-compatible blob storage for events and
+media, in the shared `${GARAGE_DEFAULT_BUCKET:-shared}` bucket under a
+`langfuse/` key prefix (see `development/services/garage/README.md` for why
+there's no per-consumer bucket isolation yet).
 
 Tracked configuration:
 - `service.json` — catalog metadata and dependencies.
-- `versions.env` — pinned image/version for all six containers.
+- `versions.env` — pinned image/version for `langfuse-web`/`langfuse-worker`
+  only (Postgres/Redis/ClickHouse/Garage versions are each service's own).
 - `defaults.env` — non-secret runtime defaults (host port).
 - `.env.example` — required secret/runtime variable documentation.
 - `compose.yaml` — service topology.
-- `config/garage.toml` — Garage's static config (secrets injected via env
-  vars instead, `GARAGE_RPC_SECRET`/`GARAGE_ADMIN_TOKEN`, not this file).
 
 Runtime secrets, when needed, are generated outside Git under:
 `~/.config/workstation/services/langfuse.env`. This includes a pre-seeded
@@ -37,6 +39,8 @@ joined to `platform-dev`, point the LangChain/LangGraph SDK's
 `LANGFUSE_HOST=http://dev-langfuse:3000` plus the generated public/secret keys
 above.
 
-`langfuse-garage` has no Docker healthcheck: its image is built `FROM scratch`
-(just the static binary, no shell/wget/curl at all), so `depends_on` uses
-`condition: service_started` for it instead of `service_healthy`.
+`workstation services reset langfuse` will not do anything useful for this
+service: `reset_service` maps its argument to a literal Compose *service
+name* (`rm -sf "$s"`), and none of this bundle's containers are literally
+named `langfuse`. Use `services down`/`up` instead, which act on the whole
+merged compose file correctly.

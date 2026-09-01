@@ -1,0 +1,33 @@
+services:
+  garage:
+    image: ${GARAGE_IMAGE}:${GARAGE_VERSION}
+    container_name: dev-garage
+    hostname: dev-garage
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    environment:
+      GARAGE_CONFIG_FILE: /etc/garage.toml
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
+      GARAGE_DEFAULT_ACCESS_KEY: ${GARAGE_ACCESS_KEY}
+      GARAGE_DEFAULT_SECRET_KEY: ${GARAGE_SECRET_KEY}
+      GARAGE_DEFAULT_BUCKET: ${GARAGE_DEFAULT_BUCKET:-shared}
+    ports:
+      - "127.0.0.1:${GARAGE_S3_PORT:-3900}:3900"
+    volumes:
+      - ./development/services/garage/config/garage.toml:/etc/garage.toml:ro
+      - garage-data:/data
+    # No healthcheck: dxflrs/garage is a "scratch"-based image (just the
+    # static binary, no shell/wget/curl at all) - Docker's CMD-SHELL health
+    # form requires /bin/sh to even launch, which doesn't exist here.
+    # Dependents should use condition: service_started instead.
+    networks: [platform-dev]
+    mem_limit: 256m
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev
+
+volumes:
+  garage-data:
+    name: platform-garage-data
