@@ -41,7 +41,23 @@ case "$CMD" in
       enable) exec "$ROOT/scripts/posix/install-autosync.sh" ;;
       disable) exec "$ROOT/scripts/posix/uninstall-autosync.sh" ;;
       once) exec "$ROOT/scripts/common/autosync.sh" --once ;;
-      *) echo "autosync: enable | disable | once" ;;
+      pause)
+        minutes="${2:-30}"
+        mkdir -p "$ROOT/.state"
+        target_epoch=$(( $(date -u +%s) + minutes * 60 ))
+        if date -u -d @0 >/dev/null 2>&1; then
+          expiry="$(date -u -d "@$target_epoch" +%Y-%m-%dT%H:%M:%SZ)"
+        else
+          expiry="$(date -u -r "$target_epoch" +%Y-%m-%dT%H:%M:%SZ)"
+        fi
+        echo "$expiry" > "$ROOT/.state/autosync.pause"
+        echo "Autosync paused until $expiry (run 'workstation autosync resume' to lift early)."
+        ;;
+      resume)
+        rm -f "$ROOT/.state/autosync.pause"
+        echo "Autosync resumed."
+        ;;
+      *) echo "autosync: enable | disable | once | pause [minutes] | resume" ;;
     esac
     ;;
   upgrade) exec "$ROOT/scripts/posix/upgrade.sh" "$@" ;;
@@ -125,7 +141,7 @@ workstation commands:
   lab list|info|toolchain|cluster|up|status|logs|test|stop|destroy|report   pre-production architecture labs
   editor install|apply|doctor|list|profile|sync|clean
   sync
-  autosync enable|disable|once
+  autosync enable|disable|once|pause [minutes]|resume
   upgrade [--scope=packages|vscodeExtensions|fonts]
   ssh-import                         copy Windows SSH keys into WSL (WSL only)
   autoupgrade enable|disable|once

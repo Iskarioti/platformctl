@@ -197,6 +197,7 @@ workstation setup commands
   editor install|apply|doctor       manage Neovim/NvChad/Vim editor profiles
   sync                              validate -> apply -> commit -> push once
   autosync enable|disable           manage background platformctl autosync
+  autosync pause [minutes]|resume   skip autosync's git-sync step during active multi-step work
   upgrade [--Scope packages,...]    upgrade installed components (winget/VS Code/fonts)
   autoupgrade enable|disable|once   manage off-hours background component upgrades
   dashboard [--port N]              run the platformctl web control plane once (foreground)

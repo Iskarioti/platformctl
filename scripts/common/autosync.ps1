@@ -25,6 +25,21 @@ try {
         Write-Warning "SSH key import into WSL failed (non-fatal): $_"
     }
 
+    $PauseFile = Join-Path $Root ".state\autosync.pause"
+    if (Test-Path $PauseFile) {
+        $Paused = $false
+        try {
+            $Expiry = [DateTime]::Parse((Get-Content $PauseFile -Raw).Trim(), $null, [System.Globalization.DateTimeStyles]::RoundtripKind)
+            $Paused = (Get-Date).ToUniversalTime() -lt $Expiry.ToUniversalTime()
+        } catch {
+            $Paused = $false
+        }
+        if ($Paused) {
+            exit 0
+        }
+        Remove-Item $PauseFile -Force -ErrorAction SilentlyContinue
+    }
+
     $Dirty = git status --porcelain
     if (-not $Dirty) { exit 0 }
 

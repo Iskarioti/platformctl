@@ -19,6 +19,20 @@ if grep -qi microsoft /proc/version 2>/dev/null; then
   "$ROOT/wsl/import-windows-ssh-keys.sh" >/dev/null 2>&1 || echo "SSH key import failed (non-fatal)" >&2
 fi
 
+PAUSE_FILE="$ROOT/.state/autosync.pause"
+if [[ -f "$PAUSE_FILE" ]]; then
+  EXPIRY="$(cat "$PAUSE_FILE")"
+  if date -u -d "$EXPIRY" >/dev/null 2>&1; then
+    EXPIRY_EPOCH="$(date -u -d "$EXPIRY" +%s)"
+  else
+    EXPIRY_EPOCH="$(date -u -j -f '%Y-%m-%dT%H:%M:%SZ' "$EXPIRY" +%s 2>/dev/null || echo 0)"
+  fi
+  if [[ "$(date -u +%s)" -lt "$EXPIRY_EPOCH" ]]; then
+    exit 0
+  fi
+  rm -f "$PAUSE_FILE"
+fi
+
 [[ -z "$(git status --porcelain)" ]] && exit 0
 
 "$ROOT/setup" validate

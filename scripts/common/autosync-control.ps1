@@ -1,10 +1,28 @@
 param(
     [Parameter(Position=0)]
-    [ValidateSet("enable","disable","once","status")]
-    [string]$Action = "status"
+    [ValidateSet("enable","disable","once","status","pause","resume")]
+    [string]$Action = "status",
+
+    [Parameter(Position=1)]
+    [int]$Minutes = 30
 )
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+
+if ($Action -eq "pause") {
+    $StateDir = Join-Path $Root ".state"
+    New-Item -ItemType Directory -Force -Path $StateDir | Out-Null
+    $Expiry = (Get-Date).ToUniversalTime().AddMinutes($Minutes).ToString("yyyy-MM-ddTHH:mm:ssZ")
+    Set-Content -Path (Join-Path $StateDir "autosync.pause") -Value $Expiry -NoNewline
+    Write-Host "Autosync paused until $Expiry (run 'workstation autosync resume' to lift early)."
+    exit 0
+}
+
+if ($Action -eq "resume") {
+    Remove-Item (Join-Path $Root ".state\autosync.pause") -Force -ErrorAction SilentlyContinue
+    Write-Host "Autosync resumed."
+    exit 0
+}
 
 if ($IsWindows -or $env:OS -eq "Windows_NT") {
     # Invoke through pwsh.exe -File rather than "& (Join-Path ...)" directly:

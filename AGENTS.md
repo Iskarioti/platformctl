@@ -31,6 +31,12 @@ environments for projects created or operated through `platformctl`.
     non-root container requirements, or pinned-version policy to make a change pass.
 13. `platformctl` autosync manages **platformctl only**. Never add automatic commit/push
     behavior to application repositories.
+14. Autosync fires every 5 minutes and commits/pushes whatever is dirty at that
+    moment, regardless of whether an agent is mid-task. Before starting a task that
+    edits several already-tracked files across more than one tool call, run
+    `workstation autosync pause` (default 30 min, auto-expires); run
+    `workstation autosync resume` once the work is committed or abandoned. See
+    `docs/autosync.md`.
 
 ## Development policy
 
