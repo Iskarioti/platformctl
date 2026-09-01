@@ -219,6 +219,64 @@ ensure_secrets_for() {
   done
 }
 
+generate_consumed_env() {
+  # A service's OWN compose.yaml must only ever reference ITS OWN variable
+  # names (AGENTS.md: dev-service configuration independence) - it must
+  # never read a dependency's variable directly (e.g. ${POSTGRES_PASSWORD}
+  # inside langfuse's compose.yaml), since that couples langfuse's config to
+  # postgres's internal naming and breaks silently if postgres ever renames
+  # or replaces that variable. Instead, service.json declares a "consumes"
+  # map of "OWN_VAR_NAME": "dependency-id:DEPENDENCY_VAR_NAME", and this
+  # function resolves those into a generated env file of the service's OWN
+  # variable names - the only thing its compose.yaml ever has to know about.
+  local s="$1" dir meta out
+  dir="$(service_dir "$s")"
+  meta="$dir/service.json"
+  mkdir -p "$ROOT/.state"
+  out="$ROOT/.state/consumed-${s}.env"
+
+  python3 - "$meta" "$ROOT/development/services" "$SECRET_ROOT" "$out" <<'PY'
+import json
+import os
+import sys
+
+meta_path, services_root, secret_root, out_path = sys.argv[1:5]
+meta = json.load(open(meta_path))
+consumes = meta.get("consumes", {})
+
+
+def read_env_file(path):
+    values = {}
+    if not os.path.exists(path):
+        return values
+    for line in open(path):
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        values[k] = v
+    return values
+
+
+lines = []
+for own_key, ref in consumes.items():
+    dep_service, dep_key = ref.split(":", 1)
+    dep_dir = os.path.join(services_root, dep_service)
+    values = {}
+    values.update(read_env_file(os.path.join(dep_dir, "versions.env")))
+    values.update(read_env_file(os.path.join(dep_dir, "defaults.env")))
+    values.update(read_env_file(os.path.join(secret_root, f"{dep_service}.env")))
+    if dep_key in values:
+        lines.append(f"{own_key}={values[dep_key]}")
+
+with open(out_path, "w") as f:
+    for line in lines:
+        f.write(line + "\n")
+PY
+
+  printf '%s' "$out"
+}
+
 build_compose_args() {
   # Explicit --project-directory is required: Compose otherwise defaults the
   # project directory to the parent of the FIRST -f file, and resolves every
@@ -230,7 +288,7 @@ build_compose_args() {
   # paths below are therefore written relative to $ROOT, not to their own
   # directory.
   COMPOSE_ARGS=(-p platform-dev --project-directory "$ROOT")
-  local s dir meta secret
+  local s dir meta secret consumed
   for s in "$@"; do
     dir="$(service_dir "$s")"
     meta="$dir/service.json"
@@ -247,6 +305,10 @@ PY
       secret="$(secret_file "$s")"
       [[ -f "$secret" ]] && COMPOSE_ARGS+=(--env-file "$secret")
     fi
+
+    consumed="$(generate_consumed_env "$s")"
+    [[ -s "$consumed" ]] && COMPOSE_ARGS+=(--env-file "$consumed")
+
     COMPOSE_ARGS+=(-f "$dir/compose.yaml")
   done
 }
