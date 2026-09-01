@@ -1,5 +1,27 @@
 # Changelog
 
+## 3.9.2
+
+Added `workstation autosync pause [minutes]` / `resume`: autosync fires every 5
+minutes and commits/pushes whatever is dirty at that moment (by design, so work
+is never silently lost across machines - see `docs/autosync.md`'s "AI agents"
+section), which can interleave an autosync commit into the middle of a
+multi-step agent task. Prompted by exactly that happening twice in the previous
+AI-workstation work (`e52a1fd`, `6c8bcf6` - the latter caught this very fix's
+own in-progress edits mid-task).
+
+- `pause` writes `.state/autosync.pause` (an ISO-8601 UTC expiry, default 30
+  min); both `scripts/common/autosync.sh` and `autosync.ps1` skip the git-sync
+  step entirely while it's unexpired, and self-heal a stale/forgotten pause
+  file by deleting it and proceeding normally on the very next cycle - it can
+  never disable autosync indefinitely.
+- Wired into `workstation autosync pause|resume` (POSIX and
+  `scripts/common/autosync-control.ps1`).
+- New AGENTS.md rule 14: pause before a task that edits several already-tracked
+  files across more than one tool call, resume once committed or abandoned.
+- Also fixed `docs/autosync.md` still documenting the pre-3.8.5 "once per
+  minute" interval everywhere; it's been every 5 minutes since that fix.
+
 ## 3.9.1
 
 Added the "prompt engineering interface" piece from Andrew's target AI
