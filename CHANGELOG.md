@@ -1,5 +1,32 @@
 # Changelog
 
+## 3.9.7
+
+Finished the `redis` -> `redis/redis-stack-server` migration left incomplete by
+`a01eb45` (2026-08-31), which bumped `versions.env` to the new image but never
+updated `compose.yaml` to match its different startup contract - the old
+`command:` override (a plain `redis-server <path> --requirepass ...` shell
+invocation) doesn't apply to redis-stack-server, whose own `/entrypoint.sh`
+always loads `/redis-stack.conf` (if present) and appends `${REDIS_ARGS}` to
+its own hardcoded module-loading command line (confirmed by reading the
+image's actual `/entrypoint.sh`, not guessed).
+
+- `compose.yaml` now: drops the custom `command:`, mounts
+  `config/redis.conf` to `/redis-stack.conf` (the path the entrypoint
+  specifically looks for), and sets auth via a `REDIS_ARGS: --requirepass
+  ${REDIS_PASSWORD}` environment entry instead. `mem_limit` bumped
+  384m -> 768m for the stack's extra loaded modules (RediSearch, RedisJSON,
+  RedisTimeSeries, RedisBloom, rediscompat).
+- Fixed `.env.example`'s `REDIS_PASSWORD` placeholder, which held a real
+  16-char generated-looking value instead of this repo's usual `change-me`
+  convention (confirmed it does NOT match the actual runtime secret at
+  `~/.config/workstation/services/redis.env`, so this was an inconsistency,
+  not a leaked live credential).
+- Verified live: `workstation services up redis redisinsight` - `dev-redis`
+  healthy, `requirepass` correctly enforced, RediSearch/RedisJSON/etc. modules
+  loaded, and `dev-redisinsight` (already on the `consumes` mechanism from
+  v3.9.6) connects using the real resolved password with an HTTP 200.
+
 ## 3.9.6
 
 New AGENTS.md rule 15: every dev-service's own configuration
