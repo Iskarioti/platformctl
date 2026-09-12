@@ -30,7 +30,10 @@ services:
       ollama: {condition: service_healthy}
     environment:
       OLLAMA_HOST: ollama:11434
-    entrypoint: ["sh", "-ec", "ollama pull nomic-embed-text && ollama pull gemma3:1b"]
+    # gemma3:4b is for the "quality" test's LLM-judge step only - gemma3:1b
+    # was confirmed live to be too weak a judge (scored an obviously-correct
+    # paraphrase 0.1); it still generates answers fine, so it stays for that.
+    entrypoint: ["sh", "-ec", "ollama pull nomic-embed-text && ollama pull gemma3:1b && ollama pull gemma3:4b"]
     networks: [lab]
 
 networks:

@@ -77,3 +77,8 @@
         href: http://localhost:3001
         description: "LLM tracing/observability · workstation services up langfuse"
         siteMonitor: http://dev-langfuse:3000/api/public/health
+    - MLflow:
+        icon: mlflow.png
+        href: http://localhost:5001
+        description: "Experiment tracking + model registry · workstation services up mlflow"
+        siteMonitor: http://dev-mlflow:5000/health

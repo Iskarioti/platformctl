@@ -6,6 +6,9 @@ from fastapi import FastAPI
 from langchain_ollama import ChatOllama
 from langgraph.graph import END, START, StateGraph
 
+from app import guardrails
+from app.prompts import SYSTEM_PROMPT, SYSTEM_PROMPT_VERSION
+
 load_dotenv()
 
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://ollama:11434")
@@ -28,7 +31,7 @@ class AgentState(TypedDict):
 
 def respond(state: AgentState) -> AgentState:
     llm = ChatOllama(base_url=OLLAMA_BASE_URL, model=CHAT_MODEL)
-    result = llm.invoke(state["question"])
+    result = llm.invoke([("system", SYSTEM_PROMPT), ("human", state["question"])])
     return {"question": state["question"], "answer": result.content}
 
 
@@ -51,5 +54,16 @@ def health() -> dict[str, str]:
 
 @app.post("/invoke")
 def invoke(question: str) -> dict[str, str]:
+    injection_flags = guardrails.flag_prompt_injection(question)
     result = graph.invoke({"question": question, "answer": ""}, config={"callbacks": _callbacks})
-    return {"answer": result["answer"]}
+    response: dict[str, str] = {
+        "answer": guardrails.redact_pii(result["answer"]),
+        "promptVersion": SYSTEM_PROMPT_VERSION,
+    }
+    if injection_flags:
+        # Not blocked - flagged, same pattern as rag-app. A real deployment
+        # decides what to do with this signal once the graph reads content
+        # it didn't generate itself (a tool result, a fetched page) - see
+        # README's "Threat model" section.
+        response["inputFlags"] = ",".join(injection_flags)
+    return response

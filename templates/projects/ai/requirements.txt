@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+httpx
+pydantic-settings
+numpy
+pandas
+scikit-learn
+opentelemetry-api
+opentelemetry-sdk

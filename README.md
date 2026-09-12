@@ -123,6 +123,16 @@ the terminal. Create one with:
 workstation project init <template> <name> --area company|platform|automation|labs|tooling
 ```
 
+12 templates, several deliberately overlapping (`fastapi-service`/
+`python-service`, `terraform`/`infra`) works fine for discoverability at this
+size - the Platform Engineer role review flagged this as an early risk, not
+a current problem, and it doesn't have a concrete fix yet because there
+isn't one worth building preemptively. `workstation catalog stats` (real
+usage data, not a guess) is the signal to watch before it becomes one -
+consolidate or archive whichever of a template's own uses actually decays,
+using `templates/catalog.json`'s `status: deprecated` field, once that data
+says so.
+
 ## Security model
 
 The setup never weakens App Control, WDAC, ConstrainedLanguage, execution policy,
@@ -153,9 +163,12 @@ Automation and reliability:
 - `docs/autosync.md` / `docs/auto-update.md`
 - `docs/development-enforcement.md`
 - `docs/control-plane.md` / `docs/reliability.md`
+- `docs/capacity-planning.md` / `docs/secrets-rotation.md` / `docs/dependency-updates.md`
+- `docs/compliance-evidence-mapping.md`
 - `docs/new-machine.md`
 
 Reference / background:
 
 - `docs/architecture.md`
+- `docs/adr/` - architecture decision records
 - `docs/ai-agent-maintenance.md`

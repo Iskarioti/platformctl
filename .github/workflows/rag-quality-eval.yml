@@ -1,0 +1,41 @@
+name: rag-quality-eval
+
+# The AI Engineer role review's own finding: "the one lab test is
+# connectivity, not correctness" - labs/ai/rag-pipeline's "quality" test
+# (golden Q&A set -> real retrieval+generation -> LLM-judge score -> a
+# numeric threshold gate) closes that gap, but only running it by hand
+# defeats the point. This workflow is its own file, not a job inside
+# behavioral-tests.yml, and deliberately path-filtered: it pulls real Ollama
+# models (~4.4 GB total) and runs real CPU inference, several minutes per
+# run - running that on every unrelated commit would be pure CI cost with no
+# signal.
+
+on:
+  push:
+    paths:
+      - "labs/ai/rag-pipeline/**"
+      - ".github/workflows/rag-quality-eval.yml"
+  pull_request:
+    paths:
+      - "labs/ai/rag-pipeline/**"
+      - ".github/workflows/rag-quality-eval.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  quality-eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Bring up the rag-pipeline lab (docker runtime)
+        run: bash scripts/posix/labs.sh up rag-pipeline --runtime docker
+      - name: Wait for model pull to complete
+        run: |
+          docker wait lab-rag-model-pull
+          docker logs lab-rag-model-pull
+      - name: Run the quality eval (golden Q&A, LLM-judge, threshold gate)
+        run: bash scripts/posix/labs.sh test rag-pipeline quality --runtime docker
+      - name: Tear down
+        if: always()
+        run: bash scripts/posix/labs.sh destroy rag-pipeline --runtime docker --yes

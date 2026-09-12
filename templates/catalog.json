@@ -1,0 +1,16 @@
+{
+  "templates": {
+    "fastapi-service": { "version": "1.0.0", "status": "active" },
+    "react-app": { "version": "1.0.0", "status": "active" },
+    "python-service": { "version": "1.0.0", "status": "active" },
+    "terraform": { "version": "1.0.0", "status": "active" },
+    "infra": { "version": "1.0.0", "status": "active" },
+    "network-automation": { "version": "1.0.0", "status": "active" },
+    "ai": { "version": "1.0.0", "status": "active" },
+    "rag-app": { "version": "1.0.0", "status": "active" },
+    "agent-app": { "version": "1.0.0", "status": "active" },
+    "mcp-server": { "version": "1.0.0", "status": "active" },
+    "research-python": { "version": "1.0.0", "status": "active" },
+    "research-paper": { "version": "1.0.0", "status": "active" }
+  }
+}

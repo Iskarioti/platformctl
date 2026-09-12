@@ -2,3 +2,8 @@
 jupyterlab>=4,<5
 pytest>=8,<9
 ruff>=0.12,<1
+
+# Optional, not forced: uncomment to version data/model files with DVC
+# against the shared `garage` dev-service - see docs/research-computing.md
+# "Data versioning".
+# dvc[s3]>=3,<4

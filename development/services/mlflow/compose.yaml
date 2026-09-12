@@ -1,0 +1,86 @@
+services:
+  # One-shot, idempotent bootstrap against the SHARED postgres dev-service
+  # (same convention as langfuse: "project-specific databases belong to
+  # project bootstrap" - postgres/config/init/00-platform.sql says so
+  # explicitly). MLflow gets its own logical database rather than writing
+  # into the shared default one.
+  #
+  # Configuration independence (AGENTS.md, docs/adr/0003): every ${MLFLOW_*}
+  # variable below is mlflow's OWN name, resolved from the actual dependency
+  # via service.json's "consumes" map - this file never references
+  # ${POSTGRES_*}/${GARAGE_*} directly.
+  mlflow-postgres-init:
+    image: ${MLFLOW_DB_INIT_IMAGE}:${MLFLOW_DB_INIT_VERSION}
+    container_name: dev-mlflow-postgres-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${MLFLOW_DB_PASSWORD}
+      MLFLOW_DB_USER: ${MLFLOW_DB_USER}
+    entrypoint:
+      - bash
+      - -ec
+      - |
+        exists="$$(psql -h dev-postgres -U "$$MLFLOW_DB_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='mlflow'")"
+        if [ "$$exists" != "1" ]; then
+          psql -h dev-postgres -U "$$MLFLOW_DB_USER" -d postgres -c "CREATE DATABASE mlflow"
+        fi
+    networks: [platform-dev]
+
+  mlflow:
+    image: ${MLFLOW_IMAGE}:${MLFLOW_VERSION}
+    container_name: dev-mlflow
+    hostname: dev-mlflow
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mlflow-postgres-init:
+        condition: service_completed_successfully
+    environment:
+      AWS_ACCESS_KEY_ID: ${MLFLOW_STORAGE_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${MLFLOW_STORAGE_SECRET_KEY}
+      MLFLOW_S3_ENDPOINT_URL: http://dev-garage:3900
+      MLFLOW_S3_IGNORE_TLS: "true"
+      # Garage (like MinIO) needs bucket-in-path addressing, not
+      # bucket.host.example virtual-hosted addressing - see
+      # mlflow.environment_variables.MLFLOW_BOTO_CLIENT_ADDRESSING_STYLE.
+      MLFLOW_BOTO_CLIENT_ADDRESSING_STYLE: path
+    entrypoint:
+      - mlflow
+      - server
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "5000"
+      # Loopback-only host port below is this repo's actual trust boundary
+      # (development/catalog.json bindAddress) - MLflow 3's own Host-header
+      # check would otherwise reject requests from outside the container by
+      # container name too, so it's opened wide here, not left restrictive.
+      - --allowed-hosts
+      - "*"
+      - --backend-store-uri
+      - postgresql://${MLFLOW_DB_USER}:${MLFLOW_DB_PASSWORD}@dev-postgres:5432/mlflow
+      - --default-artifact-root
+      - s3://${MLFLOW_STORAGE_BUCKET}/${MLFLOW_ARTIFACT_PREFIX}/
+      # This is a single-developer local dev-service, not a team server -
+      # the default of 4 worker processes each importing the full
+      # boto3/pandas/sklearn stack OOM-killed it at a 1g limit; 1 worker
+      # comfortably fits well under 1g with real headroom.
+      - --workers
+      - "1"
+    ports:
+      - "127.0.0.1:${MLFLOW_HOST_PORT:-5001}:5000"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/health').status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    networks: [platform-dev]
+    mem_limit: 1g
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev

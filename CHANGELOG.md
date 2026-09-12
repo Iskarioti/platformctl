@@ -1,5 +1,246 @@
 # Changelog
 
+## 3.20.1
+
+A careful line-by-line re-audit of all six "Five Hats" reports against
+actual repo state (prompted by being asked directly "have you implemented
+everything" a second time) found four remaining loose ends in v3.20.0's own
+implementation - closed out here:
+
+- **`agent-app` gets its own `scripts/eval_dataset.py`** - v3.20.0 only gave
+  `rag-app` a real Langfuse dataset experiment; the AI Engineer gap
+  ("Langfuse captures traces but nothing runs its dataset/scoring features
+  against them") was generic to both apps. Verified live the same way
+  (mean_score=1.000, real dataset-run URL returned).
+- **`rag-quality-eval.yml`'s path filter narrowed** to just
+  `labs/ai/rag-pipeline/**` - it previously also triggered on
+  `templates/projects/{rag-app,agent-app}/**` changes despite the job never
+  exercising either template, which was pure wasted CI runs with no signal.
+- **The dashboard's "Toolchain health" panel gains "Paper builds"** -
+  v3.20.0's panel covered scan/research-toolchain/template-drift but missed
+  the Hybrid gap's own third example, "did the paper build." A real local
+  proxy (no GitHub API call): `paper/main.pdf` newer than `paper/main.tex`
+  for every governed project scaffolded from `research-paper`. Verified live
+  through all three states (never built, built, source changed since last
+  build) with a real scaffolded test project.
+- **Template proliferation** (Platform Engineer gap #5, the one gap across
+  all six reports with no suggestion attached) is now acknowledged in
+  `README.md`'s template table rather than left silently unaddressed -
+  `workstation catalog stats` is named as the real signal to watch, since
+  there wasn't a concrete fix worth building preemptively.
+
+## 3.20.0
+
+The remaining granular gaps/suggestions from the "Five Hats, One Workstation"
+role audit that Tier 1-3's synthesized roadmap didn't individually cover -
+asked for directly ("have you implemented both the gaps and suggestions"),
+this closes out the full set from all six persona reports.
+
+- **Research**: `make diff REF=<ref>` (latexdiff, reviewer-facing revision
+  PDFs) for `research-paper` - found and fixed a real missing dependency
+  (`ulem.sty`, provided by `texlive-plain-generic`) live-testing it. A
+  `--gpu` Dev Container variant for `research-python` (CUDA PyTorch, same
+  verified mechanism as the `ai` template's). A real, already-scaffolded
+  `.dvc/config`/`.dvc/.gitignore` (not just a prose mention) pointed at the
+  shared `garage` bucket - verified end-to-end via a live `project init`.
+  Literature-search tooling and HPC/cluster job submission are now
+  explicitly documented as out of scope, with the reasoning, rather than
+  silently dropped (`docs/research-computing.md`).
+- **AI Engineer**: `rag-app`/`agent-app` get a versioned `app/prompts.py`
+  (previously inline f-strings) and an opt-in `app/guardrails.py` (PII
+  redaction + prompt-injection flagging, no-op unless
+  `GUARDRAILS_ENABLED=true` - the same pattern Langfuse tracing already
+  uses). `rag-app`'s Qdrant collection name is now suffixed with the
+  embedding model, so changing `EMBED_MODEL` can't silently orphan the old
+  collection. `rag-app/scripts/eval_dataset.py` runs the golden Q&A set as a
+  real Langfuse **dataset experiment** (`run_experiment`) - traces were
+  already captured; nothing previously ran Langfuse's own scoring/dataset
+  features against them. `labs/ai/rag-pipeline`'s `quality` test now also
+  runs in real CI (`.github/workflows/rag-quality-eval.yml`, path-filtered -
+  it pulls real models and runs real CPU inference, too costly to run on
+  every commit).
+- **DevSecOps**: `policy/development.json`'s `lockfilePolicy` is tightened
+  from `warn` to `required`. Getting there required actually generating real
+  lockfiles for every template first (`requirements.lock` via `pip-compile`
+  for 9 Python templates, `package-lock.json` for `react-app`) - which
+  surfaced two real pre-existing bugs: the `ai` and `network-automation`
+  templates never actually installed their own pinned dependencies at all
+  (no `postCreateCommand`, nothing ever ran `pip install`), fixed by moving
+  them onto the same lockfile-installing Dockerfile pattern as everything
+  else. `project-check.sh` also gained real Terraform-provider detection
+  (`required_providers` grep) so `infra`/`terraform` aren't silently exempt
+  from the tightened policy forever, just until a project declares its
+  first real provider. Found and fixed a real, unrelated cross-platform bug
+  along the way: `validate.ps1`'s blanket JSON-syntax check choked on
+  `package-lock.json`'s standard `""`-keyed root package entry - valid JSON,
+  rejected by `ConvertFrom-Json`'s default typed-object parse; switched to
+  `-AsHashtable`.
+- **Platform Engineer**: `workstation services scaffold <name>` generates a
+  new dev-service's full file skeleton (service.json/compose.yaml/versions.env/
+  defaults.env/.env.example/README.md), pre-wired to the `consumes`
+  convention - verified live.
+- **Systems Engineer & Architect**: `workstation drift-check` compares
+  actually-running dev-service containers against `development/catalog.json`
+  (undeclared containers, image/version mismatches) - verified live against
+  all three cases (clean, undeclared, mismatched) with correct exit codes.
+  Found and fixed a real bug of its own: Docker normalizes away an explicit
+  `docker.io/` registry prefix in `docker ps`'s own `Image` field, causing a
+  false-positive mismatch for any image pinned with that prefix (langfuse).
+  Wired into `workstation doctor` on both the bash and PowerShell (dispatched
+  through WSL) sides. `docs/capacity-planning.md` - a real resource budget
+  per dev-service profile (~18.75 GB worst case, every service at once),
+  labs, and local models, built from real declared `mem_limit` values and
+  observed model sizes, not estimates.
+- **Hybrid**: platformctl's own web control plane gains a seventh panel,
+  "Toolchain health" (security-scan freshness, research-toolchain install
+  status, template drift) - the same state `workstation doctor` already
+  reads, reused rather than duplicated. Verified live against the real
+  always-on dashboard service (an editable `uv tool install`, so the running
+  process picked up the change on a plain restart - confirmed by resolving
+  `platformctl.web.status.__file__` from inside the running venv before
+  restarting it).
+
+## 3.19.0
+
+Tier 3 of the "Five Hats, One Workstation" role-audit roadmap - the last six,
+lower-urgency findings, completing the full roadmap.
+
+- **Dependency updates**: `.github/dependabot.yml` in all 12 templates
+  (weekly, grouped per ecosystem - `docs/dependency-updates.md`).
+- **GPU Dev Container variant**: `templates/projects/ai/.devcontainer/gpu/`
+  - CUDA-enabled PyTorch (`torch==2.14.0+cu126`), opt-in alongside the
+    existing CPU-only default. Build verified live (image builds, `import
+    torch` succeeds, reports `cuda: '12.6'`); actual GPU passthrough needs a
+    real NVIDIA machine to verify, honestly flagged as untested rather than
+    assumed working.
+- **Secrets rotation**: `workstation services rotate <service>` - automated
+  and verified live for the services confirmed safe (`redis`, `qdrant`,
+  `minio`, `open-webui` - credential checked live against the env var, never
+  persisted separately); every other service is refused outright with a
+  pointer to its correct manual procedure in the new
+  `docs/secrets-rotation.md`, rather than silently doing something unsafe.
+- **AI threat-modeling**: OWASP LLM Top 10-mapped "Threat model" sections
+  added to `mcp-server`/`rag-app`/`agent-app` READMEs, grounded in each
+  template's actual attack surface (e.g. `rag-app`'s own `/ingest` endpoint
+  as a concrete indirect-injection/poisoning vector).
+- **Compliance evidence mapping**: `docs/compliance-evidence-mapping.md` -
+  an honest index from real, already-built mechanisms in this repo to the
+  kind of evidence a SOC 2/ISO 27001 auditor asks for, explicit about what
+  it doesn't cover.
+- **Cost awareness**: `workstation catalog costs` - illustrative
+  managed-cloud sizing estimate from what's actually running right now
+  (real `docker inspect` memory limits), explicitly labeled as a rough
+  FinOps signal, not a quote.
+
+## 3.18.0
+
+Tier 2 of the "Five Hats, One Workstation" role-audit roadmap: proving
+reliability mechanisms actually work, and rounding out the AI/ML lifecycle
+with experiment tracking, data versioning, and a real answer-quality gate.
+
+- **`workstation dr-drill`** rehearses the entire backup/restore path for
+  real, on the real machine, without ever touching it: a real `backup.sh`
+  (random one-time passphrase via `WORKSTATION_BACKUP_PASSPHRASE`) into a
+  throwaway file, then a real `restore.sh` into a throwaway `$HOME` (new
+  `WORKSTATION_RESTORE_HOME` override), verified by file count, logged to
+  `.state/dr-drill-YYYY-MM-DD.log`. A backup path nobody has ever exercised
+  is a hypothesis, not a control - the Systems Engineer & Architect role
+  review's top finding. Found and fixed a real bug building it: a
+  `{ ... } | tee` pipeline runs the block in a subshell, silently discarding
+  the `result` variable it set - switched to process substitution.
+- **New `mlflow` dev-service** - experiment tracking + model registry,
+  sharing the `postgres` and `garage` dev-services (same pattern as
+  `langfuse`), verified end-to-end with a real logged run, metric, and
+  artifact landing in Garage. Found and fixed a real bug live: the default
+  4 uvicorn workers OOM-killed it at a 1g memory limit - reduced to 1 worker,
+  appropriate for a single-developer local service. Also confirmed MLflow
+  3's own Host-header security middleware resets the connection outright
+  without `--allowed-hosts` set, even for a same-machine request.
+- **DVC** wired into `research-python` as an opt-in dependency, versioning
+  data/model files against the same shared `garage` bucket, one prefix per
+  project.
+- **A real RAG answer-quality eval** - `workstation lab test rag-pipeline
+  quality`: a golden question/answer set through real retrieval and
+  generation, graded by a second LLM acting as judge, gated on a numeric
+  threshold. Confirmed live that `gemma3:1b` is too weak a judge (scored an
+  obviously-correct paraphrase `0.1`) - judging uses `gemma3:4b` instead,
+  confirmed correct on the same case.
+- ADR log (`docs/adr/`) and usage telemetry (`.state/usage.jsonl`,
+  `workstation catalog stats`) from earlier in this roadmap.
+
+## 3.17.0
+
+Tier 1 of the "Five Hats, One Workstation" role-audit roadmap (the highest-
+leverage findings independently named by multiple persona reviews): a real
+cross-domain status aggregator, security/quality gates that actually reach
+CI, and a template lifecycle.
+
+- **`workstation doctor` is now a real cross-domain aggregator**, not just a
+  tool-presence checker (`scripts/common/doctor.ps1` + the bash fallback in
+  `scripts/posix/workstation.sh`): security-scan freshness, disk/memory
+  capacity thresholds, whether any lab cluster is up, and how many governed
+  projects are on an outdated template version - all in one ranked view,
+  the same command already run every morning per `docs/getting-started.md`.
+- **`workstation security scan` now persists state** instead of starting
+  from zero context every run: a rolling `.state/security/last-scan.json`
+  for the doctor aggregator, and a per-project `.platformctl/
+  security-scan.json` that `workstation project doctor` now reads back
+  (scan age + finding count).
+- **New `templates/catalog.json`** (version + status per template) - every
+  new project now records the template version it was scaffolded from, and
+  `project doctor` flags a project whose template has since moved on, or
+  come from a template now marked deprecated.
+- **Security scanning now reaches per-project CI**, not just a manual local
+  command: a new `security.yml` (Semgrep/Gitleaks/TruffleHog/Trivy/Checkov)
+  added to all 12 templates, required by both `policy.yml` (CI-side) and
+  `scripts/posix/project-check.sh` (local-side) - the exact gap the
+  DevSecOps and Platform Engineer role reviews both independently flagged.
+- **A new template-build CI matrix** in `.github/workflows/
+  behavioral-tests.yml`: every template is scaffolded for real
+  (`project-init.sh`, not a hand-copy) and its own documented verify command
+  is run against the result - the Platform Engineer review's "a template
+  can silently rot with no signal" gap.
+
+Found and fixed three real, pre-existing bugs while building and verifying
+this, none of them things this session introduced:
+1. **The `fastapi-service` template itself failed its own `ruff check`** -
+   a genuine import-formatting violation in `tests/test_health.py`, live
+   only because this is the first time anything actually scaffolded this
+   template and ran its own CI command against the result. Fixed; the
+   template's own CI would have been silently red on the very next project
+   created from it.
+2. **`.github/workflows/behavioral-tests.yml` had two embedded multi-line
+   Python snippets that were invalid YAML** (an indentation mismatch inside
+   a `run: |` block scalar) - found live while validating an unrelated
+   edit, confirmed pre-existing via `git diff` and never caught before
+   because this repo's own `workstation validate` only parses `.json`
+   files, never `.yml`. The real fix wasn't re-indenting the embedded
+   Python (Python's own top-level-statement indentation rule made that
+   impossible without breaking execution) - it was extracting both
+   snippets into real, testable files: `scripts/ci/
+   count-unhealthy-services.py` and `scripts/ci/
+   verify-core-services-healthy.py`.
+3. **This repo's own top-level CI workflows** (`behavioral-tests.yml`,
+   `validate.yml`) still referenced GitHub Actions by mutable tag
+   (`actions/checkout@v4`, `actions/setup-python@v5`) - the earlier
+   template-wide SHA-pinning pass (v3.13.0) only scanned `templates/`, not
+   the repository's own `.github/workflows/`. Pinned to the same commit
+   SHAs already resolved for the templates.
+
+Verified live: a real `workstation project init` + `workstation security
+scan` round-trip confirmed both state files write and `project doctor`
+reads them back correctly; `workstation doctor` on this machine correctly
+found 2 of 3 real pre-existing governed projects (`wiocchub-api`,
+`wiocchub-app`) on an outdated template version (adopted before
+`templateVersion` existed) and correctly did NOT flag the third
+(`hub-worker`, an adopted project with no specific template) - a genuine,
+not simulated, positive result. The Python-flavored template-matrix job's
+scaffold+ruff+pytest sequence was run locally end-to-end (which is what
+surfaced bug #1 above); the Terraform/Node/LaTeX-toolchain matrix jobs are
+syntax-valid and reuse command sequences already proven elsewhere in this
+repo, but weren't executed locally - this machine has none of those three
+toolchains installed, flagged rather than claimed verified.
+
 ## 3.16.0
 
 Onboarding/discoverability overhaul, following a fresh-eyes usability review

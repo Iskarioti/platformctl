@@ -58,12 +58,12 @@ DEST="$BASE/$NAME"
 mkdir -p "$BASE" "$DEST"
 cp -R "$SOURCE/." "$DEST/"
 
-python3 - "$DEST" "$NAME" "$TEMPLATE" "$AREA" "$services_json" <<'PY'
+python3 - "$DEST" "$NAME" "$TEMPLATE" "$AREA" "$services_json" "$ROOT" <<'PY'
 from pathlib import Path
 import json, sys, datetime
 
 dest=Path(sys.argv[1]); name=sys.argv[2]; template=sys.argv[3]; area=sys.argv[4]
-services=json.loads(sys.argv[5])
+services=json.loads(sys.argv[5]); root=Path(sys.argv[6])
 for p in dest.rglob("*"):
     if not p.is_file():
         continue
@@ -73,11 +73,23 @@ for p in dest.rglob("*"):
         continue
     p.write_text(text.replace("__PROJECT_NAME__", name), encoding="utf-8", newline="\n")
 
+# Record the template's version at creation time so a later "workstation
+# project doctor" can tell this project apart from a template that has
+# since moved on - see docs/architecture.md's template-lifecycle section.
+template_version = "0.0.0"
+catalog_path = root / "templates" / "catalog.json"
+if catalog_path.exists():
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    entry = catalog.get("templates", {}).get(template)
+    if entry:
+        template_version = entry.get("version", template_version)
+
 meta=dest/".platformctl"
 meta.mkdir(exist_ok=True)
 (meta/"project.json").write_text(json.dumps({
     "name":name,
     "template":template,
+    "templateVersion":template_version,
     "area":area,
     "policy":"platformctl-development-v1",
     "developmentServices":services,
@@ -87,6 +99,14 @@ PY
 
 git -C "$DEST" init -b main >/dev/null
 git -C "$DEST" add .
+
+# Usage telemetry - a real gap the Platform Engineer role review found:
+# nothing recorded which templates actually get used, so there was no data
+# to ever answer "is this template worth keeping". Append-only, local,
+# git-ignored - same shape as this repo's other .state/*.log files.
+mkdir -p "$ROOT/.state"
+printf '{"event":"project_init","template":"%s","area":"%s","timestampUtc":"%s"}\n' \
+  "$TEMPLATE" "$AREA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$ROOT/.state/usage.jsonl"
 
 echo "Created governed project:"
 echo "  $DEST"

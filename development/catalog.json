@@ -45,7 +45,8 @@
     "ai": [
       "qdrant",
       "open-webui",
-      "langfuse"
+      "langfuse",
+      "mlflow"
     ],
     "all": [
       "postgres",
@@ -148,6 +149,9 @@
     },
     "langfuse": {
       "path": "development/services/langfuse"
+    },
+    "mlflow": {
+      "path": "development/services/mlflow"
     },
     "clickhouse": {
       "path": "development/services/clickhouse"

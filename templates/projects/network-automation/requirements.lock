@@ -1,0 +1,155 @@
+annotated-doc==0.0.5
+    # via typer
+annotated-types==0.8.0
+    # via pydantic
+bcrypt==5.0.0
+    # via paramiko
+certifi==2026.7.22
+    # via requests
+cffi==2.1.1
+    # via
+    #   cryptography
+    #   pynacl
+charset-normalizer==3.5.1
+    # via requests
+cryptography==50.0.1
+    # via paramiko
+idna==3.19
+    # via requests
+iniconfig==2.3.0
+    # via pytest
+invoke==3.0.3
+    # via paramiko
+jinja2==3.1.6
+    # via
+    #   junos-eznc
+    #   napalm
+junos-eznc==2.8.2
+    # via napalm
+lxml==6.1.3
+    # via
+    #   junos-eznc
+    #   napalm
+    #   ncclient
+markdown-it-py==4.2.0
+    # via rich
+markupsafe==3.0.3
+    # via jinja2
+mdurl==0.1.2
+    # via markdown-it-py
+napalm==5.2.0
+    # via -r requirements.txt
+ncclient==0.7.0
+    # via
+    #   junos-eznc
+    #   napalm
+netaddr==1.3.0
+    # via
+    #   napalm
+    #   pyeapi
+netmiko==4.7.0
+    # via
+    #   -r requirements.txt
+    #   napalm
+    #   nornir-netmiko
+netutils==1.19.1
+    # via napalm
+nornir==3.6.0
+    # via -r requirements.txt
+nornir-netmiko==1.0.1
+    # via -r requirements.txt
+ntc-templates==9.2.0
+    # via netmiko
+packaging==26.3
+    # via pytest
+paramiko==4.0.0
+    # via
+    #   junos-eznc
+    #   napalm
+    #   ncclient
+    #   netmiko
+    #   scp
+pluggy==1.6.0
+    # via pytest
+pycparser==3.0
+    # via cffi
+pydantic==2.13.5
+    # via
+    #   -r requirements.txt
+    #   ttp-templates
+pydantic-core==2.46.5
+    # via pydantic
+pyeapi==1.0.4
+    # via napalm
+pygments==2.21.0
+    # via
+    #   pytest
+    #   rich
+pynacl==1.6.2
+    # via paramiko
+pyparsing==3.3.2
+    # via junos-eznc
+pyserial==3.5
+    # via
+    #   junos-eznc
+    #   netmiko
+pytest==8.4.2
+    # via -r requirements-dev.txt
+pyyaml==6.0.3
+    # via
+    #   junos-eznc
+    #   napalm
+    #   netmiko
+    #   yamlloader
+requests==2.34.2
+    # via napalm
+rich==15.0.0
+    # via
+    #   -r requirements.txt
+    #   netmiko
+    #   typer
+ruamel-yaml==0.19.1
+    # via
+    #   netmiko
+    #   nornir
+ruff==0.16.7
+    # via -r requirements-dev.txt
+scp==0.16.1
+    # via
+    #   junos-eznc
+    #   netmiko
+scrapli==2026.2.20
+    # via -r requirements.txt
+shellingham==1.5.4
+    # via typer
+six==1.17.0
+    # via
+    #   junos-eznc
+    #   transitions
+textfsm==2.1.0
+    # via
+    #   napalm
+    #   netmiko
+    #   ntc-templates
+transitions==0.9.3
+    # via junos-eznc
+ttp==0.10.1
+    # via
+    #   napalm
+    #   ttp-templates
+ttp-templates==0.6.4
+    # via napalm
+typer==0.27.2
+    # via -r requirements.txt
+typing-extensions==4.16.0
+    # via
+    #   napalm
+    #   pydantic
+    #   pydantic-core
+    #   typing-inspection
+typing-inspection==0.4.4
+    # via pydantic
+urllib3==2.7.0
+    # via requests
+yamlloader==1.6.0
+    # via junos-eznc

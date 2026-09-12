@@ -113,7 +113,7 @@ retention/rotation policy — it's a plain append-only file.
 
 ## Status/discovery layer (Phase C)
 
-The dashboard (`/`) shows six live, auto-refreshing panels (HTMX polling, no
+The dashboard (`/`) shows seven live, auto-refreshing panels (HTMX polling, no
 WebSockets):
 
 - **Background jobs** — autosync/autoupgrade, read via the exact same per-OS commands
@@ -133,6 +133,18 @@ WebSockets):
 - **Lab clusters** — each `labs/catalog.json` entry's Docker Compose project or
   Kubernetes namespace.
 - **ai-runtime** — the shared Ollama container.
+- **Toolchain health** — security-scan freshness (`.state/security/last-scan.json`),
+  research toolchain install status (`workstation research doctor`, parsed), template
+  drift across every governed project (`templates/catalog.json` vs. each project's
+  `.platformctl/project.json`), and paper build freshness for every governed project
+  scaffolded from `research-paper` (`paper/main.pdf` newer than `paper/main.tex`, a
+  real local proxy - not a GitHub API call - for whether the last `make paper`
+  succeeded since its source last changed) — the Hybrid role review's own finding:
+  this dashboard's one pane of glass stopped at platform ops, with no panel for
+  whether a scan was stale, the research toolchain was installed, a project's
+  template had moved on, or "did the paper build." Reads the exact same state
+  `workstation doctor` already does (`platformctl/platformctl/web/status.py`'s
+  `toolchain_status()`), not a new source of truth.
 
 ### Command runner
 

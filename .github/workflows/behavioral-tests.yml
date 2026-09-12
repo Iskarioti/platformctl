@@ -23,8 +23,8 @@ jobs:
   python-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
       - name: Install platformctl with test dependencies
@@ -35,33 +35,22 @@ jobs:
   dev-services-core-smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Bring up core dev services (postgres, redis)
         run: bash scripts/posix/services.sh up core
       - name: Wait for both containers to report healthy
         run: |
           for i in $(seq 1 30); do
             docker compose -p platform-dev ps -a --format json > /tmp/ps.jsonl
-            unhealthy=$(python3 -c "
-import json
-lines = [json.loads(l) for l in open('/tmp/ps.jsonl') if l.strip()]
-print(sum(1 for c in lines if c.get('State') != 'running' or c.get('Health') not in ('healthy', '')))
-")
+            unhealthy=$(python3 scripts/ci/count-unhealthy-services.py /tmp/ps.jsonl)
             [ "$unhealthy" = "0" ] && break
             sleep 2
           done
       - name: Verify exactly 2 healthy containers
         run: |
+          docker compose -p platform-dev ps -a --format json > /tmp/ps.jsonl
           docker compose -p platform-dev ps -a
-          python3 -c "
-import json
-lines = [json.loads(l) for l in open('/tmp/ps.jsonl') if l.strip()]
-assert len(lines) == 2, f'expected 2 containers, got {len(lines)}: {lines}'
-for c in lines:
-    assert c['State'] == 'running', c
-    assert c.get('Health') in ('healthy', ''), c
-print('OK: core dev services healthy - regression check for the project-directory Compose bug')
-"
+          python3 scripts/ci/verify-core-services-healthy.py /tmp/ps.jsonl
       - name: Tear down
         if: always()
         run: bash scripts/posix/services.sh down
@@ -69,7 +58,7 @@ print('OK: core dev services healthy - regression check for the project-director
   observability-compose-merge:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Validate observability profile Compose merge (config only, no image pulls)
         run: |
           args=(-p platform-dev --project-directory "$PWD")
@@ -84,8 +73,8 @@ print('OK: core dev services healthy - regression check for the project-director
   control-plane-e2e:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
       - name: Install platformctl
@@ -100,3 +89,87 @@ print('OK: core dev services healthy - regression check for the project-director
           done
       - name: Drive the real enrollment + login + command-runner flow
         run: python3 scripts/ci/control_plane_smoke.py --port 8765
+
+  # A real gap the Platform Engineer role review found: nothing ever
+  # verified a template's own files still actually build after they're
+  # scaffolded - a template can silently rot (a bad lockfile, a broken
+  # devcontainer, a stale pin) with no signal until someone hits it live.
+  # Each job here does a real "workstation project init" and runs that
+  # template's own documented verify command against the result.
+  template-python-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        template:
+          [agent-app, ai, fastapi-service, mcp-server, network-automation, python-service, rag-app, research-python]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - name: Scaffold ${{ matrix.template }}
+        run: bash scripts/posix/project-init.sh ${{ matrix.template }} tpl-ci-test --area labs --root /tmp
+      - name: Run the template's own verify commands
+        working-directory: /tmp/tpl-ci-test
+        run: |
+          python -m pip install -r requirements-dev.txt
+          ruff check .
+          pytest -q
+
+  template-terraform-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        template: [terraform, infra]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: "1.13.0"
+      - name: Scaffold ${{ matrix.template }}
+        run: bash scripts/posix/project-init.sh ${{ matrix.template }} tpl-ci-test --area labs --root /tmp
+      - name: terraform validate
+        working-directory: /tmp/tpl-ci-test
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          terraform validate
+      - name: ansible syntax-check (infra only)
+        if: matrix.template == 'infra'
+        working-directory: /tmp/tpl-ci-test
+        run: |
+          python -m pip install ansible
+          ansible-playbook ansible/playbook.yml --syntax-check
+
+  template-react-app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+      - name: Scaffold react-app
+        run: bash scripts/posix/project-init.sh react-app tpl-ci-test --area labs --root /tmp
+      - name: npm install && build
+        working-directory: /tmp/tpl-ci-test
+        run: |
+          npm install
+          npm run build
+
+  template-research-paper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install LaTeX toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended texlive-bibtex-extra biber latexmk
+      - name: Scaffold research-paper
+        run: bash scripts/posix/project-init.sh research-paper tpl-ci-test --area labs --root /tmp
+      - name: make paper
+        working-directory: /tmp/tpl-ci-test
+        run: make paper

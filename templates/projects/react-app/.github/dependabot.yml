@@ -1,0 +1,23 @@
+# Keeps dependencies patched without a human remembering to check - grouped
+# into one weekly PR per ecosystem instead of one PR per package, so it stays
+# reviewable. See docs/dependency-updates.md for the update/merge workflow.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      npm-dependencies:
+        patterns: ["*"]
+  - package-ecosystem: "docker"
+    directory: "/.devcontainer"
+    schedule:
+      interval: "weekly"

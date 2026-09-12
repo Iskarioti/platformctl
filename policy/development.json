@@ -1,6 +1,6 @@
 {
   "$schema": "../schema/development-policy.schema.json",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "projectRoots": [
     "~/src/company",
     "~/src/platform",
@@ -23,7 +23,7 @@
     "requireReadme": true,
     "requireEnvExample": true,
     "requirePlatformMetadata": true,
-    "lockfilePolicy": "warn",
+    "lockfilePolicy": "required",
     "allowedTemplates": [
       "fastapi-service",
       "react-app",

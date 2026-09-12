@@ -1,0 +1,16 @@
+# Keeps dependencies patched without a human remembering to check - grouped
+# into one weekly PR per ecosystem instead of one PR per package, so it stays
+# reviewable. See docs/dependency-updates.md for the update/merge workflow.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: "terraform"
+    directory: "/"
+    schedule:
+      interval: "weekly"

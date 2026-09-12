@@ -61,7 +61,7 @@ origin_url="$(git -C "$TARGET" remote get-url origin 2>/dev/null || true)"
 if [[ "$origin_url" == *"dev.azure.com"* ]]; then
   required+=("azure-pipelines.yml")
 else
-  required+=(".github/workflows/ci.yml" ".github/workflows/policy.yml")
+  required+=(".github/workflows/ci.yml" ".github/workflows/policy.yml" ".github/workflows/security.yml")
 fi
 
 for rel in "${required[@]}"; do
@@ -164,6 +164,16 @@ has_manifest=0
 has_lock=0
 
 if [[ -f "$TARGET/pyproject.toml" || -f "$TARGET/package.json" ]]; then
+  has_manifest=1
+fi
+
+# Terraform only actually has something to lock once it declares a provider -
+# the "infra"/"terraform" templates ship with none yet (a placeholder
+# main.tf), so this deliberately stays 0 for a freshly-scaffolded project;
+# it flips to 1 (and starts requiring .terraform.lock.hcl) the moment a real
+# project adds its first provider, which is exactly when it matters.
+if find "$TARGET" -maxdepth 1 -name '*.tf' -not -path '*/.terraform/*' -print0 2>/dev/null |
+     xargs -0 grep -l 'required_providers' 2>/dev/null | grep -q .; then
   has_manifest=1
 fi
 

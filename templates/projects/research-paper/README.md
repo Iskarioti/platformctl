@@ -20,6 +20,21 @@ Quarto (`.qmd`) is also available in this Dev Container if you'd rather
 combine code+prose in one document instead of raw LaTeX - render with
 `quarto render`.
 
+## Reviewer-facing revision diffs
+
+A submission's revision response usually needs a changed-text PDF, not just
+a changelog. `make diff` builds one via `latexdiff` (already in this
+template's Dev Container):
+
+```bash
+make diff REF=v1-submitted   # any git ref: a tag, branch, or commit
+make diff REF=HEAD~5
+```
+
+Produces `paper/main-diff.pdf` with insertions/deletions marked inline -
+compare the ref's `paper/main.tex` against the current one, without needing
+a second checkout. `make clean` also removes it.
+
 ## Reference management
 
 [Zotero](https://www.zotero.org) is GUI-only (no official CLI) - export your

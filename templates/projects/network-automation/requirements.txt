@@ -1,0 +1,8 @@
+netmiko
+nornir
+nornir-netmiko
+napalm
+scrapli
+pydantic
+typer
+rich

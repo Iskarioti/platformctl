@@ -6,7 +6,8 @@
   ],
   "tests": [
     "smoke",
-    "qdrant-outage"
+    "qdrant-outage",
+    "quality"
   ],
-  "purpose": "RAG retrieval pipeline correctness/latency baseline and Qdrant-outage resilience validation"
+  "purpose": "RAG retrieval pipeline correctness/latency baseline, Qdrant-outage resilience validation, and answer-quality regression gating (golden Q&A set + LLM-judge score)"
 }

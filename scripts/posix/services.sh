@@ -29,6 +29,11 @@ workstation services commands:
   autostart enable|disable|status [service ...]
                                    survive Docker/WSL restart + PC reboot (default:
                                    redis redisinsight) - see docs/development-services-v2.md
+  rotate <service>                 regenerate + apply a new secret (redis, qdrant, minio,
+                                   open-webui only - see docs/secrets-rotation.md for why
+                                   the rest require a different, service-specific procedure)
+  scaffold <name>                  generate a new dev-service's file skeleton, pre-wired
+                                   to the consumes convention - see docs/adr/0003
 USAGE
 }
 
@@ -378,6 +383,14 @@ up_catalog() {
   build_compose_args "${resolved[@]}"
   docker compose "${COMPOSE_ARGS[@]}" up -d
   docker compose "${COMPOSE_ARGS[@]}" ps
+
+  # Usage telemetry - see project-init.sh's matching comment. Records the
+  # originally-requested targets (a profile name or explicit service ids),
+  # not the fully-resolved dependency list, so stats reflect what was
+  # actually asked for.
+  mkdir -p "$ROOT/.state"
+  printf '{"event":"services_up","targets":"%s","timestampUtc":"%s"}\n' \
+    "$*" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$ROOT/.state/usage.jsonl"
 }
 
 pull_catalog() {
@@ -515,6 +528,177 @@ doctor_catalog() {
   [[ "$failures" -eq 0 ]] || exit 1
 }
 
+rotate_secret() {
+  local s="${1:-}"
+  is_service "$s" || { echo "Unknown service: $s" >&2; exit 2; }
+
+  # Only services whose credential is checked live against the env var at
+  # every container start, with nothing persisted separately, land here -
+  # confirmed by reading each one's compose.yaml. Every other service either
+  # bakes the credential into its data volume on first init (postgres,
+  # pgadmin, opensearch, rabbitmq, mongodb, grafana, garage) or uses it to
+  # encrypt already-persisted data (langfuse SALT/ENCRYPTION_KEY) - for
+  # those, regenerating the env file alone would desync it from what the
+  # running service actually expects/can decrypt. See
+  # docs/secrets-rotation.md for the correct per-service procedure.
+  case "$s" in
+    redis|qdrant|minio|open-webui) ;;
+    *)
+      echo "ERROR: $s does not support automated rotation." >&2
+      echo "Its credential is persisted separately from the env var after" >&2
+      echo "first boot, or used to encrypt already-persisted data - blindly" >&2
+      echo "regenerating it would desync it from the running service." >&2
+      echo "See docs/secrets-rotation.md for the correct manual procedure." >&2
+      exit 2
+      ;;
+  esac
+
+  ensure_docker
+  local file
+  file="$(secret_file "$s")"
+  if [[ -f "$file" ]]; then
+    local backup
+    backup="$file.pre-rotate.$(date -u +%Y%m%dT%H%M%SZ)"
+    mv "$file" "$backup"
+    echo "Previous secret backed up to: $backup"
+  fi
+
+  generate_secret_file "$s"
+  echo "Generated a new secret for: $s"
+
+  local -a resolved
+  mapfile -t resolved < <(resolve_targets "$s")
+  build_compose_args "${resolved[@]}"
+  docker compose "${COMPOSE_ARGS[@]}" up -d --force-recreate "$s"
+  echo "Rotated and restarted: $s"
+  echo "Update any project's .env that copied the old value by hand."
+}
+
+scaffold_service() {
+  local name="${1:-}"
+  [[ -n "$name" ]] || { echo "Usage: services scaffold <name>" >&2; exit 2; }
+  [[ "$name" =~ ^[a-z][a-z0-9-]*$ ]] || {
+    echo "ERROR: name must be lowercase, start with a letter, and use only [a-z0-9-] (matches every existing dev-service id)." >&2
+    exit 2
+  }
+
+  local dir="$ROOT/development/services/$name"
+  [[ -e "$dir" ]] && { echo "ERROR: already exists: $dir" >&2; exit 2; }
+
+  local upper
+  upper="$(echo "$name" | tr '[:lower:]-' '[:upper:]_')"
+
+  mkdir -p "$dir"
+
+  cat > "$dir/service.json" <<JSON
+{
+  "id": "$name",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": "~/.config/workstation/services/$name.env",
+  "secretKeys": [],
+  "dependsOn": [],
+  "consumes": {},
+  "volumes": [
+    "platform-$name-data"
+  ],
+  "hostEndpoints": [],
+  "dockerEndpoints": [
+    {
+      "label": "TODO",
+      "endpoint": "dev-$name:PORT"
+    }
+  ]
+}
+JSON
+
+  cat > "$dir/versions.env" <<ENV
+${upper}_IMAGE=TODO
+${upper}_VERSION=TODO
+ENV
+
+  cat > "$dir/defaults.env" <<ENV
+${upper}_HOST_PORT=TODO
+ENV
+
+  cat > "$dir/.env.example" <<ENV
+# TODO: if this service needs a secret, generate_secret_file (services.sh)
+# needs a case for "$name", and this file should document its keys the same
+# way development/services/qdrant/.env.example documents QDRANT_API_KEY.
+# If it needs nothing (like this stub), leave this file's comment as the
+# only content, matching development/services/mlflow/.env.example.
+ENV
+
+  cat > "$dir/compose.yaml" <<COMPOSE
+services:
+  # Configuration independence (AGENTS.md, docs/adr/0003): this file must
+  # never reference another service's variable names directly (no
+  # \${POSTGRES_PASSWORD} etc.) - only this service's own \${${upper}_*}
+  # names, declared in versions.env/defaults.env above. If this service
+  # depends on another dev-service, add it to service.json's "dependsOn"
+  # and map the variables it actually needs through "consumes" - see
+  # development/services/mlflow/service.json for a real worked example.
+  $name:
+    image: \${${upper}_IMAGE}:\${${upper}_VERSION}
+    container_name: dev-$name
+    hostname: dev-$name
+    # TODO: environment, ports, volumes, healthcheck.
+    networks: [platform-dev]
+
+networks:
+  platform-dev:
+    external: true
+    name: platform-dev
+
+volumes:
+  platform-$name-data:
+    name: platform-$name-data
+COMPOSE
+
+  cat > "$dir/README.md" <<MD
+# $name
+
+TODO: what this dev-service is and why it's shared (see
+\`development/services/qdrant/README.md\` for a short example, or
+\`development/services/mlflow/README.md\` for one that also depends on other
+dev-services).
+
+## Bring it up
+
+\`\`\`bash
+workstation services up $name
+\`\`\`
+
+## Next steps to actually finish this scaffold
+
+1. Fill in \`versions.env\` (a real pinned image/version - never \`:latest\`,
+   see \`policy/development.json\`'s \`forbidLatestTag\`).
+2. Fill in \`compose.yaml\`'s environment/ports/volumes/healthcheck.
+3. If it needs a secret, add a case to \`generate_secret_file()\` in
+   \`scripts/posix/services.sh\`, and list the key(s) in
+   \`service.json\`'s \`secretKeys\`.
+4. If it depends on another dev-service, add that service's id to
+   \`service.json\`'s \`dependsOn\`, and map any variables it needs through
+   \`consumes\` - never read another service's env var name directly.
+5. Register it in \`development/catalog.json\`: add it to \`"services"\`,
+   and to whichever profile(s) it belongs in (or a new one).
+6. Add it to \`development/services/dev-dashboard/config/homepage/services.yaml\`
+   if it has a UI worth linking.
+7. Delete every \`TODO\` above once done.
+MD
+
+  echo "Scaffolded: $dir"
+  echo
+  echo "Next steps (also written into $dir/README.md):"
+  echo "  1. Fill in versions.env with a real pinned image/version."
+  echo "  2. Fill in compose.yaml's environment/ports/volumes/healthcheck."
+  echo "  3. If it needs a secret, add a case to generate_secret_file() in this file."
+  echo "  4. If it depends on another dev-service, wire dependsOn/consumes."
+  echo "  5. Register it in development/catalog.json (services + a profile)."
+  echo "  6. Optionally add it to the dashboard's services.yaml."
+}
+
 reset_service() {
   local s="${1:-}" confirm="${2:-}"
   is_service "$s" || { echo "Unknown service: $s" >&2; exit 2; }
@@ -641,6 +825,8 @@ case "$ACTION" in
   project-up) project_up "${1:-$PWD}" ;;
   reset) reset_service "${1:-}" "${2:-}" ;;
   autostart) autostart_services "$@" ;;
+  rotate) rotate_secret "${1:-}" ;;
+  scaffold) scaffold_service "${1:-}" ;;
   help|-h|--help) usage ;;
   *) echo "Unknown services action: $ACTION" >&2; usage; exit 2 ;;
 esac

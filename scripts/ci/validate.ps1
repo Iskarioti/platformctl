@@ -16,7 +16,13 @@ function Assert-Directory {
 }
 
 Get-ChildItem $Root -Recurse -File -Filter *.json | ForEach-Object {
-    try { Get-Content $_.FullName -Raw | ConvertFrom-Json | Out-Null }
+    # -AsHashTable, not the default typed-object parse: a real, valid
+    # package-lock.json (npm's lockfile format) keys its root package by ""
+    # (an empty string) in the "packages" object, which ConvertFrom-Json's
+    # default PSCustomObject parse rejects outright even though the JSON is
+    # entirely well-formed - this is a syntax check, not a schema check, so
+    # it should accept anything that is actually valid JSON.
+    try { Get-Content $_.FullName -Raw | ConvertFrom-Json -AsHashtable | Out-Null }
     catch { throw "Invalid JSON: $($_.FullName)`n$($_.Exception.Message)" }
 }
 

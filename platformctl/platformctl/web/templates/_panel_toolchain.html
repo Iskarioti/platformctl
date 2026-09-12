@@ -1,0 +1,54 @@
+<table>
+  <tbody>
+    <tr class="{{ 'row-ok' if data.security_scan.ran and data.security_scan.healthy else 'row-bad' }}">
+      <td>Security scan</td>
+      <td>
+        {% if not data.security_scan.ran %}
+          never run - <code>workstation security scan</code>
+        {% else %}
+          {{ data.security_scan.age_days }}d ago against '{{ data.security_scan.target }}',
+          {{ data.security_scan.findings_count }} tool(s) reported findings
+        {% endif %}
+      </td>
+    </tr>
+    <tr class="{{ 'row-ok' if data.research_toolchain.available and data.research_toolchain.healthy else 'row-bad' }}">
+      <td>Research toolchain</td>
+      <td>
+        {% if not data.research_toolchain.available %}
+          not available on this machine
+        {% else %}
+          {{ data.research_toolchain.pass_count }}/{{ data.research_toolchain.total }} installed
+          {% if data.research_toolchain.missing %}
+            - missing: {{ data.research_toolchain.missing | join(', ') }}
+          {% endif %}
+        {% endif %}
+      </td>
+    </tr>
+    <tr class="{{ 'row-ok' if data.template_drift.healthy else 'row-bad' }}">
+      <td>Template drift</td>
+      <td>
+        {% if data.template_drift.total == 0 %}
+          no governed projects found
+        {% else %}
+          {{ data.template_drift.outdated }}/{{ data.template_drift.total }} project(s) on an outdated template
+          {% if data.template_drift.outdated_projects %}
+            - {{ data.template_drift.outdated_projects | join(', ') }}
+          {% endif %}
+        {% endif %}
+      </td>
+    </tr>
+    <tr class="{{ 'row-ok' if data.paper_builds.healthy else 'row-bad' }}">
+      <td>Paper builds</td>
+      <td>
+        {% if data.paper_builds.total == 0 %}
+          no research-paper projects found
+        {% else %}
+          {{ data.paper_builds.total - data.paper_builds.stale }}/{{ data.paper_builds.total }} up to date
+          {% if data.paper_builds.stale %}
+            - stale: {{ data.paper_builds.papers | selectattr('built', 'equalto', false) | map(attribute='name') | join(', ') }}
+          {% endif %}
+        {% endif %}
+      </td>
+    </tr>
+  </tbody>
+</table>

@@ -4,7 +4,7 @@
   "remoteUser": "vscode",
   "forwardPorts": [8000],
   "runArgs": ["--network=platform-dev"],
-  "postCreateCommand": "python -m pip install -r requirements-dev.txt",
+  "postCreateCommand": "python -m pip install -r requirements.lock",
   "mounts": ["source=${localEnv:HOME}/.ssh/agent.sock,target=/ssh-agent,type=bind", "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly"],
   "containerEnv": {
     "SSH_AUTH_SOCK": "/ssh-agent",

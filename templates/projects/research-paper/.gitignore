@@ -15,6 +15,9 @@
 *.synctex.gz
 *.toc
 paper/main.pdf
+paper/main-diff.tex
+paper/main-diff.pdf
+paper/.main-old.tex
 
 # Quarto
 .quarto/

@@ -1,0 +1,5 @@
+[core]
+    remote = storage
+['remote "storage"']
+    url = s3://shared/dvc/__PROJECT_NAME__/
+    endpointurl = http://127.0.0.1:3900

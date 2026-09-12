@@ -1,0 +1,12 @@
+iniconfig==2.3.0
+    # via pytest
+packaging==26.3
+    # via pytest
+pluggy==1.6.0
+    # via pytest
+pygments==2.21.0
+    # via pytest
+pytest==8.4.2
+    # via -r requirements-dev.txt
+ruff==0.16.7
+    # via -r requirements-dev.txt

@@ -88,6 +88,12 @@ def create_app() -> FastAPI:
             request, "_panel_jobs.html", {"items": status.background_jobs_status()}
         )
 
+    @app.get("/panels/toolchain", response_class=HTMLResponse)
+    async def panel_toolchain(request: Request, _: auth.Session = Depends(require_session)):
+        return templates.TemplateResponse(
+            request, "_panel_toolchain.html", {"data": status.toolchain_status()}
+        )
+
     @app.get("/panels/resources", response_class=HTMLResponse)
     async def panel_resources(request: Request, _: auth.Session = Depends(require_session)):
         return templates.TemplateResponse(

@@ -40,6 +40,61 @@ or automate it with [`pyzotero`](https://pyzotero.readthedocs.io) /
 scripted access instead of manual export - both are opt-in additions to a
 project, not part of the base toolchain.
 
+## Data versioning
+
+Git tracks code, not datasets. [DVC](https://dvc.org) versions data/model
+files alongside Git (a small `.dvc` pointer file is what actually gets
+committed) with a real remote for the large content - opt-in per project
+(`pip install "dvc[s3]"`, listed commented-out in `research-python`'s
+`requirements-dev.txt`), not part of the base toolchain, since not every
+research project has data large enough to need it.
+
+The shared `garage` dev-service (S3-compatible, already used by `langfuse`
+and `mlflow`) works as a DVC remote with no extra infrastructure - and
+`research-python` ships a real, already-scaffolded `.dvc/config` (not just
+this prose), pre-pointed at a project-specific prefix
+(`s3://shared/dvc/<project-name>/`, substituted from `__PROJECT_NAME__` at
+`project init` time - the same convention `langfuse`/`mlflow` already follow
+for their own key prefixes) so there's no `dvc init`/`dvc remote add` step
+to run by hand:
+
+```bash
+workstation services up garage
+pip install "dvc[s3]"   # uncomment in requirements-dev.txt, or install directly
+dvc remote modify --local storage access_key_id <GARAGE_ACCESS_KEY>
+dvc remote modify --local storage secret_access_key <GARAGE_SECRET_KEY>
+dvc add data/raw.csv
+git add data/raw.csv.dvc data/.gitignore
+dvc push
+```
+
+Credentials come from `~/.config/workstation/services/garage.env` - the
+`--local` flag keeps them out of the committed `.dvc/config` (they land in
+the gitignored `.dvc/config.local` instead, via the pre-scaffolded
+`.dvc/.gitignore`).
+
+## Deliberately out of scope
+
+Two gaps a role-audit of this toolchain named, kept out on purpose rather
+than silently dropped:
+
+- **Literature-search/citation tooling beyond BibTeX export** - Zotero has
+  no official CLI at all (see "Reference management" above); `pyzotero` is
+  already documented as the opt-in scripted-access path. A deeper
+  integration would mean building and maintaining an unofficial wrapper
+  around Zotero's own API - real infrastructure work disproportionate to
+  what this repo can verify or support, not a gap this toolchain can close
+  with a config file.
+- **HPC/cluster job submission** (SLURM/PBS-style) - this repo governs a
+  single workstation; it has no HPC cluster to submit to, and a job
+  scheduler integration nobody can actually run here would be exactly the
+  kind of unverified, untestable mechanism this repo's own discipline
+  argues against (see `docs/adr/`). The GPU Dev Container variant above
+  covers local model training/inference, which is the part of this gap
+  actually addressable from a workstation. If a real HPC allocation exists
+  for a specific project, its submission scripts belong in that project's
+  own repo, not scaffolded here speculatively.
+
 ## `research-python` vs `research-paper`
 
 - `research-python` - a Python research/notebook environment (JupyterLab

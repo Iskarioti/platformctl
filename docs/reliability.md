@@ -77,6 +77,27 @@ other than this machine. `WORKSTATION_BACKUP_PASSPHRASE` is accepted for
 scripting/automation only; prefer the interactive prompt for real use so the
 passphrase never sits in shell history.
 
+### Proving it actually works (`workstation dr-drill`)
+
+A backup/restore path nobody has ever exercised is a hypothesis, not a control.
+`workstation dr-drill` rehearses the whole thing for real, on this machine, without
+touching anything live:
+
+```bash
+workstation dr-drill
+```
+
+It runs a real `backup.sh` (with a random one-time passphrase, via
+`WORKSTATION_BACKUP_PASSPHRASE`) into a throwaway temp file, then a real
+`restore.sh` into a throwaway `$HOME` (via `WORKSTATION_RESTORE_HOME` - both
+env vars exist specifically so this drill never needs to touch the real
+`~/.config/workstation`), then verifies the restored file count matches. Docker
+volumes are never at risk either way: restore already skips any volume that
+already exists unless `--force-volumes` is passed, and the drill never passes it.
+Each run appends a timestamped result to `.state/dr-drill-YYYY-MM-DD.log`. Run it
+after any change to `backup.sh`/`restore.sh`, and periodically otherwise - there's
+no scheduled trigger for it on purpose; deciding to run it is part of the point.
+
 ## Changelog drafting (`workstation changelog`)
 
 Prints a draft `CHANGELOG.md` section and a suggested semver bump from Conventional

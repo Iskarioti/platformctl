@@ -27,12 +27,93 @@ case "$CMD" in
     for x in semgrep gitleaks trufflehog trivy grype syft cosign conftest checkov pdflatex biber latexmk pandoc quarto pixi; do
       command -v "$x" >/dev/null 2>&1 && echo "PASS $x" || echo "MISS $x (run: workstation security|research install)"
     done
+    echo
+    echo "Cross-domain status (the single view a fully-fledged workstation needs -"
+    echo "security/capacity/labs/templates, not just tool presence):"
+
+    if [[ -f "$ROOT/.state/security/last-scan.json" ]]; then
+      python3 - "$ROOT/.state/security/last-scan.json" <<'PY'
+import json, sys, datetime
+scan = json.load(open(sys.argv[1]))
+scanned_at = datetime.datetime.fromisoformat(scan["scannedAtUtc"].replace("Z", "+00:00"))
+age_days = (datetime.datetime.now(datetime.timezone.utc) - scanned_at).days
+state = "PASS" if age_days <= 14 else "WARN"
+print(f"{state}  security scan      {age_days}d ago against '{scan['target']}', "
+      f"{scan['findingsCount']} tool(s) reported findings")
+PY
+    else
+      echo "WARN  security scan      never run - workstation security scan ."
+    fi
+
+    disk_free_pct="$(df -k "$ROOT" 2>/dev/null | awk 'NR==2 {gsub("%","",$5); print 100-$5}')"
+    if [[ -n "$disk_free_pct" ]]; then
+      disk_state="PASS"; [[ "$disk_free_pct" -lt 10 ]] && disk_state="WARN"
+      echo "$disk_state  disk               ${disk_free_pct}% free"
+    fi
+    if command -v free >/dev/null 2>&1; then
+      mem_free_mb="$(free -m 2>/dev/null | awk '/^Mem:/ {print $7}')"
+      if [[ -n "$mem_free_mb" ]]; then
+        mem_state="PASS"; [[ "$mem_free_mb" -lt 512 ]] && mem_state="WARN"
+        echo "$mem_state  memory             ${mem_free_mb} MB available"
+      fi
+    fi
+
+    if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+      running_count="$(docker ps --filter "name=^dev-" --format '{{.Names}}' | wc -l | tr -d ' ')"
+      if [[ "$running_count" -gt 0 ]]; then
+        if "$ROOT/scripts/posix/drift-check.sh" >/dev/null 2>&1; then
+          echo "PASS  drift              $running_count running dev-service(s), none drifted from development/catalog.json"
+        else
+          echo "WARN  drift              running dev-service(s) don't match development/catalog.json - workstation drift-check"
+        fi
+      fi
+    fi
+
+    if command -v k3d >/dev/null 2>&1; then
+      if k3d cluster list --no-headers 2>/dev/null | grep -q .; then
+        echo "PASS  labs               k3d cluster(s) present - workstation lab status <name>"
+      else
+        echo "INFO  labs               no k3d clusters (workstation lab list)"
+      fi
+    fi
+
+    if [[ -f "$ROOT/templates/catalog.json" && -f "$ROOT/policy/development.json" ]]; then
+      python3 - "$ROOT" <<'PY'
+import json, sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+catalog = json.loads((root / "templates/catalog.json").read_text())["templates"]
+policy = json.loads((root / "policy/development.json").read_text())
+
+total = 0
+outdated = 0
+for raw_root in policy.get("projectRoots", []):
+    proj_root = Path(raw_root.replace("~", str(Path.home()), 1))
+    if not proj_root.is_dir():
+        continue
+    for child in proj_root.iterdir():
+        meta_path = child / ".platformctl" / "project.json"
+        if not meta_path.exists():
+            continue
+        total += 1
+        meta = json.loads(meta_path.read_text())
+        entry = catalog.get(meta.get("template"))
+        if entry and meta.get("templateVersion") != entry.get("version"):
+            outdated += 1
+
+if total > 0:
+    state = "WARN" if outdated > 0 else "PASS"
+    print(f"{state}  templates          {outdated}/{total} project(s) on an outdated template version")
+PY
+    fi
     ;;
   enforce) exec "$ROOT/scripts/posix/enforce.sh" "$@" ;;
   project) exec "$ROOT/scripts/posix/project.sh" "$@" ;;
   services) exec "$ROOT/scripts/posix/services.sh" "$@" ;;
   security) exec "$ROOT/scripts/posix/security.sh" "$@" ;;
   research) exec "$ROOT/scripts/posix/research.sh" "$@" ;;
+  catalog) exec "$ROOT/scripts/posix/catalog.sh" "$@" ;;
   models) exec "$ROOT/scripts/posix/models.sh" "$@" ;;
   lab) exec "$ROOT/scripts/posix/labs.sh" "$@" ;;
   editor) exec "$ROOT/scripts/posix/editor.sh" "$@" ;;
@@ -92,6 +173,8 @@ case "$CMD" in
     ;;
   backup) exec "$ROOT/scripts/posix/backup.sh" "$@" ;;
   restore) exec "$ROOT/scripts/posix/restore.sh" "$@" ;;
+  dr-drill) exec "$ROOT/scripts/posix/dr-drill.sh" "$@" ;;
+  drift-check) exec "$ROOT/scripts/posix/drift-check.sh" "$@" ;;
   changelog)
     if command -v pwsh >/dev/null 2>&1; then
       exec pwsh -NoLogo -NoProfile -File "$ROOT/scripts/common/changelog-preview.ps1" "$@"
@@ -147,6 +230,8 @@ Quality & security:
   security sbom [path] [out]          CycloneDX SBOM via syft
   security doctor                     verify security toolchain installed
   research doctor                     verify research (LaTeX/pandoc/quarto/pixi) toolchain
+  catalog stats                        which templates/services actually get used
+  catalog costs                        illustrative cloud-cost sizing for what's running now
 
 Editor & shell:
   editor install|apply|doctor|list|profile|sync|clean
@@ -160,6 +245,8 @@ Automation & maintenance:
   dashboard enable|disable|status      always-on background service (auto-restart, starts at login)
   backup [output-path]
   restore <backup-file> [--yes]
+  dr-drill                              rehearse backup+restore into a throwaway dir - proves it actually works
+  drift-check                           compare running dev-services against development/catalog.json
   changelog [since-commit]
   publish [owner/repo]
   ssh-import                           copy Windows SSH keys into WSL (WSL only)

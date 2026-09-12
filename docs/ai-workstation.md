@@ -6,9 +6,10 @@ this repo's existing three-tier mechanism instead of inventing a fourth one:
 
 - **dev-service** (stable, shared, always-on infra) — `ai-runtime` (Ollama), the
   `qdrant` dev-service, `open-webui` (chat UI / prompt-engineering interface),
-  and `langfuse` (LLM tracing/observability, itself depending on the shared
+  `langfuse` (LLM tracing/observability), and `mlflow` (experiment tracking +
+  model registry) — the latter two depending on the shared
   `postgres`/`redis`/`clickhouse`/`garage` dev-services rather than private
-  copies of each).
+  copies of each.
 - **project template** (one-off app scaffolding) — `mcp-server`, `rag-app`,
   `agent-app`.
 - **lab** (disposable, pre-production architecture validation) — `labs/ai/rag-pipeline`
@@ -117,7 +118,57 @@ ever needs rebuilding from scratch:
   argument to a literal Compose service name, and none of Langfuse's own
   containers are literally named `langfuse`. Use `services down`/`up` instead.
 
-## 5. Project templates
+Tracing alone only shows what happened, not whether it was any good -
+`rag-app` and `agent-app` each ship their own `scripts/eval_dataset.py` to
+close that gap for real: it runs a golden Q&A set (the same LLM-judge idea
+`labs/ai/rag-pipeline`'s `quality` test uses) through the app's own traced
+code path (`get_store()`+generation for `rag-app`, `graph.invoke` for
+`agent-app`), as a real Langfuse **dataset experiment**
+(`langfuse.run_experiment`) instead of a disposable lab - every run is a
+real, inspectable dataset run in the Langfuse UI, not just a pass/fail line
+in a terminal. See either template's README "Quality evaluation against a
+real Langfuse dataset".
+
+## 5. Experiment tracking + model registry
+
+```bash
+workstation services up mlflow
+```
+
+Self-hosted [MLflow](https://mlflow.org/) Tracking Server (`ghcr.io/mlflow/mlflow`,
+the `-full` image variant - it's the one with `psycopg2`/`boto3` preinstalled,
+the plain image has neither). Same dependency-sharing pattern as Langfuse: it
+depends on and shares the `postgres` and `garage` dev-services rather than
+running a private SQLite file or private blob storage (`service.json`
+`dependsOn`) - `workstation services up mlflow` brings both up automatically.
+One init container (`mlflow-postgres-init`) idempotently creates a dedicated
+`mlflow` database on first boot. Artifacts land in the shared Garage bucket
+under an `mlflow/` key prefix, the same shared-bucket-with-prefix convention
+Langfuse uses (see `development/services/garage/README.md`).
+
+```python
+import mlflow
+mlflow.set_tracking_uri("http://dev-mlflow:5000")  # from a project's Dev Container
+mlflow.set_experiment("my-experiment")
+with mlflow.start_run():
+    mlflow.log_param("lr", 0.01)
+    mlflow.log_metric("accuracy", 0.94)
+```
+
+From the host instead of a container: `http://localhost:5001`, and the same
+four env vars a client needs to log artifacts directly to Garage
+(`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`MLFLOW_S3_ENDPOINT_URL`/
+`MLFLOW_BOTO_CLIENT_ADDRESSING_STYLE=path`) live in
+`~/.config/workstation/services/garage.env` (see `development/services/mlflow/README.md`).
+
+MLflow OSS ships no authentication at all, so unlike every other dev-service
+here it has no generated secret of its own - the loopback-only host binding
+*is* its access control. MLflow 3 added its own Host-header security
+middleware on top of that; it's opened with `--allowed-hosts "*"` in
+`compose.yaml`; without that flag, confirmed live, even a same-machine request
+through the published port gets its connection reset outright.
+
+## 6. Project templates
 
 ```bash
 workstation project init mcp-server <name> --area labs   # or company/platform/...
@@ -146,13 +197,14 @@ All three's FastAPI endpoints take plain scalar parameters (`text: str`,
 parameters** even on `POST` — test with `curl -X POST '.../invoke?question=...'`,
 not a JSON body.
 
-## 6. Architecture validation before production
+## 7. Architecture validation before production
 
 ```bash
 workstation lab toolchain install         # kubectl, helm, k3d (one-time)
 workstation lab up rag-pipeline --runtime docker
 workstation lab test rag-pipeline smoke --runtime docker
 workstation lab test rag-pipeline qdrant-outage --runtime docker
+workstation lab test rag-pipeline quality --runtime docker
 workstation lab destroy rag-pipeline --runtime docker --yes
 
 workstation lab up agent-mesh --runtime docker
@@ -167,7 +219,13 @@ workstation lab destroy agent-mesh --runtime docker --yes
   failure (not a hang), and confirms data survives the restart (a real named
   volume — the Kubernetes variant of this test instead proves the *service*
   recovers after its pod is replaced, since that runtime's manifests use
-  `emptyDir`, not a PVC).
+  `emptyDir`, not a PVC); `quality` runs a golden question/answer set through
+  real retrieval + generation, then grades each answer with a second LLM call
+  acting as judge, and fails if the mean score drops below `0.6` — a real
+  answer-quality regression gate, not just an infra-outage check. Confirmed
+  live that `gemma3:1b` (used for the fast generation step) is too weak a
+  judge — it scored an obviously-correct paraphrase `0.1` — so judging
+  specifically uses `gemma3:4b` instead.
 - **`agent-mesh`** — three independent replicas of a minimal LangGraph agent
   behind Ollama. `smoke` confirms all three answer independently (each is a real,
   separate model invocation); `node-failure` stops one replica and confirms the
@@ -186,7 +244,7 @@ Both labs also run under `--runtime kubernetes` (Deployments/Services behind
 kubernetes`) to build its app image and `k3d image import` it into the
 `platform-labs` cluster, since it isn't published to a registry.
 
-## 7. Production
+## 8. Production
 
 Never deploy from lab or dev-service state directly. Package a template's own
 `.devcontainer/Dockerfile` as the production image base (swap the dev

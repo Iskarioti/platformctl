@@ -10,6 +10,13 @@ set -euo pipefail
 INPUT="${1:?Usage: restore.sh <backup-file> [--yes] [--force-volumes]}"
 shift || true
 
+# Overridable so a disaster-recovery drill (scripts/posix/dr-drill.sh) can
+# restore into a throwaway directory instead of this machine's real
+# ~/.config/workstation and ~/.local/state/platformctl/labs - proving a
+# backup is genuinely restorable without ever touching live state. Not set
+# in normal use; defaults to the real $HOME exactly as before.
+RESTORE_HOME="${WORKSTATION_RESTORE_HOME:-$HOME}"
+
 ASSUME_YES=0
 FORCE_VOLUMES=0
 for arg in "$@"; do
@@ -71,19 +78,19 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
 fi
 
 if [[ -d "$STAGE/config-workstation" ]]; then
-  if [[ -d "$HOME/.config/workstation" ]]; then
-    moved="$HOME/.config/workstation.pre-restore.$(date -u +%Y%m%dT%H%M%SZ)"
-    mv "$HOME/.config/workstation" "$moved"
+  if [[ -d "$RESTORE_HOME/.config/workstation" ]]; then
+    moved="$RESTORE_HOME/.config/workstation.pre-restore.$(date -u +%Y%m%dT%H%M%SZ)"
+    mv "$RESTORE_HOME/.config/workstation" "$moved"
     echo "Existing ~/.config/workstation moved aside to: $moved"
   fi
-  mkdir -p "$HOME/.config"
-  cp -a "$STAGE/config-workstation" "$HOME/.config/workstation"
-  chmod -R go-rwx "$HOME/.config/workstation" 2>/dev/null || true
-  echo "Restored: ~/.config/workstation"
+  mkdir -p "$RESTORE_HOME/.config"
+  cp -a "$STAGE/config-workstation" "$RESTORE_HOME/.config/workstation"
+  chmod -R go-rwx "$RESTORE_HOME/.config/workstation" 2>/dev/null || true
+  echo "Restored: $RESTORE_HOME/.config/workstation"
 fi
 
 if [[ -d "$STAGE/labs-state" ]]; then
-  target="$HOME/.local/state/platformctl/labs"
+  target="$RESTORE_HOME/.local/state/platformctl/labs"
   if [[ -d "$target" ]]; then
     moved="$target.pre-restore.$(date -u +%Y%m%dT%H%M%SZ)"
     mv "$target" "$moved"

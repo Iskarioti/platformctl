@@ -53,6 +53,12 @@ function platformctlHandleNotification(event) {
 </section>
 
 <section class="card">
+  <h2>Toolchain health</h2>
+  <p class="muted">Security scan freshness, research toolchain, template drift &mdash; the same state <code>workstation doctor</code> reads, in the one pane of glass.</p>
+  <div hx-get="/panels/toolchain" hx-trigger="load, every 60s" hx-swap="innerHTML">Loading&hellip;</div>
+</section>
+
+<section class="card">
   <h2>Lab clusters</h2>
   <div hx-get="/panels/labs" hx-trigger="load, every 15s" hx-swap="innerHTML">Loading&hellip;</div>
 </section>

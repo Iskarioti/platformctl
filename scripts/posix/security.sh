@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # Every tool here installs to ~/.local/bin (see platform/{linux,macos}/
 # install-security-tools.sh) - fine for an interactive login shell, but
@@ -96,7 +97,45 @@ security_scan() {
   else
     echo "RESULT: $failures tool(s) reported findings - see output above"
   fi
+
+  record_scan_state "$target" "$failures" || true
+
   return "$failures"
+}
+
+# Persists two things so "workstation doctor" and "workstation project doctor"
+# can show scan freshness instead of every run starting from zero context
+# (a real gap found in the DevSecOps role review): a rolling workstation-wide
+# record at .state/security/last-scan.json, and - only when the target is
+# itself a governed project - a per-project record at
+# <target>/.platformctl/security-scan.json.
+record_scan_state() {
+  local target="$1" failures="$2"
+  local scanned_at
+  scanned_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+  mkdir -p "$ROOT/.state/security"
+  python3 - "$ROOT/.state/security/last-scan.json" "$target" "$failures" "$scanned_at" <<'PY'
+import json, sys
+out, target, failures, scanned_at = sys.argv[1:5]
+json.dump({
+    "target": target,
+    "findingsCount": int(failures),
+    "scannedAtUtc": scanned_at,
+}, open(out, "w", encoding="utf-8"), indent=2)
+PY
+
+  local project_meta="$target/.platformctl"
+  if [[ -d "$project_meta" ]]; then
+    python3 - "$project_meta/security-scan.json" "$failures" "$scanned_at" <<'PY'
+import json, sys
+out, failures, scanned_at = sys.argv[1:4]
+json.dump({
+    "findingsCount": int(failures),
+    "scannedAtUtc": scanned_at,
+}, open(out, "w", encoding="utf-8"), indent=2)
+PY
+  fi
 }
 
 security_sbom() {

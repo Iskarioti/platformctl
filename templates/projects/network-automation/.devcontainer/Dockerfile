@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iperf3 tcpdump openssl snmp \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir \
-    netmiko nornir nornir-netmiko napalm scrapli pydantic typer rich
+COPY requirements.lock /tmp/requirements.lock
+RUN pip install --no-cache-dir -r /tmp/requirements.lock && rm /tmp/requirements.lock
 
 USER vscode

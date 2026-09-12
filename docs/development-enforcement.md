@@ -86,9 +86,17 @@ the Dev Container spec legitimately allows (a real project's devcontainer.json u
 `jq` when the CLI isn't installed, which is fine for every platformctl template (none
 use comments).
 
-Lockfiles begin as a warning in v3.1 so a freshly generated project can install its
-dependencies first. Change `projects.lockfilePolicy` to `required` once every active
-template generates lockfiles during initialization.
+Lockfiles began as a warning in v3.1 so a freshly generated project could install its
+dependencies first. `projects.lockfilePolicy` is `required` as of v3.19.0 - every
+template now ships a real, committed lockfile (`requirements.lock`, pip-compiled, for
+every Python template; `package-lock.json` for `react-app`) and installs from it, not
+just declares it: each template's `postCreateCommand`/Dockerfile now installs from the
+lockfile itself, not `requirements-dev.txt` directly, so the lockfile can't silently
+drift from what's actually installed. `infra`/`terraform` are exempt until a project
+actually declares its first provider (`required_providers`) - `terraform init` doesn't
+even produce a `.terraform.lock.hcl` with none declared, so there's nothing to require
+yet; `scripts/posix/project-check.sh` detects this by grepping for
+`required_providers` in the project's own `.tf` files, not by template name.
 
 ## Git SSH access inside Dev Containers
 

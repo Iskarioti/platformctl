@@ -1,7 +1,5 @@
 FROM mcr.microsoft.com/devcontainers/python:3.13-bookworm
 USER root
-RUN pip install --no-cache-dir \
-    fastapi uvicorn httpx pydantic-settings \
-    numpy pandas scikit-learn \
-    opentelemetry-api opentelemetry-sdk
+COPY requirements.lock /tmp/requirements.lock
+RUN pip install --no-cache-dir -r /tmp/requirements.lock && rm /tmp/requirements.lock
 USER vscode

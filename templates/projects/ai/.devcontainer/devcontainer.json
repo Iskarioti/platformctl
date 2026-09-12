@@ -1,7 +1,8 @@
 {
   "name": "ai-platform-lab",
   "build": {
-    "dockerfile": "Dockerfile"
+    "dockerfile": "Dockerfile",
+    "context": ".."
   },
   "remoteUser": "vscode",
   "forwardPorts": [8000],

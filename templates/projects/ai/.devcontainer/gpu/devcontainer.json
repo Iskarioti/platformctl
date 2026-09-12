@@ -1,0 +1,27 @@
+{
+  "name": "ai-platform-lab-gpu",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "vscode",
+  "forwardPorts": [8000],
+  "hostRequirements": {
+    "gpu": "optional"
+  },
+  "runArgs": ["--gpus=all"],
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh/agent.sock,target=/ssh-agent,type=bind",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly"
+  ],
+  "containerEnv": {
+    "SSH_AUTH_SOCK": "/ssh-agent"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff"
+      ]
+    }
+  }
+}

@@ -1,7 +1,8 @@
 {
   "name": "network-automation",
   "build": {
-    "dockerfile": "Dockerfile"
+    "dockerfile": "Dockerfile",
+    "context": ".."
   },
   "remoteUser": "vscode",
   "runArgs": [

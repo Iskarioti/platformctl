@@ -1,0 +1,34 @@
+{
+  "id": "mlflow",
+  "compose": "compose.yaml",
+  "versions": "versions.env",
+  "defaults": "defaults.env",
+  "secrets": "~/.config/workstation/services/mlflow.env",
+  "secretKeys": [],
+  "dependsOn": [
+    "postgres",
+    "garage"
+  ],
+  "consumes": {
+    "MLFLOW_DB_INIT_IMAGE": "postgres:POSTGRES_IMAGE",
+    "MLFLOW_DB_INIT_VERSION": "postgres:POSTGRES_VERSION",
+    "MLFLOW_DB_USER": "postgres:POSTGRES_USER",
+    "MLFLOW_DB_PASSWORD": "postgres:POSTGRES_PASSWORD",
+    "MLFLOW_STORAGE_ACCESS_KEY": "garage:GARAGE_ACCESS_KEY",
+    "MLFLOW_STORAGE_SECRET_KEY": "garage:GARAGE_SECRET_KEY",
+    "MLFLOW_STORAGE_BUCKET": "garage:GARAGE_DEFAULT_BUCKET"
+  },
+  "volumes": [],
+  "hostEndpoints": [
+    {
+      "label": "MLflow",
+      "endpoint": "http://127.0.0.1:${MLFLOW_HOST_PORT}"
+    }
+  ],
+  "dockerEndpoints": [
+    {
+      "label": "MLflow",
+      "endpoint": "dev-mlflow:5000"
+    }
+  ]
+}

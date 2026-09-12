@@ -98,6 +98,14 @@ switch ($Command.ToLowerInvariant()) {
             exit $LASTEXITCODE
         }
     }
+    "catalog" {
+        if ($IsWindows -or $env:OS -eq "Windows_NT") {
+            Invoke-RepoScript -Path "scripts\common\catalog.ps1" -Arguments $Rest
+        } else {
+            & bash (Join-Path $Root "scripts/posix/catalog.sh") @Rest
+            exit $LASTEXITCODE
+        }
+    }
     "models" {
         if ($IsWindows -or $env:OS -eq "Windows_NT") {
             Invoke-RepoScript -Path "scripts\common\models.ps1" -Arguments $Rest
@@ -189,6 +197,26 @@ switch ($Command.ToLowerInvariant()) {
         }
     }
 
+    "dr-drill" {
+        if ($IsWindows -or $env:OS -eq "Windows_NT") {
+            & wsl.exe -d Ubuntu-24.04 -- bash -lc 'workstation dr-drill "$@"' workstation-dr-drill @Rest
+            exit $LASTEXITCODE
+        } else {
+            & bash (Join-Path $Root "scripts/posix/dr-drill.sh") @Rest
+            exit $LASTEXITCODE
+        }
+    }
+
+    "drift-check" {
+        if ($IsWindows -or $env:OS -eq "Windows_NT") {
+            & wsl.exe -d Ubuntu-24.04 -- bash -lc 'workstation drift-check "$@"' workstation-drift-check @Rest
+            exit $LASTEXITCODE
+        } else {
+            & bash (Join-Path $Root "scripts/posix/drift-check.sh") @Rest
+            exit $LASTEXITCODE
+        }
+    }
+
     "dry-run" { Invoke-RepoScript -Path "scripts\ci\dry-run.ps1" -Arguments $Rest }
 
     default {
@@ -230,6 +258,8 @@ Quality & security:
   security sbom [path] [out]        CycloneDX SBOM via syft
   security doctor                   verify security toolchain installed
   research doctor                   verify research (LaTeX/pandoc/quarto/pixi) toolchain
+  catalog stats                     which templates/services actually get used
+  catalog costs                     illustrative cloud-cost sizing for what's running now
 
 Editor & shell:
   editor install|apply|doctor       manage Neovim/NvChad/Vim editor profiles
@@ -244,6 +274,8 @@ Automation & maintenance:
   dashboard enable|disable|status   always-on background dashboard service (auto-restart, starts at login)
   backup [output-path]              encrypted backup of control-plane/dev-service secrets and volumes
   restore <backup-file> [--yes]     restore a backup created by "backup"
+  dr-drill                          rehearse backup+restore into a throwaway dir - proves it actually works
+  drift-check                       compare running dev-services against development/catalog.json
   changelog [since-commit]          draft a CHANGELOG.md section from Conventional Commits (preview only)
   ssh-import                        copy Windows SSH keys into WSL (WSL only)
   publish [owner/repo]              create/publish the GitHub repository

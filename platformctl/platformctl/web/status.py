@@ -314,6 +314,139 @@ def background_jobs_status() -> list[dict[str, Any]]:
     return _background_jobs_linux()
 
 
+# --- Toolchain health: security scan freshness, research toolchain,
+#     template drift. The Hybrid role review's own finding: the dashboard's
+#     one pane of glass stopped at platform ops - no panel here told you
+#     whether a scan was stale, the research toolchain was installed, or a
+#     governed project's template had moved on. Read the same state
+#     "workstation doctor" already does, not a new source of truth. ---
+
+
+def _security_scan_freshness() -> dict[str, Any]:
+    scan_path = REPO_ROOT / ".state" / "security" / "last-scan.json"
+    if not scan_path.exists():
+        return {"ran": False, "healthy": False}
+    try:
+        scan = json.loads(scan_path.read_text(encoding="utf-8"))
+        scanned_at = datetime.fromisoformat(scan["scannedAtUtc"].replace("Z", "+00:00"))
+        age_days = (datetime.now(timezone.utc) - scanned_at).days
+        return {
+            "ran": True,
+            "target": scan.get("target"),
+            "age_days": age_days,
+            "findings_count": scan.get("findingsCount"),
+            "healthy": age_days <= 14,
+        }
+    except (json.JSONDecodeError, KeyError, ValueError):
+        return {"ran": False, "healthy": False}
+
+
+def _research_toolchain() -> dict[str, Any]:
+    script = REPO_ROOT / "scripts" / "posix" / "research.sh"
+    if not script.exists():
+        return {"available": False, "pass_count": 0, "total": 0, "missing": []}
+    rc, out = run(["bash", str(script), "doctor"], timeout=20)
+    passed = [line.split(None, 2)[1] for line in out.splitlines() if line.startswith("PASS")]
+    missing = [line.split(None, 2)[1] for line in out.splitlines() if line.startswith("MISS")]
+    total = len(passed) + len(missing)
+    return {
+        "available": True,
+        "pass_count": len(passed),
+        "total": total,
+        "missing": missing,
+        "healthy": total > 0 and not missing,
+    }
+
+
+def _template_drift() -> dict[str, Any]:
+    catalog_path = REPO_ROOT / "templates" / "catalog.json"
+    policy_path = REPO_ROOT / "policy" / "development.json"
+    if not (catalog_path.exists() and policy_path.exists()):
+        return {"total": 0, "outdated": 0, "healthy": True}
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))["templates"]
+    policy = json.loads(policy_path.read_text(encoding="utf-8"))
+
+    total = 0
+    outdated = 0
+    outdated_projects: list[str] = []
+    for raw_root in policy.get("projectRoots", []):
+        proj_root = _expand(raw_root)
+        if not proj_root.is_dir():
+            continue
+        for child in proj_root.iterdir():
+            meta_path = child / ".platformctl" / "project.json"
+            if not meta_path.exists():
+                continue
+            total += 1
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                continue
+            entry = catalog.get(meta.get("template"))
+            if entry and meta.get("templateVersion") != entry.get("version"):
+                outdated += 1
+                outdated_projects.append(meta.get("name", child.name))
+    return {
+        "total": total,
+        "outdated": outdated,
+        "outdated_projects": outdated_projects,
+        "healthy": outdated == 0,
+    }
+
+
+def _paper_builds() -> dict[str, Any]:
+    # "Did the paper build" - the Hybrid role review's own example of what
+    # this dashboard's one pane of glass couldn't answer. A cheap, real,
+    # local proxy for CI build status: for every governed project scaffolded
+    # from research-paper, paper/main.pdf existing and newer than
+    # paper/main.tex means the last local `make paper` succeeded since the
+    # source last changed. Not a substitute for the real CI status (this
+    # doesn't call the GitHub API), just what's actually checkable without
+    # one - the same "read local state, don't invent a new source of truth"
+    # principle every other panel here already follows.
+    policy_path = REPO_ROOT / "policy" / "development.json"
+    if not policy_path.exists():
+        return {"total": 0, "stale": 0, "papers": [], "healthy": True}
+    policy = json.loads(policy_path.read_text(encoding="utf-8"))
+
+    total = 0
+    stale = 0
+    papers: list[dict[str, Any]] = []
+    for raw_root in policy.get("projectRoots", []):
+        proj_root = _expand(raw_root)
+        if not proj_root.is_dir():
+            continue
+        for child in proj_root.iterdir():
+            meta_path = child / ".platformctl" / "project.json"
+            if not meta_path.exists():
+                continue
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                continue
+            if meta.get("template") != "research-paper":
+                continue
+            tex_path = child / "paper" / "main.tex"
+            pdf_path = child / "paper" / "main.pdf"
+            if not tex_path.exists():
+                continue
+            total += 1
+            built = pdf_path.exists() and pdf_path.stat().st_mtime >= tex_path.stat().st_mtime
+            if not built:
+                stale += 1
+            papers.append({"name": meta.get("name", child.name), "built": built})
+    return {"total": total, "stale": stale, "papers": papers, "healthy": stale == 0}
+
+
+def toolchain_status() -> dict[str, Any]:
+    return {
+        "security_scan": _security_scan_freshness(),
+        "research_toolchain": _research_toolchain(),
+        "paper_builds": _paper_builds(),
+        "template_drift": _template_drift(),
+    }
+
+
 # --- Resource utilization ---
 
 
