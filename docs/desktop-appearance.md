@@ -158,6 +158,17 @@ reliable, unattended path as of 24H2:
   unsupported pinned-items mechanism as pinning a new one, so it isn't automated
   either, for the same reason. The Start Menu's pinned-tiles list is a separate
   but equally unsupported mechanism - same limitation, same manual-only answer.
+- **Live-tested (2026-09-13), not just researched**: the classic
+  `Shell.Application` COM automation (`$folder.ParseName(...).Verbs()`) still
+  works in general on this machine (confirmed: its "Copy" verb's `.DoIt()`
+  succeeds) - but the taskbar has **no "Pin to taskbar" verb at all** in the
+  returned verb list any more (only "Pin to Start" appears), and calling
+  `.DoIt()` on that Start verb fails with `Access is denied (0x80070005
+  E_ACCESSDENIED)` specifically - COM automation works, this one action is
+  deliberately blocked, the same class of anti-automation protection as
+  UCPD blocking the `TaskbarDa` registry write. This is why the script can
+  only print instructions, never do the pinning itself, no matter how the
+  request is phrased - it isn't unimplemented, it's blocked by Windows.
 
 The correct manual sequence, in order:
 
