@@ -137,6 +137,7 @@ workstation commands:
   services pull [service|profile ...]
   services project-up [path]
   services reset <service> [--yes]
+  services autostart enable|disable|status [service ...]   survive Docker/WSL restart + PC reboot
   models up|down|status|pull <model>|list|run <model>   shared local Ollama runtime
   lab list|info|toolchain|cluster|up|status|logs|test|stop|destroy|report   pre-production architecture labs
   editor install|apply|doctor|list|profile|sync|clean

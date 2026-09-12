@@ -26,6 +26,9 @@ workstation services commands:
   env <service>                    print secret env file path only
   project-up [path]                start services declared by project metadata
   reset <service> [--yes]          delete service container + its persistent volumes
+  autostart enable|disable|status [service ...]
+                                   survive Docker/WSL restart + PC reboot (default:
+                                   redis redisinsight) - see docs/development-services-v2.md
 USAGE
 }
 
@@ -545,6 +548,58 @@ PY
   echo "Reset complete: $s"
 }
 
+autostart_services() {
+  local sub="${1:-status}"
+  shift || true
+  local -a ids=("$@")
+  [[ "${#ids[@]}" -gt 0 ]] || ids=(redis redisinsight)
+
+  case "$sub" in
+    enable)
+      # sudo -n: never prompt for a password. A non-interactive invocation
+      # (Windows Scheduled Task, cross-boundary "wsl.exe -- bash -lc ...")
+      # has no TTY to answer one, and would hang forever waiting for input
+      # instead of failing - found live while testing this exact command.
+      if command -v systemctl >/dev/null 2>&1 \
+        && [[ "$(systemctl is-enabled docker 2>/dev/null)" != "enabled" ]]; then
+        if ! sudo -n systemctl enable docker >/dev/null 2>&1; then
+          echo "NOTE: docker.service is not enabled and sudo needs a password" >&2
+          echo "      interactively - run 'sudo systemctl enable docker' yourself once." >&2
+        fi
+      fi
+      up_catalog "${ids[@]}"
+      echo
+      echo "docker.service is enabled, and ${ids[*]} carry restart: unless-stopped in"
+      echo "their own compose.yaml - Docker resumes them itself whenever its daemon"
+      echo "starts (daemon crash, WSL restart, etc.)."
+      echo "On Windows, also run this once from PowerShell so WSL itself wakes at"
+      echo "logon (a restart policy does nothing until something starts WSL):"
+      echo "  workstation services autostart enable ${ids[*]}"
+      ;;
+    disable)
+      echo "Restart policy lives in each service's own compose.yaml - remove"
+      echo "'restart: unless-stopped' there to opt a service out."
+      echo "On Windows, run 'workstation services autostart disable' to remove the"
+      echo "logon task that wakes WSL."
+      ;;
+    status)
+      if command -v systemctl >/dev/null 2>&1; then
+        echo "docker.service: $(systemctl is-enabled docker 2>&1)/$(systemctl is-active docker 2>&1)"
+      fi
+      local id
+      for id in "${ids[@]}"; do
+        docker inspect "dev-$id" \
+          --format '{{.Name}}: restart={{.HostConfig.RestartPolicy.Name}} state={{.State.Status}}' \
+          2>/dev/null || echo "dev-$id: not found (not created yet - run 'services up $id')"
+      done
+      ;;
+    *)
+      echo "autostart: enable|disable|status [service ...] (default: redis redisinsight)" >&2
+      exit 2
+      ;;
+  esac
+}
+
 project_up() {
   need jq
   local target="${1:-$PWD}"
@@ -585,6 +640,7 @@ case "$ACTION" in
     ;;
   project-up) project_up "${1:-$PWD}" ;;
   reset) reset_service "${1:-}" "${2:-}" ;;
+  autostart) autostart_services "$@" ;;
   help|-h|--help) usage ;;
   *) echo "Unknown services action: $ACTION" >&2; usage; exit 2 ;;
 esac

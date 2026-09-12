@@ -31,6 +31,34 @@ workstation services doctor
 All host-published ports bind to `127.0.0.1`. WSL and the local Windows host can use
 the localhost endpoints; Dev Containers attached to `platform-dev` use Docker DNS names.
 
+## Always-on services (survive Docker/WSL restart and PC reboot)
+
+```bash
+workstation services autostart enable redis redisinsight   # default target set if omitted
+workstation services autostart disable
+workstation services autostart status
+```
+
+Two parts, mirroring `workstation dashboard enable`/`docs/control-plane.md`:
+
+- **Docker's own restart policy**: each target service's own `compose.yaml`
+  carries `restart: unless-stopped` (currently set on `redis` and
+  `redisinsight`) - Docker resumes the container itself whenever its daemon
+  starts, with no extra scripting needed, for as long as WSL itself is
+  running.
+- **Windows**: since Docker only runs inside WSL, and a restart policy does
+  nothing until something actually starts the WSL instance, a Scheduled Task
+  (`WorkstationDevServicesAutostart`, trigger `AtLogOn`) wakes WSL at login
+  and explicitly runs `services up <targets>` - the same wake-WSL role
+  `WorkstationDashboardAutostart` plays for the dashboard. `workstation
+  services autostart enable` on Windows installs both parts (WSL-side +
+  logon task) in one command; run from inside WSL directly, it only does the
+  WSL-side half and expects the Windows-side command to be run once too.
+
+Add `restart: unless-stopped` to any other dev-service's `compose.yaml` to
+make it eligible, then include its id in the `autostart enable`/Scheduled
+Task target list.
+
 ## Configuration independence
 
 Each service's `compose.yaml`, `versions.env`, `defaults.env`, and

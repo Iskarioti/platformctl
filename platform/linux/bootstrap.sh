@@ -31,6 +31,7 @@ fi
 "$ROOT/platform/linux/install-oh-my-posh.sh"
 "$ROOT/platform/linux/install-docker.sh"
 "$ROOT/platform/linux/install-vscode.sh" || true
+"$ROOT/platform/linux/install-librewolf.sh" || true
 "$ROOT/scripts/posix/install-devcontainers-cli.sh" || true
 
 "$ROOT/scripts/posix/apply.sh"

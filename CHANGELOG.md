@@ -1,5 +1,72 @@
 # Changelog
 
+## 3.9.9
+
+New `workstation services autostart enable|disable|status [service ...]`
+(default target: `redis redisinsight`) so these dev-services come back up on
+their own after a Docker daemon restart, a WSL restart, or a full PC
+reboot/shutdown - mirrors `workstation dashboard enable`'s two-part design
+(`docs/control-plane.md`):
+
+- `redis` and `redisinsight`'s own `compose.yaml` now carry `restart:
+  unless-stopped` - Docker itself resumes them whenever its daemon starts,
+  no extra scripting needed as long as WSL is running.
+- New Windows Scheduled Task `WorkstationDevServicesAutostart` (`AtLogOn`,
+  installed by new `scripts/windows/install-dev-services-autostart.ps1` /
+  removed by `uninstall-dev-services-autostart.ps1`) wakes WSL at login and
+  runs `services up <targets>` - a restart policy alone does nothing until
+  something actually starts the WSL instance, the same role
+  `WorkstationDashboardAutostart` already plays for the dashboard.
+- New `scripts/posix/services.sh` `autostart` action (WSL/Linux/macOS side)
+  and `scripts/common/services-autostart-control.ps1` (the unified
+  Windows-invoked command that does both the WSL-side and Windows-side
+  install/remove in one call), wired into `setup.ps1`'s `services` dispatch.
+
+Found and fixed two real bugs verifying this live end-to-end (not just
+`bash -n`/dry-reading the diff):
+1. **`sudo systemctl enable docker` hung forever** when run non-interactively
+   from a Windows Scheduled Task / cross-boundary `wsl.exe -- bash -lc ...`
+   call with no TTY to answer a password prompt. Fixed with `sudo -n` (fails
+   fast instead of prompting) and only calling it at all when
+   `docker.service` isn't already enabled.
+2. **A PowerShell array passed as `-Services $Services` across a `pwsh.exe
+   -File` process boundary silently collapsed to its first element only**
+   (a scheduled task got installed for `redis` alone, dropping
+   `redisinsight`) - native/external-process argument passing doesn't
+   reliably preserve a named array parameter's multiple values. Fixed by
+   splatting positionally (`@Services`, no `-Services` flag) into a
+   `ValueFromRemainingArguments` parameter on the receiving script instead,
+   the same technique `services-autostart-control.ps1` itself already used
+   for its own `$Services` parameter.
+
+Verified live: `workstation services autostart enable` (both the direct
+WSL-side call and the full Windows-invoked two-part command) correctly
+recreates `dev-redis`/`dev-redisinsight` with `restart=unless-stopped`,
+installs a scheduled task whose real `/TR` command targets both services
+(confirmed via `Get-ScheduledTask`, not just the install script's exit
+code), and `autostart status` reports both the Docker-side and
+Windows-side state correctly through the real installed `workstation`
+command, not just the underlying scripts directly.
+
+## 3.9.8
+
+Added LibreWolf (privacy-hardened Firefox fork) to the baseline software
+installed on every platform's bootstrap, using each OS's own official
+first-party distribution channel rather than a manual binary download:
+
+- Windows: `LibreWolf.LibreWolf` added to `windows/10-install-tools.ps1`'s
+  winget package list.
+- macOS: `librewolf` added to `platform/macos/bootstrap.sh`'s
+  `brew install --cask` list.
+- Linux: new `platform/linux/install-librewolf.sh`, wired into
+  `platform/linux/bootstrap.sh` (best-effort, `|| true`, matching the
+  existing VS Code entry) - idempotent, and installs via each distro
+  family's own official LibreWolf channel: `extrepo` on Debian/Ubuntu
+  (LibreWolf's documented apt mechanism), the vendor's `librewolf.repo`
+  file on Fedora/RHEL (`dnf config-manager`), and directly via `pacman`
+  on Arch, where LibreWolf already ships in the official `extra`
+  repository with no third-party repo/keyring setup needed at all.
+
 ## 3.9.7
 
 Finished the `redis` -> `redis/redis-stack-server` migration left incomplete by

@@ -5,6 +5,7 @@ $packages = @(
     @{ Name = "PowerShell 7";       Id = "Microsoft.PowerShell" },
     @{ Name = "Windows Terminal";   Id = "Microsoft.WindowsTerminal" },
     @{ Name = "Visual Studio Code"; Id = "Microsoft.VisualStudioCode" },
+    @{ Name = "LibreWolf";          Id = "LibreWolf.LibreWolf" },
     @{ Name = "PowerToys";          Id = "Microsoft.PowerToys" },
     @{ Name = "Git";                Id = "Git.Git" },
     @{ Name = "GitHub CLI";         Id = "GitHub.cli" },

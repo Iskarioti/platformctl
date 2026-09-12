@@ -71,7 +71,11 @@ switch ($Command.ToLowerInvariant()) {
         }
     }
     "services" {
-        if ($IsWindows -or $env:OS -eq "Windows_NT") {
+        $SubAction = if ($Rest.Count -gt 0) { $Rest[0] } else { "" }
+        if ($SubAction -eq "autostart") {
+            $AutostartArgs = @($Rest | Select-Object -Skip 1)
+            Invoke-RepoScript -Path "scripts\common\services-autostart-control.ps1" -Arguments $AutostartArgs
+        } elseif ($IsWindows -or $env:OS -eq "Windows_NT") {
             Invoke-RepoScript -Path "scripts\common\services.ps1" -Arguments $Rest
         } else {
             & bash (Join-Path $Root "scripts/posix/services.sh") @Rest
@@ -191,6 +195,9 @@ workstation setup commands
   services project-up [path]        start services declared by a governed project
   services doctor                   check shared development service health
   services down                     stop catalog containers, preserve data
+  services autostart enable|disable|status [service ...]
+                                     survive Docker/WSL restart + PC reboot (default:
+                                     redis redisinsight)
   models up|down|status             shared local Ollama runtime for testing models
   models pull|list|run <model>      manage/use models in the shared runtime
   lab list|info|up|status|test|...  pre-production architecture validation labs (see docs/labs.md)

@@ -25,6 +25,7 @@ brew install \
   docker docker-compose colima
 brew install --cask \
   visual-studio-code \
+  librewolf \
   font-jetbrains-mono \
   font-jetbrains-mono-nerd-font
 brew install jandedobbeleer/oh-my-posh/oh-my-posh
