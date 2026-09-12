@@ -16,6 +16,19 @@ workstation enforce --repair
 roots; it does not disable security controls, uninstall software, alter corporate
 networking, or silently rewrite application repositories.
 
+On Windows, `enforce` also checks desktop appearance drift against
+`windows/43-configure-taskbar-appearance.ps1`'s desired state (taskbar centered,
+search hidden, Task View hidden, Win+X shows Windows PowerShell, dark mode, Bing
+Wallpaper running - see `docs/desktop-appearance.md`) - a Windows feature update or
+a manual change can silently reset any of these, so it's checked every run, not
+just applied once at bootstrap. `--repair` re-runs the appearance script before
+reporting, so results reflect the repaired state. Widgets (`TaskbarDa`) is reported
+as a WARN, never a FAIL, even when not hidden: Windows's own UCPD (User Choice
+Protection Driver) blocks writing it directly (`Access is denied` even via
+`reg.exe`) on any sufficiently-updated Windows 11 install, and per AGENTS.md
+rule 3 `enforce --repair` does not attempt to disable UCPD to force it through -
+see `docs/desktop-appearance.md` for the two supported manual alternatives.
+
 ## Approved project roots
 
 ```text

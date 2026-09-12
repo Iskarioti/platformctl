@@ -41,8 +41,9 @@ reference; that doc is the walkthrough.
 # Workstation health
 workstation validate
 workstation apply
-workstation doctor
+workstation doctor                        # real cross-domain status - security/capacity/drift/labs/templates
 workstation enforce [--repair]
+workstation drift-check                   # running dev-services vs. development/catalog.json
 
 # Start a project
 workstation project templates
@@ -53,6 +54,8 @@ workstation project check | doctor | open
 # Local infrastructure
 workstation services up core              # Postgres + Redis (see: services list)
 workstation services up redis kafka
+workstation services scaffold <name>      # new dev-service file skeleton, pre-wired to consumes
+workstation services rotate <service>     # regenerate + apply a secret (redis/qdrant/minio/open-webui)
 workstation models up                     # shared local Ollama runtime
 workstation models pull gemma3:4b
 workstation lab list                      # pre-production architecture validation
@@ -62,6 +65,8 @@ workstation lab up redis-cluster --runtime docker
 workstation security scan .               # Semgrep/Gitleaks/TruffleHog/Trivy/Checkov
 workstation security sbom .                # CycloneDX SBOM via Syft
 workstation research doctor               # LaTeX/Pandoc/Quarto/pixi toolchain check
+workstation catalog stats                 # which templates/services actually get used
+workstation catalog costs                 # illustrative cloud-cost sizing for what's running now
 
 # Editor / shell
 workstation editor list
@@ -76,6 +81,7 @@ workstation autoupgrade enable
 workstation dashboard | dashboard enable
 workstation backup
 workstation restore <backup-file>
+workstation dr-drill                      # rehearse backup+restore into a throwaway dir
 workstation changelog
 ```
 

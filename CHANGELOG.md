@@ -1,5 +1,61 @@
 # Changelog
 
+## 3.21.0
+
+Desktop appearance (Windows taskbar/Start Menu, cross-platform app installs)
+and a real script-permissions bug found and fixed along the way.
+
+- **Windows taskbar/appearance**: centered alignment, hidden search, hidden
+  Task View button, Win+X menu shows Windows PowerShell, dark mode, Bing
+  Wallpaper launched automatically after install. Widgets is best-effort only
+  - confirmed live that Windows's own UCPD (User Choice Protection Driver)
+  blocks the registry write on any sufficiently-updated Windows 11 install
+  (not this machine's MDM policy, as first suspected - corrected after
+  further live + web research); documented manual alternatives instead of
+  weakening that OS security control.
+- **`workstation enforce`/`--repair`** now checks/repairs Windows desktop
+  appearance drift too, not just WSL/Docker/project-root policy - Widgets
+  reports as a WARN (UCPD-blocked), never a FAIL.
+- **New cross-platform installs**: Logi Options+ (Windows/macOS; Solaar is
+  the Linux equivalent - Logitech ships no Linux client), Wireshark, WireGuard,
+  Microsoft Teams, Outlook. Teams/Outlook have no supported Linux client
+  either (web apps only) - not faked via an Electron/Flatpak wrapper.
+- **Taskbar/Start Menu pin guidance extended**: unpin everything first, then
+  pin LibreWolf/Settings/VS Code/Alacritty (always) plus Teams/Outlook
+  (only when actually installed); separately, pin Wireshark/WireGuard/
+  Outlook/Microsoft Edge to the Start Menu. The script verifies each app is
+  actually installed before listing it as pinnable - found two real gaps
+  doing this: Alacritty was never in `windows/10-install-tools.ps1` at all,
+  and LibreWolf was listed there but had never actually been installed on
+  this machine. Both fixed and installed.
+- **Start Menu pin list extended**: 7-Zip, Logi Options+, PowerToys, Windows
+  Terminal, MiKTeX Console - every "core" baseline app with a genuine Start
+  Menu entry not already taskbar-pinned. Azure CLI was asked for but has no
+  Start Menu shortcut at all (CLI-only) - reported `[NOT PINNABLE]` rather
+  than faked. Also made explicit: a workstation setup unpins *everything* on
+  both Start and taskbar first, then pins only this repo's explicit list -
+  nothing else stays pinned.
+- **Real bug found and fixed**: `windows/10-install-tools.ps1`'s Pandoc and
+  pixi installs were failing with MSI error 1934 ("User installations are
+  disabled via policy on the machine") - both installers default to a
+  per-user scope, which this machine's Group Policy blocks outright. Fixed by
+  retrying with `winget install --scope machine` when the default install
+  fails - not a security-control bypass (per-user installs stay exactly as
+  disabled as the policy intends), just using the scope the policy still
+  permits. `workstation upgrade`'s `packages` scope now completes with 0
+  failures.
+- **Real bug found and fixed**: several tracked POSIX scripts
+  (`install-librewolf.sh`, `install-research-tools.sh`,
+  `install-security-tools.sh` on both Linux/macOS, macOS's
+  `configure-appearance.sh`, and `scripts/posix/{security,research,catalog,
+  models,dr-drill,drift-check,ensure-ssh-agent}.sh`) were tracked without the
+  executable bit - every `bootstrap.sh` call site wraps them in `|| true`, so
+  a fresh Linux/macOS clone would silently no-op several install steps and
+  `workstation security/research/catalog/models/dr-drill/drift-check` would
+  all fail "Permission denied" with the failure swallowed. Fixed via
+  `git update-index --chmod=+x`, same fix as the earlier `core.fileMode=false`
+  bootstrap-script bug, just never applied to these particular files.
+
 ## 3.20.1
 
 A careful line-by-line re-audit of all six "Five Hats" reports against

@@ -55,6 +55,7 @@ Each governed project is created from `templates/projects/*` and receives
 workstation validate
 workstation doctor
 workstation enforce [--repair]
+workstation drift-check
 
 workstation project templates
 workstation project init <template> <name>
@@ -64,7 +65,16 @@ workstation project open [path]
 ```
 
 `--repair` only repairs safe, non-destructive drift such as missing approved project
-root directories.
+root directories. `drift-check` verifies the "Git is the source of truth" principle
+above actually holds on this machine right now - it compares every running
+`dev-*` container against `development/catalog.json` (undeclared containers,
+image/version mismatches), rather than assuming the live machine matches what's
+declared just because nothing has said otherwise.
+
+Real architectural decisions - a WSL networking mode choice, a `consumes` pattern,
+an autosync scope boundary - are recorded in `docs/adr/`, dated and never rewritten
+in place (superseded by a new entry instead). This document describes the current
+shape; `docs/adr/` explains why it took that shape.
 
 ## Git and CI
 

@@ -28,6 +28,11 @@ brew install --cask \
   librewolf \
   alacritty \
   bingpaper \
+  logi-options+ \
+  wireshark-app \
+  wireguard \
+  microsoft-teams \
+  microsoft-outlook \
   font-jetbrains-mono \
   font-jetbrains-mono-nerd-font
 brew install jandedobbeleer/oh-my-posh/oh-my-posh

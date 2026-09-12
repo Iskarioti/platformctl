@@ -6,6 +6,7 @@ $packages = @(
     @{ Name = "Windows Terminal";   Id = "Microsoft.WindowsTerminal" },
     @{ Name = "Visual Studio Code"; Id = "Microsoft.VisualStudioCode" },
     @{ Name = "LibreWolf";          Id = "LibreWolf.LibreWolf" },
+    @{ Name = "Alacritty";          Id = "Alacritty.Alacritty" },
     @{ Name = "Bing Wallpaper";     Id = "Microsoft.BingWallpaper" },
     @{ Name = "MiKTeX";             Id = "MiKTeX.MiKTeX" },
     @{ Name = "Pandoc";             Id = "JohnMacFarlane.Pandoc" },
@@ -17,8 +18,11 @@ $packages = @(
     @{ Name = "Azure CLI";          Id = "Microsoft.AzureCLI" },
     @{ Name = "jq";                 Id = "jqlang.jq" },
     @{ Name = "7-Zip";              Id = "7zip.7zip" },
-    @{ Name = "Wireshark";          Id = "WiresharkFoundation.Wireshark" }
-    @{ Name = "Wireshark";          Id = "WiresharkFoundation.Wireshark" }
+    @{ Name = "Wireshark";          Id = "WiresharkFoundation.Wireshark" },
+    @{ Name = "WireGuard";          Id = "WireGuard.WireGuard" },
+    @{ Name = "Logi Options+";      Id = "Logitech.OptionsPlus" },
+    @{ Name = "Microsoft Teams";    Id = "Microsoft.Teams" },
+    @{ Name = "Outlook for Windows"; Id = "Microsoft.Outlook" },
     @{ Name = "Claude Code"; Id = "Anthropic.ClaudeCode" }
     @{ Name = "Codex CLI"; Id = "OpenAI.Codex" }
     # @{ Name = "Python 3.14"; Id = "Python.Python.3.14" }
@@ -36,6 +40,9 @@ foreach ($pkg in $packages) {
         winget upgrade --id $pkg.Id --exact --source winget --silent `
             --accept-package-agreements --accept-source-agreements
 
+        # winget legitimately returns non-zero here when there's simply no
+        # upgrade available - only treat it as a real failure if the package
+        # can no longer be found at all afterward.
         winget list --id $pkg.Id --exact --source winget 2>$null | Out-Null
         if ($LASTEXITCODE -ne 0) {
             $failed += $pkg
@@ -49,9 +56,23 @@ foreach ($pkg in $packages) {
         --accept-package-agreements --accept-source-agreements
 
     if ($LASTEXITCODE -ne 0) {
-        $failed += $pkg
-        Write-Warning "Installation failed for $($pkg.Id)"
-        continue
+        # Some MSI installers default to a per-user scope, which this machine's
+        # Group Policy blocks outright (MSI error 1934: "User installations are
+        # disabled via policy"). Confirmed live (Pandoc, pixi) - retrying with
+        # --scope machine (this script already requires an elevated session)
+        # installs system-wide instead, which the policy does NOT block. Not a
+        # security-control bypass (AGENTS.md rule 3): per-user installs stay
+        # exactly as disabled as the policy intends, this just uses the scope
+        # the policy still permits.
+        Write-Warning "Default install failed for $($pkg.Id) - retrying with --scope machine (per-user installs may be policy-disabled on this device)..."
+        winget install --id $pkg.Id --exact --source winget --silent --scope machine `
+            --accept-package-agreements --accept-source-agreements
+
+        if ($LASTEXITCODE -ne 0) {
+            $failed += $pkg
+            Write-Warning "Installation failed for $($pkg.Id)"
+            continue
+        }
     }
 
     winget list --id $pkg.Id --exact --source winget 2>$null | Out-Null

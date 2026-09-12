@@ -65,3 +65,24 @@ TODO comment, never implemented - now runs `trivy image --severity
 CRITICAL,HIGH` against the built container and publishes a `syft`-generated
 CycloneDX SBOM as a pipeline artifact, using the same install scripts as the
 workstation-level tooling.
+
+Every one of the 12 project templates also ships its own GitHub Actions
+`.github/workflows/security.yml` - Semgrep/Gitleaks/TruffleHog/Trivy/Checkov
+on every PR and every push to `main`, installed via the exact same commands
+as `install-security-tools.sh` (one source of truth for tool versions,
+whether the machine running them is this repo's own CI or a real
+workstation). `.github/workflows/policy.yml` and
+`scripts/posix/project-check.sh` both require `security.yml` to exist, so a
+governed project can't silently drop it. This closes the gap the scanner
+used to have: previously it only ever ran manually, on WSL, by hand.
+
+## Findings persistence, dependency updates, and secrets rotation
+
+`workstation security scan` writes structured JSON per run
+(`.state/security/last-scan.json`, and a per-project `.platformctl/
+security-scan.json`) - `workstation doctor`/`workstation project doctor`
+read these back and flag a scan gone stale (>14 days), so a scan's result
+has a memory instead of vanishing the moment the terminal closes. See
+`docs/dependency-updates.md` for Dependabot + the tightened `lockfilePolicy`,
+and `docs/secrets-rotation.md` for what happens after a scanner (TruffleHog,
+specifically) finds a live, verified credential.

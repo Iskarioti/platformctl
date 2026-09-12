@@ -86,6 +86,74 @@ if ($env:OS -eq "Windows_NT") {
             Pass "Docker Desktop is not running"
         }
     }
+
+    # Desktop appearance (windows/43-configure-taskbar-appearance.ps1's desired state -
+    # see docs/desktop-appearance.md). Checked/repaired here so appearance drift (a
+    # Windows feature update resetting a value, a manual change) surfaces the same way
+    # as any other policy drift, instead of only ever being applied once at bootstrap.
+    # --repair runs the appearance script FIRST, then checks reflect the repaired
+    # state (matching scripts/posix/enforce.sh's repair-then-report convention),
+    # rather than reporting stale failures for a value that was just fixed.
+    if ($Repair) {
+        Write-Host ""
+        Write-Host "Repairing desktop appearance..." -ForegroundColor Cyan
+        pwsh.exe -NoLogo -NoProfile -File (Join-Path $Root "windows\43-configure-taskbar-appearance.ps1") -NoRestartExplorer
+        if ($LASTEXITCODE -ne 0) {
+            Warn "Desktop appearance repair script exited non-zero ($LASTEXITCODE)"
+        }
+    }
+
+    function Get-RegValue([string]$Path, [string]$Name) {
+        (Get-ItemProperty -Path $Path -Name $Name -ErrorAction SilentlyContinue).$Name
+    }
+
+    $AdvancedKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+    $PersonalizeKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+    $SearchKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search"
+
+    $DesiredAppearance = @(
+        @{ Path = $AdvancedKey; Name = "TaskbarAl"; Value = 1; Label = "Taskbar centered" }
+        @{ Path = $SearchKey; Name = "SearchboxTaskbarMode"; Value = 0; Label = "Search hidden" }
+        @{ Path = $AdvancedKey; Name = "DontUsePowerShellOnWinX"; Value = 0; Label = "Win+X shows Windows PowerShell" }
+        @{ Path = $AdvancedKey; Name = "ShowTaskViewButton"; Value = 0; Label = "Task View button hidden" }
+        @{ Path = $PersonalizeKey; Name = "AppsUseLightTheme"; Value = 0; Label = "Apps dark mode" }
+        @{ Path = $PersonalizeKey; Name = "SystemUsesLightTheme"; Value = 0; Label = "System dark mode" }
+    )
+
+    $AppearanceDrift = $false
+    foreach ($Item in $DesiredAppearance) {
+        $Current = Get-RegValue $Item.Path $Item.Name
+        if ($Current -eq $Item.Value) {
+            Pass "Desktop appearance: $($Item.Label)"
+        } else {
+            $AppearanceDrift = $true
+            Fail "Desktop appearance: $($Item.Label) (current: $Current, expected: $($Item.Value))"
+        }
+    }
+
+    # TaskbarDa (Widgets) is checked separately: Windows's own UCPD (User Choice
+    # Protection Driver) blocks direct registry writes to this value on any
+    # sufficiently-updated Windows 11 install (confirmed - see
+    # docs/desktop-appearance.md), so a mismatch here is a WARN, never a FAIL, and
+    # does not by itself trigger --repair. See that doc for the two supported
+    # manual alternatives (Settings toggle, or uninstalling the Widgets app).
+    $WidgetsValue = Get-RegValue $AdvancedKey "TaskbarDa"
+    if ($WidgetsValue -eq 0) {
+        Pass "Desktop appearance: Widgets hidden"
+    } else {
+        Warn "Desktop appearance: Widgets not hidden (current: $WidgetsValue) - blocked by UCPD, not fixable via registry; see docs/desktop-appearance.md for manual alternatives"
+    }
+
+    if (Get-Process -Name "BingWallpaper" -ErrorAction SilentlyContinue) {
+        Pass "Desktop appearance: Bing Wallpaper running"
+    } else {
+        $AppearanceDrift = $true
+        Fail "Desktop appearance: Bing Wallpaper not running"
+    }
+
+    if ($AppearanceDrift -and -not $Repair) {
+        Write-Host "  (run 'workstation enforce --repair' to fix desktop appearance drift)" -ForegroundColor Yellow
+    }
 } else {
     $Args = @()
     if ($Repair) { $Args += "--repair" }

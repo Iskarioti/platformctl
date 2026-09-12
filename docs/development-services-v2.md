@@ -26,6 +26,9 @@ workstation services up redisinsight
 workstation services up ui
 workstation services urls
 workstation services doctor
+workstation services scaffold <name>      # new service's file skeleton, pre-wired to consumes
+workstation services rotate <service>     # regenerate + apply a secret - safe subset only,
+                                           # see docs/secrets-rotation.md for the rest
 ```
 
 All host-published ports bind to `127.0.0.1`. WSL and the local Windows host can use

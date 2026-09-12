@@ -33,7 +33,9 @@ doing anything else.
 ```bash
 wsl                  # Windows only - everything below runs inside WSL/Linux/macOS
 platformctl doctor   # separate diagnostics CLI (net/tls/docker/incident tooling)
-workstation doctor   # this repo's own tool-presence + background-automation check
+workstation doctor   # real cross-domain status: security-scan freshness, capacity,
+                     # dev-service drift, lab state, template lifecycle - not just
+                     # whether a binary is installed
 ```
 
 Don't start any dev-services, models, or labs until you actually need them -
@@ -52,6 +54,11 @@ none of them auto-start after bootstrap.
 | Do Python/notebook research | `workstation project init research-python my-analysis --area labs` |
 | See what's running, with health status | `workstation dashboard` (or `workstation dashboard enable` for an always-on background service) |
 | Switch Neovim/editor style | `workstation editor list` / `workstation editor profile <name>` |
+| Track ML experiments | `workstation services up mlflow` - shares `postgres`/`garage` with `langfuse` |
+| Prove backups actually restore | `workstation dr-drill` - rehearses backup+restore into a throwaway dir, never touches the real one |
+| Check a machine's dev-services match what's declared | `workstation drift-check` |
+| Scaffold a new shared dev-service | `workstation services scaffold <name>` |
+| See which templates/services actually get used | `workstation catalog stats` |
 
 ## 4. Which project template?
 
@@ -137,7 +144,13 @@ workstation lab destroy <name> --runtime <docker|kubernetes> --yes   # if you ra
 - `docs/development-services-v2.md` - the full dev-service catalog
 - `docs/labs.md` - pre-production architecture validation
 - `docs/security-scanning.md` - the DevSecOps toolchain in detail
+- `docs/secrets-rotation.md` - which secrets rotate automatically vs. by hand
+- `docs/dependency-updates.md` - Dependabot + the tightened lockfile policy
 - `docs/research-computing.md` - the research-computing toolchain in detail
 - `docs/ai-workstation.md` - the full AI/ML lifecycle
+- `docs/reliability.md` - backup/restore, `dr-drill`, changelog drafting
+- `docs/capacity-planning.md` - a real resource budget per dev-service/lab/model
+- `docs/compliance-evidence-mapping.md` - real mechanisms mapped to SOC2/ISO27001-style evidence
 - `docs/editors.md` / `docs/shell-experience.md` / `docs/desktop-appearance.md` - environment/appearance
 - `docs/architecture.md` - why this repo is built the way it is
+- `docs/adr/` - dated, never-deleted architecture decision records

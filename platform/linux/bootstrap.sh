@@ -38,6 +38,13 @@ fi
 "$ROOT/platform/linux/install-docker.sh"
 "$ROOT/platform/linux/install-vscode.sh" || true
 "$ROOT/platform/linux/install-librewolf.sh" || true
+"$ROOT/platform/linux/install-solaar.sh" || true
+"$ROOT/platform/linux/install-wireshark.sh" || true
+"$ROOT/platform/linux/install-wireguard.sh" || true
+# Microsoft Teams and Outlook have no supported Linux client (Teams' Linux app
+# was discontinued in 2022; Outlook has never shipped one) - use the web apps
+# (teams.microsoft.com / outlook.office.com) instead. Not installed here, and
+# deliberately not faked via a Flatpak/Electron wrapper of the web app.
 "$ROOT/platform/linux/install-security-tools.sh" || true
 "$ROOT/platform/linux/install-research-tools.sh" || true
 "$ROOT/scripts/posix/install-devcontainers-cli.sh" || true

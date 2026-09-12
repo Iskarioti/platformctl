@@ -44,7 +44,14 @@ environments for projects created or operated through `platformctl`.
     depending on it for actual infrastructure (`dependsOn` for startup ordering and
     shared network reachability is fine). When a value can only come from a
     dependency, declare it in `service.json`'s `consumes` map instead - see
-    `docs/development-services-v2.md`.
+    `docs/development-services-v2.md`. `workstation services scaffold <name>`
+    generates a new dev-service's file skeleton already wired to this convention -
+    start there rather than hand-copying an existing service's files.
+16. A real, non-obvious architectural decision (a networking-mode choice, a
+    cross-service pattern, a scope boundary) gets a dated entry in `docs/adr/`,
+    never only prose in a commit message or a chat transcript. Never delete or
+    rewrite an existing ADR to reflect a later change of mind - add a new entry
+    that supersedes it, same as the entries already there do.
 
 ## Development policy
 
@@ -67,7 +74,9 @@ the authoritative merge boundary.
 
 ## Agent workflow
 
-1. Read `AGENTS.md` and `docs/architecture.md`.
+1. Read `AGENTS.md` and `docs/architecture.md`. Check `docs/adr/` for whether a
+   past decision already covers what you're about to change - supersede it with a
+   new entry rather than silently reversing it.
 2. Inspect `workstation.json` and `policy/development.json`.
 3. Make the smallest coherent source change.
 4. Run `workstation validate`.
@@ -84,4 +93,5 @@ platformctl branch and does not force-push.
 
 Update `CHANGELOG.md` for behavior changes. Update docs when commands, file locations,
 platform support, automation, development policy, project templates, or security
-behavior changes.
+behavior changes. Add a `docs/adr/` entry for a real architectural decision (rule 16),
+not just a CHANGELOG line - a CHANGELOG entry says what changed, an ADR says why.
