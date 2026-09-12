@@ -22,10 +22,12 @@ fi
 brew update
 brew install \
   git gh jq fzf zoxide ripgrep fd bat eza tmux direnv shellcheck powershell \
-  docker docker-compose colima
+  docker docker-compose colima dockutil
 brew install --cask \
   visual-studio-code \
   librewolf \
+  alacritty \
+  bingpaper \
   font-jetbrains-mono \
   font-jetbrains-mono-nerd-font
 brew install jandedobbeleer/oh-my-posh/oh-my-posh
@@ -35,6 +37,9 @@ if ! colima status >/dev/null 2>&1; then
 fi
 
 "$ROOT/scripts/posix/install-devcontainers-cli.sh" || true
+"$ROOT/platform/macos/install-security-tools.sh" || true
+"$ROOT/platform/macos/install-research-tools.sh" || true
+"$ROOT/platform/macos/configure-appearance.sh" || true
 
 "$ROOT/scripts/posix/apply.sh"
 "$ROOT/scripts/posix/configure-vscode.sh"

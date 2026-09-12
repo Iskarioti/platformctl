@@ -14,14 +14,20 @@ if command -v apt-get >/dev/null 2>&1; then
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
     git curl unzip ca-certificates jq fzf zoxide ripgrep fd-find bat tmux \
     direnv shellcheck python3 python3-venv fontconfig
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y alacritty || \
+    echo "NOTE: alacritty not installed (GUI terminal - only useful with a display, e.g. WSLg)." >&2
 elif command -v dnf >/dev/null 2>&1; then
   sudo dnf install -y \
     git curl unzip ca-certificates jq fzf zoxide ripgrep fd-find bat tmux \
     direnv ShellCheck python3 fontconfig
+  sudo dnf install -y alacritty || \
+    echo "NOTE: alacritty not installed (GUI terminal - only useful with a display, e.g. WSLg)." >&2
 elif command -v pacman >/dev/null 2>&1; then
   sudo pacman -Sy --needed --noconfirm \
     git curl unzip ca-certificates jq fzf zoxide ripgrep fd bat tmux direnv \
     shellcheck python fontconfig
+  sudo pacman -S --needed --noconfirm alacritty || \
+    echo "NOTE: alacritty not installed (GUI terminal - only useful with a display, e.g. WSLg)." >&2
 else
   echo "Unsupported Linux package manager." >&2
   exit 3
@@ -32,6 +38,8 @@ fi
 "$ROOT/platform/linux/install-docker.sh"
 "$ROOT/platform/linux/install-vscode.sh" || true
 "$ROOT/platform/linux/install-librewolf.sh" || true
+"$ROOT/platform/linux/install-security-tools.sh" || true
+"$ROOT/platform/linux/install-research-tools.sh" || true
 "$ROOT/scripts/posix/install-devcontainers-cli.sh" || true
 
 "$ROOT/scripts/posix/apply.sh"

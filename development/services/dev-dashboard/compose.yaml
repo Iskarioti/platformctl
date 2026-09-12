@@ -8,7 +8,18 @@ services:
     ports:
       - "127.0.0.1:${DEV_DASHBOARD_HOST_PORT:-8088}:3000"
     volumes:
-      - ./development/services/dev-dashboard/config/homepage:/app/config:ro
+      # NOT read-only: found live that homepage needs to write here at
+      # startup regardless - it creates its own "logs" dir for a logfile,
+      # and copies in a default skeleton file for any of its own recognized
+      # config filenames (kubernetes.yaml, docker.yaml, etc.) that aren't
+      # present in this directory. A read-only mount 500s every request
+      # ("EROFS: read-only file system, copyfile ... -> '/app/config/
+      # kubernetes.yaml'", "Make /app/config writable" is homepage's own
+      # error hint). The YAML files we actually maintain here are still the
+      # only ones read on startup; anything homepage writes on its own
+      # (logs/, unused skeleton configs) is its own runtime state, not
+      # something we track - see .gitignore.
+      - ./development/services/dev-dashboard/config/homepage:/app/config
     networks: [platform-dev]
     mem_limit: 256m
 

@@ -1,0 +1,8 @@
+---
+- name: __PROJECT_NAME__
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: placeholder task
+      ansible.builtin.debug:
+        msg: "Add real tasks for __PROJECT_NAME__ here."

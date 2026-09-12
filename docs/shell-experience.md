@@ -114,6 +114,35 @@ Current Oh My Posh supports `rprompt` on PowerShell and on Bash with ble.sh.
 Use a Nerd Font in Windows Terminal and the VS Code integrated terminal. Font files
 are intentionally not included in this repository.
 
+## zsh plugins, tmux, and ripgrep
+
+Oh My Posh remains the single managed prompt engine (see above) - zsh gets a
+small, specific set of extra plugins via
+[zinit](https://github.com/zdharma-continuum/zinit) alongside it, not a
+switch to Powerlevel10k or another prompt framework:
+
+- `Aloxaf/fzf-tab` - fzf-driven `<Tab>` completion menu.
+- `zsh-users/zsh-autosuggestions`
+- `zsh-users/zsh-syntax-highlighting`
+
+A managed Alacritty config (`shell/alacritty/architect.alacritty.toml` ->
+`~/.config/alacritty/alacritty.toml`, Tokyo Night colors, JetBrainsMono Nerd
+Font) is also deployed on macOS/Linux, installed via `brew install --cask
+alacritty` (macOS) or apt/dnf/pacman (Linux, best-effort - only useful with an
+actual display, e.g. WSLg). Windows still standardizes on Windows Terminal
+only - this doesn't change that.
+
+`scripts/posix/apply.sh` also deploys a managed tmux config
+(`shell/tmux/architect.tmux.conf` -> `~/.config/tmux/tmux.conf`: vim-style
+pane/window navigation, vi copy-mode, mouse on, a Tokyo Night theme via
+[TPM](https://github.com/tmux-plugins/tpm) to match the Oh My Posh theme)
+and a managed ripgrep config (`shell/ripgrep/architect.ripgreprc` ->
+`~/.config/ripgrep/ripgreprc`, excludes `vendor/`/`node_modules/`,
+`RIPGREP_CONFIG_PATH` set in both shell fragments). `apply.sh` clones tpm to
+`~/.tmux/plugins/tpm` if missing; a fresh machine still needs one manual
+`prefix + I` inside a tmux session to fetch the plugins themselves - tpm has
+no non-interactive install path upstream.
+
 ## Diagnostics
 
 ```bash

@@ -36,5 +36,23 @@ steps:
       docker build -t local/service:$(Build.BuildId) .
     displayName: Build container
 
-  # Add Trivy/SBOM steps using an approved internal task or pinned tool version.
+  # Trivy (container vuln scan) + Syft (CycloneDX SBOM) - both via their own
+  # official install scripts, matching platform/linux/install-security-tools.sh
+  # (workstation security). See docs/security-scanning.md.
+  - script: |
+      curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b "$HOME/.local/bin"
+      curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "$HOME/.local/bin"
+      echo "##vso[task.prependpath]$HOME/.local/bin"
+    displayName: Install Trivy + Syft
+
+  - script: trivy image --exit-code 1 --severity CRITICAL,HIGH local/service:$(Build.BuildId)
+    displayName: Trivy container scan
+
+  - script: syft local/service:$(Build.BuildId) -o cyclonedx-json="$(Build.ArtifactStagingDirectory)/sbom.cyclonedx.json"
+    displayName: Generate SBOM
+
+  - publish: $(Build.ArtifactStagingDirectory)/sbom.cyclonedx.json
+    artifact: sbom
+    displayName: Publish SBOM artifact
+
   # Add registry push only after PR validation and environment authorization.

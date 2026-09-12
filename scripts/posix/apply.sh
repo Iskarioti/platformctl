@@ -37,8 +37,20 @@ EOF2
   fi
 }
 
+ensure_tpm() {
+  local tpm_dir="$HOME/.tmux/plugins/tpm"
+  [[ -d "$tpm_dir" ]] && return 0
+  command -v git >/dev/null 2>&1 || return 0
+  git clone --depth 1 https://github.com/tmux-plugins/tpm "$tpm_dir" >/dev/null 2>&1 \
+    || echo "WARNING: could not clone tmux plugin manager (tpm) - tmux plugins won't load until this succeeds." >&2
+}
+
 copy_managed "$ROOT/shell/oh-my-posh/tokyonight-architect.omp.json" "$HOME/.config/oh-my-posh/tokyonight-architect.omp.json"
+copy_managed "$ROOT/shell/tmux/architect.tmux.conf" "$HOME/.config/tmux/tmux.conf"
+copy_managed "$ROOT/shell/ripgrep/architect.ripgreprc" "$HOME/.config/ripgrep/ripgreprc"
+copy_managed "$ROOT/shell/alacritty/architect.alacritty.toml" "$HOME/.config/alacritty/alacritty.toml"
 copy_managed "$ROOT/vscode/settings.json" "$HOME/.config/workstation/vscode-settings.json"
+ensure_tpm
 
 case "$(uname -s)" in
   Linux)

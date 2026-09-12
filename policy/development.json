@@ -1,6 +1,6 @@
 {
   "$schema": "../schema/development-policy.schema.json",
-  "version": "1.2.1",
+  "version": "1.4.0",
   "projectRoots": [
     "~/src/company",
     "~/src/platform",
@@ -32,7 +32,11 @@
       "research-python",
       "mcp-server",
       "rag-app",
-      "agent-app"
+      "agent-app",
+      "ai",
+      "infra",
+      "network-automation",
+      "research-paper"
     ]
   },
   "git": {

@@ -8,6 +8,7 @@ export LESS="-R"
 export PAGER="less"
 export VIRTUAL_ENV_DISABLE_PROMPT=1
 export POSH_THEME="$HOME/.config/oh-my-posh/tokyonight-architect.omp.json"
+export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/ripgreprc"
 
 HISTFILE="$HOME/.zsh_history"
 HISTSIZE=100000
@@ -20,6 +21,26 @@ zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|=*' 'l:|=* r:|=*'
 zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path "$HOME/.cache/zsh"
+
+# zinit manages a small, specific set of zsh plugins only - oh-my-posh below
+# remains the single managed prompt engine, this is not a switch to
+# Powerlevel10k/zinit's own prompt tooling.
+ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
+if [[ ! -d "$ZINIT_HOME" ]]; then
+  mkdir -p "$(dirname "$ZINIT_HOME")"
+  git clone --depth 1 https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME" 2>/dev/null
+fi
+if [[ -r "$ZINIT_HOME/zinit.zsh" ]]; then
+  source "$ZINIT_HOME/zinit.zsh"
+  # fzf-tab must load after compinit and before plugins that wrap
+  # completion widgets (autosuggestions, syntax-highlighting) - see
+  # https://github.com/Aloxaf/fzf-tab#configure.
+  zinit light Aloxaf/fzf-tab
+  zinit light zsh-users/zsh-autosuggestions
+  zinit light zsh-users/zsh-syntax-highlighting
+  zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
+  zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
+fi
 
 # fzf compatibility: newer upstream supports `fzf --zsh`; Ubuntu 24.04
 # distro packages expose shell integration as files under /usr/share/doc/fzf.
@@ -96,6 +117,7 @@ alias kgs='kubectl get services'
 alias kgn='kubectl get nodes'
 alias kga='kubectl get all'
 alias kctx='kubectl config current-context'
+alias h='helm'
 
 alias tf='terraform'
 alias tfi='terraform init'
@@ -168,6 +190,7 @@ gbs() {
 psg() { ps aux | rg -i "$1"; }
 listen() { sudo ss -lptn "sport = :$1"; }
 ops() { tmux new-session -A -s ops; }
+docker_rm_stopped() { docker rm "$(docker ps -a -q -f status=exited)" 2>/dev/null; }
 
 # Oh My Posh is the single managed prompt engine.
 if command -v oh-my-posh >/dev/null 2>&1; then

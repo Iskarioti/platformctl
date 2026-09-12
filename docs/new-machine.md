@@ -59,6 +59,14 @@ Bootstrap installs the Dev Container CLI (`devcontainer`) on every platform so
 `policy/development.json`'s `requireDevContainer` project check passes without an extra
 step.
 
+Bootstrap (WSL/Linux and macOS) also installs a DevSecOps toolchain (Semgrep,
+Gitleaks, TruffleHog, Trivy, Grype, Syft, Checkov, Cosign, Conftest - see
+`docs/security-scanning.md`) and a research-computing toolchain (TeX Live/
+Pandoc/Quarto/pixi - see `docs/research-computing.md`), plus Alacritty and a
+managed tmux/ripgrep config (`docs/shell-experience.md`). Verify all of it in
+one place with `workstation doctor`, or per-domain with `workstation
+security doctor` / `workstation research doctor`.
+
 On WSL, `wsl/bootstrap.sh` also generates a company SSH key (`~/.ssh/id_ed25519_company`)
 and prompts once for your git identity (name/email) if not already set — idempotent,
 safe to re-run. **A key working on one Git host does not mean it's registered on

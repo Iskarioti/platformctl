@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+*.retry
+.DS_Store
+.vscode/settings.local.json

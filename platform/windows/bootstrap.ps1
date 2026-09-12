@@ -41,6 +41,7 @@ Get-ChildItem $Root -Recurse -File -ErrorAction SilentlyContinue |
 Run "windows\10-install-tools.ps1"
 Run "windows\41-install-fonts.ps1"
 Run "windows\42-configure-windows-terminal.ps1"
+Run "windows\43-configure-taskbar-appearance.ps1"
 Run "windows\45-shell-experience.ps1"
 
 if (-not $NoWSL) {

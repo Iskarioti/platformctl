@@ -1,0 +1,5 @@
+# Systems & Platform Architect - managed ripgrep configuration.
+# Deployed to ~/.config/ripgrep/ripgreprc; RIPGREP_CONFIG_PATH points here
+# from architect.bashrc/architect.zshrc.
+--glob=!vendor/*
+--glob=!node_modules/*

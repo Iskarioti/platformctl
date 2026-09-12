@@ -21,10 +21,18 @@ case "$CMD" in
     for x in git gh code oh-my-posh zoxide fzf jq devcontainer; do
       command -v "$x" >/dev/null 2>&1 && echo "PASS $x" || echo "MISS $x"
     done
+    echo
+    echo "Security/research toolchain (workstation security|research doctor for detail):"
+    export PATH="$HOME/.local/bin:$PATH"
+    for x in semgrep gitleaks trufflehog trivy grype syft cosign conftest checkov pdflatex biber latexmk pandoc quarto pixi; do
+      command -v "$x" >/dev/null 2>&1 && echo "PASS $x" || echo "MISS $x (run: workstation security|research install)"
+    done
     ;;
   enforce) exec "$ROOT/scripts/posix/enforce.sh" "$@" ;;
   project) exec "$ROOT/scripts/posix/project.sh" "$@" ;;
   services) exec "$ROOT/scripts/posix/services.sh" "$@" ;;
+  security) exec "$ROOT/scripts/posix/security.sh" "$@" ;;
+  research) exec "$ROOT/scripts/posix/research.sh" "$@" ;;
   models) exec "$ROOT/scripts/posix/models.sh" "$@" ;;
   lab) exec "$ROOT/scripts/posix/labs.sh" "$@" ;;
   editor) exec "$ROOT/scripts/posix/editor.sh" "$@" ;;
@@ -112,48 +120,51 @@ case "$CMD" in
     ;;
   *)
     cat <<'EOF_HELP'
-workstation commands:
-  bootstrap
-  apply
-  validate
-  doctor
-  enforce [--repair]
+workstation commands  (new here? see docs/getting-started.md)
+
+Workstation health:
+  bootstrap                          set up this machine (fonts, shell, editor,
+                                      DevSecOps/research toolchains, Docker/WSL)
+  apply                               redeploy managed configs from repo source
+  validate                            validate workstation/policy JSON + safety invariants
+  doctor                               check installed tools + background automation
+  enforce [--repair]                  check/repair development-policy compliance
+
+Start a project:
+  project templates                   list approved project templates
   project init <template> <name> [--area company|platform|automation|labs|tooling]
-  project adopt [path|name]
-  project check [path|name]
-  project doctor [path|name]
-  project open [path|name]
-  project templates
-  services init
-  services list
-  services up [service|profile ...]
-  services stop <service ...>
-  services down
-  services restart <service ...>
-  services logs <service>
-  services status
-  services doctor
-  services urls
-  services pull [service|profile ...]
-  services project-up [path]
-  services reset <service> [--yes]
+  project adopt [path|name]           register an existing/cloned project
+  project check|doctor|open [path|name]
+
+Local infrastructure:
+  services init|list|up|stop|down|restart|logs|status|doctor|urls|pull|project-up|reset
   services autostart enable|disable|status [service ...]   survive Docker/WSL restart + PC reboot
-  models up|down|status|pull <model>|list|run <model>   shared local Ollama runtime
+  models up|down|status|pull <model>|list|run <model>       shared local Ollama runtime
   lab list|info|toolchain|cluster|up|status|logs|test|stop|destroy|report   pre-production architecture labs
+
+Quality & security:
+  security scan [path]                semgrep/gitleaks/trufflehog/trivy/checkov
+  security sbom [path] [out]          CycloneDX SBOM via syft
+  security doctor                     verify security toolchain installed
+  research doctor                     verify research (LaTeX/pandoc/quarto/pixi) toolchain
+
+Editor & shell:
   editor install|apply|doctor|list|profile|sync|clean
-  sync
+
+Automation & maintenance:
+  sync                                 validate -> apply -> commit -> push once
   autosync enable|disable|once|pause [minutes]|resume
   upgrade [--scope=packages|vscodeExtensions|fonts]
-  ssh-import                         copy Windows SSH keys into WSL (WSL only)
   autoupgrade enable|disable|once
-  dashboard [--port N]               run once (foreground)
-  dashboard enable|disable|status    always-on background service (auto-restart, starts at login)
+  dashboard [--port N]                 run once (foreground)
+  dashboard enable|disable|status      always-on background service (auto-restart, starts at login)
   backup [output-path]
   restore <backup-file> [--yes]
   changelog [since-commit]
   publish [owner/repo]
-  update
-  dry-run
+  ssh-import                           copy Windows SSH keys into WSL (WSL only)
+  update                               pull/rebase, validate, apply, doctor
+  dry-run                              CI-safe platform simulation
 EOF_HELP
     ;;
 esac

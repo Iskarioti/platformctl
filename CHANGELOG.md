@@ -1,5 +1,413 @@
 # Changelog
 
+## 3.16.0
+
+Onboarding/discoverability overhaul, following a fresh-eyes usability review
+(a fresh subagent walking the repo as a first-time junior engineer with zero
+prior context). The finding: every persona already has real, working
+tooling - the front door was broken, not the tooling. Concretely: README
+listed 5 of 12 templates and omitted `services`/`security`/`research`/
+`models`/`lab`/`editor` from its command examples entirely;
+`docs/daily-workflow.md` referenced commands (`task bootstrap`) that no
+Taskfile in this repo backs; 23 docs existed with no index, 11 invisible
+from README; overlapping-sounding templates (`ai`/`rag-app`/`agent-app`/
+`mcp-server`, `research-python`/`research-paper`, `infra`/`terraform`) gave
+no disambiguating signal at the point of choice; the dashboard showed
+running services but never what to type to start something.
+
+- **New `docs/getting-started.md`** - the one narrated "Day 1" path
+  (bootstrap -> pick a template -> do the work -> end of session), replacing
+  the scattered/contradictory workflow docs. Folds in `daily-workflow-v2.md`'s
+  genuinely-accurate content (confirmed `platformctl doctor`/`net diagnose`/
+  `incident collect` are a real, separate diagnostics CLI, not stale -
+  verified before touching anything) while dropping its `task lint`/`task
+  verify`/etc. assumption, which no Taskfile anywhere in this repo backs.
+- **`daily-workflow.md`, `daily-workflow-v2.md`, `development-services.md`**
+  replaced with short deprecation stubs pointing to their replacements -
+  left in place (not deleted) so old links don't 404, but their misleading
+  content is gone.
+- **README rewritten**: all 12 templates in a disambiguating table, worked
+  examples for every major command group, a categorized doc index (start
+  here / by subsystem / automation / reference) replacing the flat list.
+- **`workstation help` (and `setup.ps1`'s default help) regrouped** by
+  workflow (Workstation health / Start a project / Local infrastructure /
+  Quality & security / Editor & shell / Automation & maintenance) instead of
+  a flat ~24-command dump, with a description on every line.
+- **`workstation project templates` now prints a real description per
+  template** (extracted from each template's own README - single source of
+  truth, no separate list to keep in sync), directly resolving the
+  `ai`/`rag-app`/`agent-app`/`mcp-server`-style disambiguation problem at
+  the exact point of choice.
+- **Dashboard**: every dev-service tile's description now includes the
+  actual `workstation services up <name>` command; new "🚀 Quick Start"
+  bookmarks group (getting-started, security scan, research, dev-services,
+  AI/ML) for the workflows that don't map to a single running service tile.
+
+Found and fixed one real, pre-existing bug verifying the dashboard change
+live (not assumed working): `dev-dashboard`'s config mount was read-only,
+but homepage v2.0.0 needs to write to it regardless - it creates its own
+`logs/` dir for a logfile and copies in a default skeleton file for any of
+its recognized config filenames not already present. Read-only 500'd every
+request (`EROFS: read-only file system`, `"Make /app/config writable"` is
+homepage's own error hint). A nested writable volume at the same path
+doesn't work either - confirmed live that the parent read-only bind mount
+blocks Docker from even creating the nested mountpoint. Fixed by dropping
+`:ro` entirely; the one file this actually writes into the tracked
+directory (`kubernetes.yaml`, an unused default skeleton) is now
+gitignored - `logs/` was already covered by the repo's existing `.gitignore`.
+
+## 3.15.0
+
+Phase D of the "fully fledged cross-platform workstation" plan: tie
+Phases A-C together into the existing `workstation doctor` health check
+rather than leaving the new tooling only discoverable via `workstation
+security doctor`/`workstation research doctor` separately.
+
+- `scripts/common/doctor.ps1` and `scripts/posix/workstation.sh`'s bash
+  fallback both now report the full security + research toolchain (PASS/MISS
+  per tool), guarded to WSL/Linux/macOS only - these tools install into
+  `~/.local/bin` and Windows dispatches `security`/`research` into WSL
+  rather than installing anything natively, so checking for them on native
+  Windows would just be a permanently-misleading MISS.
+- `docs/new-machine.md` updated so the "what bootstrap gives you" summary
+  actually reflects everything now installed in one `bootstrap`/
+  `bootstrap.ps1` run.
+
+Found and fixed one real bug along the way: `scripts/common/doctor.ps1`
+found no PowerShell installed on this session's own WSL instance at all
+(`pwsh: command not found`) despite AGENTS.md/this repo's docs treating
+PowerShell 7 as a cross-platform requirement - `workstation doctor` was
+silently falling back to `scripts/posix/workstation.sh`'s much shorter bash
+fallback doctor instead, on this machine, right now. Extended that bash
+fallback with the identical new tool list rather than assuming pwsh's
+presence, so `workstation doctor` reports the full picture either way.
+
+Also found, out of scope for this plan (flagged, not touched): `docs/
+new-machine.md` describes `wsl/bootstrap.sh` as the live WSL setup path,
+but tracing every caller shows only `wsl/import-windows-ssh-keys.sh` (via
+`workstation ssh-import` and autosync's key-copy step) is actually wired
+into the current architecture - `wsl/bootstrap.sh` itself and its siblings
+(`doctor.sh`/`doctor-v2.sh`/`install-engineering-tools.sh`/
+`install-azure-cli.sh`/`install-shell-experience.sh`/`prepare-ai-state.sh`)
+appear to be orphaned leftovers from an earlier architecture, superseded by
+`platform/linux/bootstrap.sh` + `scripts/posix/*.sh`, with no caller
+remaining anywhere in the active codepath. Worth a dedicated cleanup pass
+(confirm dead, then either revive the useful bits - it has a real Trivy
+apt-repo install this plan's own `install-security-tools.sh` ended up
+reimplementing sudo-free instead - or delete) separately from this plan.
+
+## 3.14.0
+
+Phase C of the "fully fledged cross-platform workstation" plan: a research
+computing toolchain for the PhD/CS researcher persona, wrapped in a new
+`workstation research` command, plus a new `research-paper` project
+template.
+
+- **New tools** (`platform/linux/install-research-tools.sh` / `platform/
+  macos/install-research-tools.sh`, run from each OS's `bootstrap.sh`; MiKTeX
+  via winget on native Windows - confirmed with Andrew, no clean
+  winget-native TeX Live path exists and MiKTeX is the Windows-native
+  standard anyway): TeX Live (Linux apt/macOS `mactex-no-gui` cask) + Pandoc,
+  Quarto (sudo-free tar.gz release - more standard than raw LaTeX+bibtex in
+  2026 for anything mixing code and prose), pixi (the 2026-recommended
+  reproducible-env tool over raw conda/mamba for new projects).
+- **New `workstation research doctor`** (`scripts/posix/research.sh` +
+  `scripts/common/research.ps1`, wired identically to `security`/`services`).
+- **New `research-paper` template**: the standard paper-scaffold convention
+  (`paper/main.tex` + `refs.bib`, `paper/{figs,tables}/` generated not
+  hand-edited, `code/`, `data/`, `make paper` via `latexmk`) - added to
+  `policy/development.json`'s `allowedTemplates` (bumped to 1.4.0). Quarto
+  also available in the same Dev Container for `.qmd` authoring.
+  `research-python`'s README now points here for LaTeX-only work, and notes
+  `pyzotero`/`pyzotero-cli` as an opt-in for scripted Zotero access (Zotero
+  itself is GUI-only, no official CLI).
+- New `docs/research-computing.md`.
+
+Found and fixed one real bug live-testing the sudo-free tools: pixi's own
+install script defaults to `~/.pixi/bin` and self-edits `.bashrc`/`.zshrc`
+with its own `PATH` line - inconsistent with every other tool here
+(`~/.local/bin`, already on `PATH` via `shell/{bash,zsh}/architect.*rc`) and
+outside this repo's "shell rc files are managed fragments" convention.
+Fixed with `PIXI_BIN_DIR`/`PIXI_NO_PATH_UPDATE` env vars the install script
+itself supports - confirmed live that a first, uncorrected run left a stray
+line in `.zshrc` pointing at a since-removed directory, and that the
+corrected run installs cleanly to `~/.local/bin` with no rc-file edits at
+all.
+
+TeX Live/Pandoc's actual `apt install` was not live-tested in this session:
+it's a genuine system package (unlike this session's sudo-free tools) and
+needs a real sudo password, which this session has no TTY to supply and the
+cached credential had expired - `quarto`/`pixi`/the `research-paper`
+template scaffold/`workstation research doctor`'s dispatch are all
+confirmed working for real; the two apt packages themselves are flagged as
+unverified rather than claimed working, per this session's established
+honesty standard for anything that couldn't actually be run.
+
+## 3.13.0
+
+Phase B of the "fully fledged cross-platform workstation" plan: a real
+DevSecOps toolchain, wrapped in a new `workstation security` command.
+
+- **New tools** (installed via new `platform/linux/install-security-tools.sh`
+  / `platform/macos/install-security-tools.sh`, run from each OS's
+  `bootstrap.sh`): Semgrep (SAST), Gitleaks + TruffleHog (secret scanning -
+  fast pre-commit-style plus live-credential verification), Trivy (SCA/
+  container/IaC/license in one), Grype + Syft (second-opinion CVE scan +
+  CycloneDX SBOM), Checkov (IaC), Cosign (Sigstore image signing), Conftest
+  (OPA/Rego policy-as-code). `tfsec`/`terrascan` deliberately not adopted -
+  tfsec merged into Trivy, terrascan is archived.
+- **New `workstation security scan|sbom|doctor`**
+  (`scripts/posix/security.sh` + `scripts/common/security.ps1`, wired into
+  both `workstation.sh` and `setup.ps1` exactly like `services`/`editor`).
+  Windows dispatches into WSL rather than installing anything natively -
+  governed project code lives under WSL's `~/src/*` per policy, so that's
+  always where scanning actually runs, same as `services`/`editor`/`models`.
+- **CI wiring**: `azure-pipelines/python-service.yml`'s long-standing "Add
+  Trivy/SBOM steps" TODO is now real - Trivy scans the built container,
+  Syft publishes a CycloneDX SBOM artifact.
+- New `docs/security-scanning.md`.
+
+Found and fixed four real bugs verifying this live (not just written and
+assumed to work):
+1. The Linux install script's `sudo apt-get`/`sudo systemctl`-style calls
+   hung forever once this session's cached sudo credential expired (no TTY
+   to answer a password prompt) - the same class of bug already fixed once
+   this session for `services.sh`. Fixed properly this time by making the
+   whole script **sudo-free**: pipx-based tools install user-level (with a
+   throwaway-venv bootstrap for pipx itself, since Debian/Ubuntu's system
+   `python3` deliberately ships no `pip` and refuses `ensurepip`, forcing
+   `apt install python3-pip` otherwise - confirmed live), everything else
+   via each tool's own official install script into `~/.local/bin`.
+2. Resolving "latest version" via `api.github.com` (for Gitleaks and
+   Conftest, which have no package-manager listing) hit GitHub's 60
+   requests/hour unauthenticated rate limit and 403'd during testing.
+   Fixed by resolving the version from the redirect target of a repo's
+   plain `github.com/.../releases/latest` URL instead, which has no such
+   limit.
+3. `workstation security doctor` crashed on `cosign --version` ("unknown
+   flag") - cosign uses a bare `cosign version` subcommand instead, unlike
+   every other tool here. Fixed with a per-tool override.
+4. Invoked from Windows, every tool showed MISS despite being installed -
+   `wsl.exe -- bash <script>` runs a non-login shell that never sources
+   `.bashrc`/`.profile`, so `~/.local/bin` was never on `PATH`. Fixed by
+   setting `PATH` explicitly inside `security.sh` itself rather than
+   depending on shell startup files having already run.
+
+Also found live, closing the loop on the new tooling actually working:
+running `workstation security scan` against this repo's own project
+templates surfaced a real, non-hypothetical finding - every template's CI/
+policy workflows referenced GitHub Actions by a mutable tag
+(`actions/checkout@v4` etc.), which Semgrep correctly flags as a
+supply-chain risk. Fixed across all 11 templates: every `actions/checkout`,
+`actions/setup-python`, `actions/setup-node`, and `hashicorp/setup-terraform`
+reference is now pinned to its exact commit SHA (resolved via `git
+ls-remote`, avoiding the same rate limit as above), with a `# vN` comment
+for readability. Re-scanning confirmed 0 findings afterward.
+
+One more real, unrelated bug found while re-validating: `workstation
+validate` on the Windows side (`scripts/ci/validate.ps1`, which strictly
+parses every tracked `.json` file) had never actually been run since the
+3.11.0 dotfiles-config-migration commit - it failed on a leftover, orphaned
+git merge-conflict marker (`>>>>>>> 79682b1 (updates)`) sitting inside
+`editor/neovim/personal/lazy-lock.json`, copied verbatim from the source
+dotfiles repo without noticing. Removed the single stray line (confirmed no
+matching `<<<<<<<`/`=======` counterpart existed - the conflict itself had
+already been resolved, just the closing marker was never deleted).
+**Lesson: run both POSIX and Windows `workstation validate` after any
+change touching tracked JSON, not just one side** - they parse with
+different strictness.
+
+## 3.12.0
+
+Phase A of the "fully fledged cross-platform workstation" plan (see
+`~/.claude/plans/misty-dreaming-moth.md`): three project template directories
+existed (`ai`, `infra`, `network-automation`) but were unfinished orphans -
+no README, no `.env.example`, no CI, and missing `devcontainer.json`'s
+`remoteUser` (a real policy violation - every other template requires it
+non-root). Not in `policy/development.json`'s `allowedTemplates` either, so
+`workstation project init` rejected all three outright.
+
+- Finished all three to the same bar as the other 8 templates: README,
+  `.editorconfig`, `.gitignore`, `.env.example`, `.github/workflows/{ci,
+  policy}.yml`, `remoteUser: vscode` added to each `devcontainer.json`.
+- `ai`: minimal Python/FastAPI/data-science scaffold (numpy/pandas/
+  scikit-learn/OpenTelemetry deps live in the Dockerfile, matching
+  `python-service`'s existing convention of keeping `requirements.txt` empty
+  and CI-tested code dependency-free) - its README now points at
+  `rag-app`/`agent-app`/`mcp-server` instead for LLM-specific work, to avoid
+  overlap confusion with those already-shipped AI templates.
+- `network-automation`: added a minimal Nornir inventory
+  (`nornir/config.yaml` + `inventory/{hosts,groups,defaults}.yaml`, all
+  empty placeholders) and `.env.example` documenting
+  `NET_DEVICE_USERNAME`/`_PASSWORD` (real creds never touch tracked YAML -
+  loaded from the environment at runtime instead, documented directly in
+  `src/main.py`'s comments).
+- `infra`: added minimal Terraform (`main.tf`/`versions.tf`, matching the
+  existing `terraform` template) plus a minimal Ansible skeleton
+  (`ansible/{ansible.cfg,inventory.ini,playbook.yml}`) since its Dev
+  Container installs both toolchains - its own CI runs both a Terraform job
+  and an `ansible-playbook --syntax-check` job.
+- `policy/development.json` (bumped to 1.3.0): all three added to
+  `projects.allowedTemplates`.
+
+Verified live, not just written: `workstation project init` actually
+scaffolded all three templates for real, each came back `RESULT: COMPLIANT`
+with 0 failures from `project-check.sh`; `ruff check`/`pytest` both pass for
+real (via a venv - this WSL image has no system `pip`, a separate,
+unrelated gap) on `ai` and `network-automation`; `ansible-playbook
+--syntax-check` passes for real on `infra`. Terraform itself isn't
+installed on this bare WSL host (by design - it lives in the Dev Container,
+via each template's own `terraform` devcontainer feature), so
+`terraform fmt`/`validate` could not be run outside a container from here -
+the `.tf` content is trivial enough (an empty placeholder + a version
+constraint) that this is a low-risk, flagged gap, not a claimed pass.
+
+## 3.11.0
+
+Went through the rest of `Iskarioti/.dotfiles`'s `.config/` tree (the
+remainder of the dotfiles review from 3.10.0/3.10.1) and migrated what
+applies to this repo's scope. Most of `.config/` is Linux-desktop-GUI
+material (window managers, compositors, a launcher, an audio daemon,
+personal recording services) that doesn't apply to WSL/macOS dev
+workstations and was left alone - see `docs/desktop-appearance.md`-adjacent
+reasoning. Two more real decisions confirmed with Andrew first (a
+keyboard-remap layer that changes system-wide keystroke behavior, and
+introducing a new terminal-emulator choice, both too invasive/personal to
+silently adopt):
+
+- **Skipped**: `kanata` home-row-mods keyboard remap (Caps/A/S/D/F/J/K/L/;
+  all become tap-hold modifiers) - too invasive to enable without an
+  explicit ask.
+- **Added**: Alacritty as a managed terminal emulator for macOS/Linux
+  (`shell/alacritty/architect.alacritty.toml`, Tokyo Night colors,
+  JetBrainsMono Nerd Font) - installed via the new `alacritty` brew cask
+  (macOS) / apt-dnf-pacman package (Linux, best-effort). Two deliberate
+  changes from the source config: dropped an `import` of a `themes/`
+  directory the source repo's own `.gitignore` excludes (already-inlined
+  colors made it redundant) and dropped a hardcoded `zsh` shell override
+  (this repo's default shell differs per OS).
+- **Added**: a 4th Neovim profile, `editor/neovim/personal`, migrated from
+  `.config/nvim` (~25 files: LazyVim, Mason/LSP, Telescope, Treesitter,
+  Copilot, lualine, oil.nvim, which-key) - wired into `scripts/posix/
+  editor.sh` and `apply-editor.sh` exactly like the existing `platform`/
+  `nvchad`/`minimal` profiles, fully isolated via `NVIM_APPNAME` so it adds
+  zero risk to what already existed. `docs/editors.md` documents it.
+- **Skipped, low value**: `tmuxinator` (needs installing Ruby+gem for
+  marginal benefit over the `workspace`/`project` fzf pickers already in
+  `architect.zshrc`) and `htop`'s `htoprc` (just UI column layout,
+  regenerates trivially). `systemd/user/{bridge,dreamsrecorder}.service`
+  are Andrew's own unrelated personal screen-recording/streaming daemons -
+  not touched.
+
+Found and fixed one real bug verifying the new Neovim profile live (not just
+copied and assumed working): `nvim-treesitter`'s upstream default branch
+("main") is a full API rewrite with no `.configs` module anymore, while this
+config's `treesitter.lua` uses the pre-rewrite API - the profile installed
+successfully via `Lazy! sync` but crashed on every real startup with `module
+'nvim-treesitter.configs' not found` until the plugin spec was pinned to
+`branch = "master"` (upstream's own maintained-but-archived
+legacy-compatible branch). Also removed one dead/unused line in the same
+file that only existed to crash against the same removed API. After the
+fix, a real headless `nvim` load with `NVIM_APPNAME=nvim-personal` starts
+clean and a real Lua buffer opens with treesitter/LSP wiring intact - one
+harmless, non-fatal deprecation warning remains (`nvim-lspconfig`'s classic
+setup style, removed in its future v3.0.0 - not rewritten here, since that
+would mean redesigning the LSP setup, not porting it).
+
+## 3.10.1
+
+Desktop appearance (Dock/Taskbar/wallpaper) for a "fully fledged workstation",
+following up on the dotfiles review in 3.10.0 - `nix/darwin/flake.nix`'s
+`system.defaults` block there had real Dock/Finder settings never carried over
+before. Two real decision points confirmed with Andrew first (which apps to
+pin, and how to handle Windows taskbar pinning given a real platform
+limitation) rather than guessed. See `docs/desktop-appearance.md` for the
+full picture.
+
+- **macOS**: new `platform/macos/configure-appearance.sh` (run from
+  `bootstrap.sh`) - Dock sizing/autohide/magnification/genie-effect, Dock
+  apps pinned via the new `dockutil` brew dependency (Finder, LibreWolf, VS
+  Code, Terminal, Mail, Calendar), Finder column view, Dark mode, 24h time,
+  fast key repeat, screenshots to `~/Downloads`, guest login disabled. New
+  `bingpaper` cask for Bing wallpaper - **not** the `bing-wallpaper` cask,
+  which is Intel-only and needs Rosetta on Apple Silicon. Not tested on
+  real macOS hardware (none available this session) - syntax-checked only,
+  flagged rather than claimed working.
+- **Windows**: new `windows/43-configure-taskbar-appearance.ps1` (wired
+  into `bootstrap.ps1`) - small taskbar icons, left-aligned, dark app/system
+  theme, via `HKCU:\...\Explorer\Advanced` and `HKCU:\...\Themes\
+  Personalize`, with an Explorer restart to apply. `Microsoft.BingWallpaper`
+  added to `windows/10-install-tools.ps1` (Microsoft's own official app,
+  clean winget install, no caveats).
+- **Windows taskbar app *pinning* is deliberately not automated**: confirmed
+  via research that Windows 11 24H2+ has no reliable unattended API for
+  it anymore (`LayoutModification.xml` broke ~2023, locked down further by
+  KB5058411 in May 2025 to MDM/kiosk-only) - the unsupported workarounds
+  (copying `TaskBand`/`Start2.bin` from a reference profile) are liable to
+  break on the next Windows update, so this documents a one-time manual
+  pinning step instead (File Explorer, Windows Terminal, VS Code,
+  LibreWolf) rather than shipping something fragile.
+
+Found and fixed one real bug verifying the Windows script live (not just
+written and assumed correct): `New-Item -Force` on an *already-existing*
+registry key threw `Attempted to perform an unauthorized operation` -
+looked like a corporate policy block at first, but a direct
+`Set-ItemProperty` on the same key succeeded immediately, proving it
+wasn't. Fixed by only calling `New-Item` when `Test-Path` confirms the key
+is actually missing (both keys exist by default on every real Windows
+install). After the fix, a real run set all four registry values
+(`TaskbarSi`, `TaskbarAl`, `AppsUseLightTheme`, `SystemUsesLightTheme`,
+confirmed via `Get-ItemProperty`) and restarted Explorer cleanly.
+
+## 3.10.0
+
+Reviewed Andrew's previous personal dotfiles repo
+(`github.com/Iskarioti/.dotfiles`, cloned read-only for this review, not
+adopted wholesale) for improvements applicable to `platform/{linux,macos}`
+and the managed `shell/{bash,zsh}` fragments. Most of that repo is a
+Nix/home-manager-based Arch Linux desktop setup (Hyprland/Sway/i3/awesome/
+dwm, waybar/polybar/rofi/picom, Karabiner, Raycast, fish+zinit+Powerlevel10k)
+which doesn't apply to this repo's WSL/macOS dev-workstation scope or its
+imperative bash/PowerShell provisioning model - only the portable, low-risk
+pieces were ported in, confirmed with Andrew first for the two real
+decision points (keep Oh My Posh as the one prompt engine rather than
+switching to Powerlevel10k; skip GPG commit signing for now, since it
+would also mean changing the SSH-agent model).
+
+**Security note (unrelated to the port, flagged not remediated):** that
+dotfiles repo has two real OpenSSH private keys (`.ssh/id_rsa`,
+`.ssh/id_devman`) committed in plaintext - confirmed by reading their
+headers, not guessed. Neither key was copied or used anywhere in this
+change.
+
+Shipped:
+- **zsh plugins via zinit** (`shell/zsh/architect.zshrc`): `Aloxaf/fzf-tab`,
+  `zsh-users/zsh-autosuggestions`, `zsh-users/zsh-syntax-highlighting` -
+  Oh My Posh remains the only managed prompt engine, this is additive only.
+- **New managed tmux config**: `shell/tmux/architect.tmux.conf` (vim-style
+  pane/window nav, vi copy-mode, mouse on, Tokyo Night theme via TPM to
+  match the Oh My Posh theme) - a real gap before this (an `ops()` helper
+  already opened tmux, but no config was ever deployed). `scripts/posix/
+  apply.sh` now deploys it to `~/.config/tmux/tmux.conf` and clones TPM to
+  `~/.tmux/plugins/tpm` if missing.
+- **New managed ripgrep config**: `shell/ripgrep/architect.ripgreprc`
+  (excludes `vendor/`, `node_modules/`), deployed to `~/.config/ripgrep/
+  ripgreprc` with `RIPGREP_CONFIG_PATH` set in both shell fragments.
+- **Two small utility additions** to both `architect.bashrc` and
+  `architect.zshrc`: a `helm` alias (`h`) and `docker_rm_stopped()` - fixed
+  while porting it, the source version removed *all* containers
+  unconditionally (would error on anything still running); this one
+  filters to `-f status=exited` first, matching its own name.
+
+Verified live, not just read: `scripts/posix/apply.sh` deployed all three
+new managed files and cloned tpm on a real run; a real tmux session started
+with the new config with no errors (`C-Space` prefix, mouse, vi copy-mode
+bindings all confirmed via `tmux show-options`/`list-keys`); a real `zsh
+-i` load installed all three zinit plugins cleanly and confirmed
+`docker_rm_stopped`/`h=helm` are present, then reloaded fast and clean on a
+second run; a real `bash -i` load confirmed the same two additions.
+`docs/shell-experience.md` documents all of it.
+
 ## 3.9.9
 
 New `workstation services autostart enable|disable|status [service ...]`

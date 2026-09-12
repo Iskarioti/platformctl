@@ -26,6 +26,25 @@ foreach ($Tool in @("git","gh","code","oh-my-posh","zoxide","fzf","jq","devconta
     }
 }
 
+# Security/research tools install into ~/.local/bin on WSL/Linux/macOS only
+# (Windows dispatches "workstation security/research" into WSL rather than
+# installing anything natively - see docs/security-scanning.md and
+# docs/research-computing.md) - only check them here, not on native Windows,
+# to avoid a misleading MISS for tools that were never meant to exist there.
+if ($env:OS -ne "Windows_NT") {
+    $env:PATH = "$HOME/.local/bin:$env:PATH"
+    Write-Host ""
+    Write-Host "Security/research toolchain (workstation security/research doctor for detail):"
+    foreach ($Tool in @("semgrep","gitleaks","trufflehog","trivy","grype","syft","cosign","conftest","checkov","pdflatex","biber","latexmk","pandoc","quarto","pixi")) {
+        $Cmd = Get-Command $Tool -ErrorAction SilentlyContinue
+        if ($Cmd) {
+            Write-Host ("PASS  {0,-12} {1}" -f $Tool, $Cmd.Source)
+        } else {
+            Write-Host ("MISS  {0,-12} run: workstation security|research install (or re-run bootstrap)" -f $Tool)
+        }
+    }
+}
+
 if ($env:OS -eq "Windows_NT") {
     Write-Host ""
     Write-Host "PowerShell:"

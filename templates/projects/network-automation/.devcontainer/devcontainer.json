@@ -3,6 +3,7 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
+  "remoteUser": "vscode",
   "runArgs": [
     "--cap-add=NET_RAW"
   ],

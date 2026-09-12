@@ -1,0 +1,23 @@
+{
+  "name": "research-paper",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh/agent.sock,target=/ssh-agent,type=bind",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly"
+  ],
+  "containerEnv": {
+    "SSH_AUTH_SOCK": "/ssh-agent"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "James-Yu.latex-workshop",
+        "quarto.quarto",
+        "ms-python.python"
+      ]
+    }
+  }
+}

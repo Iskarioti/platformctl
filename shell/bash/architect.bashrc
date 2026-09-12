@@ -7,6 +7,7 @@ export VISUAL="$EDITOR"
 export LESS="-R"
 export PAGER="less"
 export VIRTUAL_ENV_DISABLE_PROMPT=1
+export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/ripgreprc"
 
 HISTCONTROL=ignoreboth:erasedups
 HISTSIZE=100000
@@ -60,7 +61,7 @@ alias cls='clear'
 
 alias g='git'; alias gs='git status'; alias ga='git add'; alias gaa='git add --all'; alias gc='git commit'; alias gca='git commit --amend'; alias gp='git push'; alias gl='git pull --ff-only'; alias gf='git fetch --all --prune'; alias gd='git diff'; alias gds='git diff --staged'; alias gb='git branch'; alias gsw='git switch'; alias glog='git log --graph --decorate --oneline --all'
 alias d='docker'; alias dc='docker compose'; alias dps='docker ps'; alias dpa='docker ps -a'; alias di='docker images'; alias dcu='docker compose up -d'; alias dcd='docker compose down'; alias dcl='docker compose logs -f'; alias ddf='docker system df'
-alias k='kubectl'; alias kgp='kubectl get pods'; alias kgs='kubectl get services'; alias kgn='kubectl get nodes'; alias kga='kubectl get all'; alias kctx='kubectl config current-context'
+alias k='kubectl'; alias kgp='kubectl get pods'; alias kgs='kubectl get services'; alias kgn='kubectl get nodes'; alias kga='kubectl get all'; alias kctx='kubectl config current-context'; alias h='helm'
 alias tf='terraform'; alias tfi='terraform init'; alias tfp='terraform plan'; alias tfv='terraform validate'; alias tff='terraform fmt -recursive'
 alias ports='ss -tulpn'; alias routes='ip route'; alias rules='ip rule'; alias mem='free -h'; alias disk='df -h'
 command -v btop >/dev/null 2>&1 && alias top='btop'
@@ -110,6 +111,7 @@ project() {
 psg() { ps aux | rg -i "$1"; }
 listen() { sudo ss -lptn "sport = :$1"; }
 ops() { tmux new-session -A -s ops; }
+docker_rm_stopped() { docker rm "$(docker ps -a -q -f status=exited)" 2>/dev/null; }
 
 if [[ -f "$HOME/.local/share/blesh/ble.sh" ]]; then
   source "$HOME/.local/share/blesh/ble.sh" --attach=none

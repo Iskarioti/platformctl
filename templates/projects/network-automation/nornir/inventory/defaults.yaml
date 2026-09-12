@@ -1,0 +1,5 @@
+---
+# Never put real credentials here - this file is tracked by git.
+# src/main.py loads NET_DEVICE_USERNAME/NET_DEVICE_PASSWORD from the
+# environment (see .env.example) and applies them to the inventory at
+# runtime instead.

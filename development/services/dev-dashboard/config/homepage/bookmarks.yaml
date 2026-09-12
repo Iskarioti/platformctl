@@ -1,3 +1,25 @@
+- 🚀 Quick Start:
+    - Getting started:
+        - abbr: GS
+          href: https://github.com/Iskarioti/platformctl/blob/main/docs/getting-started.md
+          description: "New here? Start with this doc"
+    - Security scan:
+        - abbr: SC
+          href: https://github.com/Iskarioti/platformctl/blob/main/docs/security-scanning.md
+          description: "workstation security scan ."
+    - Research toolchain:
+        - abbr: RS
+          href: https://github.com/Iskarioti/platformctl/blob/main/docs/research-computing.md
+          description: "workstation project init research-paper <name>"
+    - Dev-service catalog:
+        - abbr: DS
+          href: https://github.com/Iskarioti/platformctl/blob/main/docs/development-services-v2.md
+          description: "workstation services up core"
+    - AI/ML lifecycle:
+        - abbr: AI
+          href: https://github.com/Iskarioti/platformctl/blob/main/docs/ai-workstation.md
+          description: "workstation models up"
+
 - Workstation:
     - platformctl:
         - abbr: PC

@@ -82,6 +82,22 @@ switch ($Command.ToLowerInvariant()) {
             exit $LASTEXITCODE
         }
     }
+    "security" {
+        if ($IsWindows -or $env:OS -eq "Windows_NT") {
+            Invoke-RepoScript -Path "scripts\common\security.ps1" -Arguments $Rest
+        } else {
+            & bash (Join-Path $Root "scripts/posix/security.sh") @Rest
+            exit $LASTEXITCODE
+        }
+    }
+    "research" {
+        if ($IsWindows -or $env:OS -eq "Windows_NT") {
+            Invoke-RepoScript -Path "scripts\common\research.ps1" -Arguments $Rest
+        } else {
+            & bash (Join-Path $Root "scripts/posix/research.sh") @Rest
+            exit $LASTEXITCODE
+        }
+    }
     "models" {
         if ($IsWindows -or $env:OS -eq "Windows_NT") {
             Invoke-RepoScript -Path "scripts\common\models.ps1" -Arguments $Rest
@@ -177,18 +193,25 @@ switch ($Command.ToLowerInvariant()) {
 
     default {
         @"
-workstation setup commands
+workstation setup commands  (new here? see docs/getting-started.md)
 
+Workstation health:
   bootstrap                         install/adapt everything for this platform
+                                     (fonts, shell, editor, DevSecOps/research
+                                     toolchains, Docker/WSL)
   apply                             copy canonical configs to live destinations
   validate                          validate source and safety invariants
   doctor                            inspect installed workstation health
   enforce [--repair]                verify development-policy compliance
+
+Start a project:
+  project templates                 list approved project templates
   project init <template> <name>    create a governed project
   project check [path]              validate a project against policy
   project doctor [path]             show project/toolchain health
   project open [path]               validate and open project in VS Code
-  project templates                 list approved project templates
+
+Local infrastructure:
   services init                     create shared Docker dev network + credentials
   services list                     show predefined Docker development services
   services up [service|profile...]  start services; default profile is core
@@ -201,7 +224,17 @@ workstation setup commands
   models up|down|status             shared local Ollama runtime for testing models
   models pull|list|run <model>      manage/use models in the shared runtime
   lab list|info|up|status|test|...  pre-production architecture validation labs (see docs/labs.md)
+
+Quality & security:
+  security scan [path]              semgrep/gitleaks/trufflehog/trivy/checkov
+  security sbom [path] [out]        CycloneDX SBOM via syft
+  security doctor                   verify security toolchain installed
+  research doctor                   verify research (LaTeX/pandoc/quarto/pixi) toolchain
+
+Editor & shell:
   editor install|apply|doctor       manage Neovim/NvChad/Vim editor profiles
+
+Automation & maintenance:
   sync                              validate -> apply -> commit -> push once
   autosync enable|disable           manage background platformctl autosync
   autosync pause [minutes]|resume   skip autosync's git-sync step during active multi-step work

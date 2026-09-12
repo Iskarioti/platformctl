@@ -1,0 +1,6 @@
+---
+# Fill in real devices before use. Example:
+# router1:
+#   hostname: 192.0.2.1
+#   groups:
+#     - ios

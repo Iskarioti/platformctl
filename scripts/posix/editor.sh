@@ -15,7 +15,7 @@ workstation editor commands:
   apply                   deploy managed editor configuration
   doctor                  inspect editor health
   list                    list available profiles
-  profile [name]          show or select platform|nvchad|minimal
+  profile [name]          show or select platform|nvchad|minimal|personal
   sync [profile]          install/update plugins for a profile
   clean                   launch Neovim with --clean
 EOF
@@ -29,6 +29,7 @@ editor_list() {
   printf '%-10s %-9s %s\n' "platform" "$([[ "$current" == platform ]] && echo yes || echo no)" "LazyVim platform engineering IDE"
   printf '%-10s %-9s %s\n' "nvchad" "$([[ "$current" == nvchad ]] && echo yes || echo no)" "NvChad alternate interface"
   printf '%-10s %-9s %s\n' "minimal" "$([[ "$current" == minimal ]] && echo yes || echo no)" "Plugin-free Neovim repair profile"
+  printf '%-10s %-9s %s\n' "personal" "$([[ "$current" == personal ]] && echo yes || echo no)" "LazyVim personal IDE (migrated from Iskarioti/.dotfiles)"
   printf '%-10s %-9s %s\n' "vim" "-" "Plugin-free rescue editor"
 }
 
@@ -45,9 +46,9 @@ editor_profile() {
   fi
 
   case "$requested" in
-    platform|nvchad|minimal) ;;
+    platform|nvchad|minimal|personal) ;;
     *)
-      echo "ERROR: profile must be platform, nvchad or minimal." >&2
+      echo "ERROR: profile must be platform, nvchad, minimal or personal." >&2
       exit 2
       ;;
   esac
@@ -100,7 +101,7 @@ editor_doctor() {
     doctor_line WARN "tree-sitter-cli" "LazyVim Treesitter parser builds may require it"
   fi
 
-  for dir in nvim-platform nvim-nvchad nvim-minimal; do
+  for dir in nvim-platform nvim-nvchad nvim-minimal nvim-personal; do
     if [[ -f "${XDG_CONFIG_HOME:-$HOME/.config}/$dir/.platformctl-managed" ]]; then
       doctor_line PASS "$dir" "managed"
     else
@@ -128,8 +129,13 @@ editor_sync() {
     minimal)
       echo "Minimal profile has no plugins."
       ;;
+    personal)
+      echo "Synchronizing personal LazyVim profile..."
+      NVIM_APPNAME=nvim-personal "$HOME/.local/bin/nvim-real" \
+        --headless "+Lazy! sync" +qa
+      ;;
     *)
-      echo "ERROR: sync profile must be platform, nvchad or minimal." >&2
+      echo "ERROR: sync profile must be platform, nvchad, minimal or personal." >&2
       exit 2
       ;;
   esac

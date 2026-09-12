@@ -22,6 +22,11 @@ tokens/
 .cache/
 logs/
 *.log
+# homepage (dev-dashboard) auto-copies its own default skeleton file for any
+# recognized config filename not already present - only its recognized
+# filenames not intentionally maintained here.
+development/services/dev-dashboard/config/homepage/kubernetes.yaml
+development/services/dev-dashboard/config/homepage/docker.yaml
 *.bak
 *.backup.*
 *.tmp

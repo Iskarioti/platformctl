@@ -38,6 +38,7 @@ deploy_profile() {
 deploy_profile "$ROOT/editor/neovim/platform" "$CONFIG_HOME/nvim-platform"
 deploy_profile "$ROOT/editor/neovim/minimal" "$CONFIG_HOME/nvim-minimal"
 deploy_profile "$ROOT/editor/neovim/nvchad" "$CONFIG_HOME/nvim-nvchad"
+deploy_profile "$ROOT/editor/neovim/personal" "$CONFIG_HOME/nvim-personal"
 
 # Traditional Vim is intentionally a single rescue configuration.
 if [[ -f "$HOME/.vimrc" ]] && ! cmp -s "$ROOT/editor/vim/vimrc" "$HOME/.vimrc"; then
@@ -62,6 +63,7 @@ case "$PROFILE" in
   platform) APP="nvim-platform" ;;
   nvchad)   APP="nvim-nvchad" ;;
   minimal)  APP="nvim-minimal" ;;
+  personal) APP="nvim-personal" ;;
   *)
     echo "Unknown Neovim profile '$PROFILE'; falling back to platform." >&2
     APP="nvim-platform"
@@ -90,9 +92,16 @@ set -euo pipefail
 NVIM_APPNAME=nvim-minimal exec "$HOME/.local/bin/nvim-real" "$@"
 EOF
 
+cat > "$BIN_DIR/nvim-personal" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+NVIM_APPNAME=nvim-personal exec "$HOME/.local/bin/nvim-real" "$@"
+EOF
+
 chmod +x \
   "$BIN_DIR/nvim-platform" \
   "$BIN_DIR/nvim-chad" \
-  "$BIN_DIR/nvim-minimal"
+  "$BIN_DIR/nvim-minimal" \
+  "$BIN_DIR/nvim-personal"
 
 echo "Editor configuration applied using cp only."

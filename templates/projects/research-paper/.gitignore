@@ -1,0 +1,24 @@
+.env
+.env.*
+!.env.example
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+paper/main.pdf
+
+# Quarto
+.quarto/
+*_files/
+
+.DS_Store
+.vscode/settings.local.json
