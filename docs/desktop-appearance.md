@@ -169,6 +169,31 @@ reliable, unattended path as of 24H2:
   UCPD blocking the `TaskbarDa` registry write. This is why the script can
   only print instructions, never do the pinning itself, no matter how the
   request is phrased - it isn't unimplemented, it's blocked by Windows.
+- **Also live-tested (2026-09-13) and ruled out**: the *local-policy*
+  mechanism (`HKCU:\Software\Policies\Microsoft\Windows\Explorer`'s
+  `ConfigureStartPins`/`ConfigureStartPinsJSON` for Start, `LockedStartLayout`/
+  `StartLayoutFile` for the taskbar - real, Microsoft-documented settings,
+  normally applied via Group Policy/Intune but in principle just registry
+  values anyone could write locally). Tested directly, not assumed:
+  - **Taskbar** (`LockedStartLayout`+`StartLayoutFile`): the values were
+    silently **wiped from the registry by Windows itself** after Explorer
+    processed them - an active rejection, not a silent no-op.
+  - **Start Menu** (`ConfigureStartPins`+`ConfigureStartPinsJSON`): the
+    values persist in the registry (not rejected outright), but three
+    separate follow-up tests (different AppID formats, `applyOnce: true`
+    and `false`, a fresh JSON path each time) produced **no visible change**
+    to the actual pinned tiles. An initial 2-app test appeared to work, but
+    was almost certainly a false positive - Edge and File Explorer are
+    commonly pre-pinned by default, and the baseline wasn't checked before
+    that first test ran, a real gap in the test methodology worth
+    remembering. All controlled tests after checking for that variable
+    showed no effect.
+  - **Conclusion**: this mechanism is real and Microsoft-documented, but on
+    this machine it only takes effect under genuine Group Policy/MDM
+    management, not from a plain local registry write - consistent with
+    (and now more rigorously confirmed than) the original research finding.
+    All test registry values and scratch files were cleaned up afterward;
+    nothing from this experiment was left in place.
 
 The correct manual sequence, in order:
 
@@ -249,15 +274,28 @@ silently scripted:
    Experience Pack" from the Microsoft Store. A Windows cumulative update can
    reinstall this package, so it may need repeating occasionally.
 
-A third path, a Local Group Policy toggle (`gpedit.msc` -> Computer Configuration
--> Administrative Templates -> Windows Components -> Widgets -> "Allow widgets"
--> Disabled, which resolves to `HKLM:\SOFTWARE\Policies\Microsoft\Dsh\
-AllowNewsAndInterests=0`), was investigated live on this machine - the key can be
-created and written by an elevated session (confirmed: `HKLM:\SOFTWARE\Policies\
-Microsoft\Dsh` was successfully created), but writing an HKLM-wide policy value
-is machine-scoped, harder to casually undo than a per-user setting, and this
-repo's own auto-mode tooling declined to run it unattended - treat it as a
-manual option too, not something to script blind.
+A third path, the Local Group Policy toggle (`gpedit.msc` -> Computer
+Configuration -> Administrative Templates -> Windows Components -> Widgets ->
+"Allow widgets" -> Disabled, which resolves to `HKLM:\SOFTWARE\Policies\
+Microsoft\Dsh\AllowNewsAndInterests=0`), was tested live on this machine
+(2026-09-13) and **also confirmed blocked**, not just untried: the `Dsh` key
+itself can be created by an elevated session, but writing the
+`AllowNewsAndInterests` value into it - via `Set-ItemProperty`, `New-
+ItemProperty`, and `reg.exe` directly, all three - fails `Attempted to
+perform an unauthorized operation` / `Access is denied`. This is despite
+`Get-Acl` showing `BUILTIN\Administrators: FullControl` on the key - a
+normal DACL check would allow this elevated session to write it, so
+something beyond the visible ACL is intercepting the write. Combined with
+the taskbar's `LockedStartLayout`/`StartLayoutFile` being actively wiped
+after being written (see above) and `TaskbarDa` failing outright, this reads
+as a genuine, broader enterprise anti-tamper protection over the Windows
+policy-registry surface on this specific machine (Azure AD-joined, real MDM
+enrollment confirmed via `PolicyManager\current\device`) - not merely UCPD's
+narrower, publicly-documented protection of `TaskbarDa` alone. Per AGENTS.md
+rule 3 (never weaken corporate/security controls), this was not pushed
+further (no attempt to disable whatever is enforcing this) - both remaining
+options above (Settings toggle, uninstalling the Widgets app) stay the
+actual answer.
 
 ### Enforcement (drift detection)
 
