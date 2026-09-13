@@ -99,7 +99,7 @@ for item in "${SCOPE_ARG[@]}"; do
           # present baseline tools below are.
           if command -v apt-get >/dev/null 2>&1; then
             EXTRA_PKGS=()
-            for pkg in alacritty librewolf wireshark wireguard solaar; do
+            for pkg in alacritty librewolf wireshark wireguard solaar gh; do
               dpkg -s "$pkg" >/dev/null 2>&1 && EXTRA_PKGS+=("$pkg")
             done
             run_step "packages (apt update)" sudo apt-get update
@@ -108,7 +108,7 @@ for item in "${SCOPE_ARG[@]}"; do
               "${EXTRA_PKGS[@]}"
           elif command -v dnf >/dev/null 2>&1; then
             EXTRA_PKGS=()
-            for pkg in alacritty librewolf wireshark wireguard-tools solaar; do
+            for pkg in alacritty librewolf wireshark wireguard-tools solaar gh; do
               rpm -q "$pkg" >/dev/null 2>&1 && EXTRA_PKGS+=("$pkg")
             done
             run_step "packages (dnf upgrade curated list)" sudo dnf upgrade -y \
@@ -116,7 +116,7 @@ for item in "${SCOPE_ARG[@]}"; do
               "${EXTRA_PKGS[@]}"
           elif command -v pacman >/dev/null 2>&1; then
             EXTRA_PKGS=()
-            for pkg in alacritty librewolf wireshark-qt wireguard-tools solaar; do
+            for pkg in alacritty librewolf wireshark-qt wireguard-tools solaar github-cli; do
               pacman -Qi "$pkg" >/dev/null 2>&1 && EXTRA_PKGS+=("$pkg")
             done
             run_step "packages (pacman upgrade curated list)" sudo pacman -Syu --needed --noconfirm \

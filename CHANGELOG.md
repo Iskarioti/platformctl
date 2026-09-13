@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.23.0
+
+Checked WSL/Linux-side status for real (`workstation doctor`/`enforce` from
+inside WSL, not assumed): fully policy-compliant (`enforce`: 0
+failures/warnings), but found a real cross-platform parity gap - GitHub CLI
+(`gh`) is installed by both the Windows and macOS bootstraps but had no
+Linux install path at all. New `platform/linux/install-gh.sh` (adds GitHub's
+own apt repo on Debian/Ubuntu, direct install on Fedora/Arch), wired into
+`platform/linux/bootstrap.sh` and `scripts/posix/upgrade.sh`'s presence-
+checked optional-package list. Also confirmed the 5 GUI apps added earlier
+this session (LibreWolf, Alacritty, Wireshark, WireGuard, Solaar) and `gh`
+itself are still not actually installed on this machine's WSL instance -
+they're correctly wired into bootstrap now, but installing them needs an
+interactive `sudo` session (confirmed: no passwordless sudo configured
+here), so this couldn't be completed unattended this session.
+
 ## 3.22.0
 
 Two real bugs found running `workstation upgrade` for real and fixed in
