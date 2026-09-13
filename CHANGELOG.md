@@ -2,6 +2,48 @@
 
 ## 3.22.0
 
+Two real bugs found running `workstation upgrade` for real and fixed in
+`windows/10-install-tools.ps1`: (1) Claude Code failed to self-upgrade every
+run with "Access is denied" on its own locked exe - now skipped while its
+process is running (packages can declare a `ProcessName` for this). (2) Bing
+Wallpaper's "newer" winget-advertised version (`2.0.0.1`) is itself broken -
+installer fails with MSI 1603 unconditionally, confirmed via repeated
+retries - while the older `1.1.459` installs fine. The upgrade script now
+remembers the currently-installed version before attempting the newer one,
+and falls back to reinstalling it if the newer version's install fails,
+rather than leaving the package uninstalled.
+
+`workstation upgrade`'s macOS/Linux `packages` scope now covers the newer
+GUI apps too (LibreWolf, Alacritty, Wireshark, WireGuard, Solaar, plus
+Logi Options+/Teams/Outlook casks on macOS) - previously only a small
+curated CLI-tool list got upgraded there, unlike the Windows side which
+already upgrades everything in its package list. Each app's presence is
+checked first (`dpkg -s`/`rpm -q`/`pacman -Qi`/`brew list --cask`) before
+including it, since `apt-get install --only-upgrade`/`brew upgrade --cask`
+on something never installed errors and fails the whole step.
+
+Nine more Start Menu/taskbar/system-tray settings decluttered - recently
+added apps, recommended/recent files + Jump Lists, tips/shortcuts
+recommendations, most-used apps, account notifications, the "Resume"
+taskbar feature, and emoji/pen/touch-keyboard tray icons. All ordinary
+per-user preferences (not policy-namespaced), so no MDM/UCPD contention -
+confirmed live, all 9 apply cleanly with `[OK]`. Added a small
+`Set-UserDword` helper to `43-configure-taskbar-appearance.ps1` for this
+class of setting instead of repeating the same pattern by hand each time;
+wired into `workstation enforce`'s drift-check too.
+
+Widgets is now fully resolved: root-caused precisely via `dsregcmd`/
+`gpresult`/`mdmdiagnosticstool.exe` (an active Intune Policy CSP for
+`NewsAndInterests`, confirmed via its `GPBlockingRegKeyPath`/
+`GPBlockingRegValueName` metadata - not just UCPD alone, and not traditional
+Group Policy, which `gpresult` showed has zero applied GPOs on this device).
+Since the registry route is genuinely blocked by design, the settled fix is
+uninstalling the Widgets app outright - now wired into
+`43-configure-taskbar-appearance.ps1` (idempotent) and `workstation
+enforce`'s drift-check (treats "app not installed" as compliant regardless
+of `TaskbarDa`'s value). Confirmed live: uninstalled, Explorer restarted,
+icon gone.
+
 New `workstation rename-device` command: enforces `LAP-<BIOS_SERIAL>` (laptop)
 / `DSK-<BIOS_SERIAL>` (desktop) as the standing device-naming convention,
 idempotent (checks the current name first, only acts on a real mismatch).

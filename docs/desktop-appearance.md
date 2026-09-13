@@ -75,21 +75,20 @@ as the existing `alacritty`/`librewolf` GUI installs):
 - Taskbar size/alignment via `HKCU:\Software\Microsoft\Windows\CurrentVersion\
   Explorer\Advanced`: `TaskbarSi=0` (small icons, matching the Dock's compact
   32px tiles) and `TaskbarAl=1` (centered - Windows 11's default alignment).
-- Widgets hidden: `TaskbarDa=0` (same `Advanced` key) - best-effort, wrapped in
-  try/catch. The write comes back `Access is denied` even via `reg.exe`
-  directly. **Initially misdiagnosed as this device's MDM/Intune policy** - a
-  live `HKLM:\SOFTWARE\Microsoft\PolicyManager\current\device\Start` policy on
-  this machine made that look plausible, but a check of every MDM policy node
-  under `PolicyManager\current\device` found nothing Widgets/Dsh/Taskbar-
-  related, and web research confirmed the real cause: **UCPD (User Choice
-  Protection Driver)**, a Windows OS security component (originally shipped to
-  stop malware silently hijacking default-app associations, extended to
-  protect the Widgets registry value too) that blocks *any* direct registry
-  write to `TaskbarDa` on a sufficiently-updated Windows 11 install - managed
-  or not. See "Widgets: what actually works" below for the supported
-  alternatives; disabling UCPD itself to force the registry write through
-  would be weakening a real OS security control (AGENTS.md rule 3), so this
-  script doesn't attempt it.
+- Widgets: `TaskbarDa=0` is attempted first (same `Advanced` key,
+  best-effort, wrapped in try/catch) but fails `Access is denied` even via
+  `reg.exe` directly - blocked by **UCPD** (a universal Windows 11 security
+  component) and, independently, an **active Intune Policy CSP** for this
+  device's `NewsAndInterests` policy area (see "Widgets: what actually
+  works" below for how that was confirmed precisely, not just inferred).
+  **The settled decision for this workstation is to uninstall the Widgets
+  app outright** instead of leaving this as a manual step -
+  `43-configure-taskbar-appearance.ps1` now does this automatically
+  (`Get-AppxPackage -Name "*WebExperience*" | Remove-AppxPackage`,
+  idempotent - a no-op if already removed), which sidesteps both
+  protections entirely: no app installed means no Widgets board or button
+  regardless of `TaskbarDa`'s value. Confirmed live (2026-09-13): removed,
+  Explorer restarted, Andrew confirmed the icon is gone.
 - Task View button hidden: `ShowTaskViewButton=0` (same `Advanced` key),
   same best-effort try/catch pattern as Widgets - UCPD does NOT protect this
   value on this machine: confirmed live via `Get-ItemProperty` that it applies
@@ -116,6 +115,25 @@ as the existing `alacritty`/`librewolf` GUI installs):
   wiped on this machine (see the pinning section below). Not every value
   under a policy key behaves the same way; each needs its own live test,
   not an assumption based on a sibling value's result.
+- Further Start/taskbar/tray decluttering - all plain per-user preferences
+  (not policy-namespaced, so no MDM/UCPD contention expected, and none
+  observed): `ShowRecentList=0` (Start's "recently added apps") under
+  `HKCU:\...\CurrentVersion\Start`; `Start_TrackDocs=0` (recommended/recent
+  files + Jump Lists), `Start_IrisRecommendations=0` (tips/shortcuts/app
+  recommendations), `Start_TrackProgs=0` (most-used apps),
+  `Start_AccountNotifications=0`, and `IsEnabled=0` (the "Resume" taskbar
+  feature) all under the same `Advanced` key as `TaskbarDa`; plus three
+  system-tray icon settings - `EmojiAndMoreIconVisibilityState=0` and
+  `TipbandDesiredVisibility=0` under `HKCU:\Software\Microsoft\TabletTip\1.7`
+  (emoji panel and touch keyboard icons, `0`/`1`/`2` = Never/While
+  typing-or-Always/Always-or-When-no-keyboard depending on the setting), and
+  `PenWorkspaceButtonDesiredVisibility=0` under `HKCU:\...\CurrentVersion\
+  PenWorkspace` (pen menu icon) - harmless to set even without a
+  pen/touchscreen. Applied via a small `Set-UserDword` helper (idempotent
+  Test-Path/New-Item/Set-ItemProperty, try/catch, `[OK]`/`[FAIL]` output)
+  rather than repeating the same four-line pattern by hand for each one.
+  All 9 confirmed live (2026-09-13) via direct registry read after a real
+  run - every one applied cleanly, no failures.
 - Restarts Explorer to apply immediately (`-NoRestartExplorer` skips this - open
   File Explorer windows briefly close/reopen otherwise).
 - Wallpaper: `Microsoft.BingWallpaper` via winget (`windows/10-install-tools.ps1`).
@@ -269,46 +287,105 @@ not another). Known install-path `Test-Path` checks are used instead of
 `Get-Command`/PATH for every app this script checks - more reliable, if more
 verbose to maintain.
 
-### Widgets: what actually works (manual, not wired into the script)
+### Widgets: what actually works
 
-Since UCPD blocks the registry route entirely (see above), disabling Widgets for
-real needs one of two supported, Microsoft-documented paths - neither is
-automated here because both are more disruptive/harder-to-instantly-reverse than
-a plain registry value, and warrant Andrew's explicit go-ahead rather than being
-silently scripted:
+Since UCPD (and, as confirmed below, an active Intune Policy CSP) both block the
+registry route entirely, disabling Widgets for real needs one of two supported,
+Microsoft-documented paths:
 
-1. **Settings app toggle** (least disruptive): Settings -> Personalization ->
-   Taskbar -> turn off **Widgets**. Always works, no admin rights needed, purely
-   per-user.
-2. **Uninstall the Widgets app entirely**: `winget uninstall --id
-   MicrosoftWindows.Client.WebExperience_cw5n1h2txyewy` (or `Get-AppxPackage
-   *WebExperience* | Remove-AppxPackage`). Removes the Widgets icon *and* its
-   Settings-app entry completely; reversible by reinstalling "Windows Web
-   Experience Pack" from the Microsoft Store. A Windows cumulative update can
-   reinstall this package, so it may need repeating occasionally.
+1. **Settings app toggle** (least disruptive, not wired into the script -
+   requires an interactive UI, nothing to automate): Settings -> Personalization
+   -> Taskbar -> turn off **Widgets**. Always works, no admin rights needed,
+   purely per-user.
+2. **Uninstall the Widgets app entirely**: `Get-AppxPackage *WebExperience* |
+   Remove-AppxPackage` (`winget uninstall --id
+   MicrosoftWindows.Client.WebExperience_cw5n1h2txyewy` also works but needs the
+   exact MSIX-qualified ID - the plain package ID alone returns "No installed
+   package found"). Removes the Widgets icon *and* its Settings-app entry
+   completely; reversible by reinstalling "Windows Web Experience Pack" from the
+   Microsoft Store. A Windows cumulative update can reinstall this package, so
+   it may need repeating occasionally - **wired into
+   `43-configure-taskbar-appearance.ps1`** (idempotent: uninstalls it again if
+   a Windows Update silently brought it back, no-ops if already absent), so
+   "occasionally" is handled by the next real run of this script rather than
+   needing to be remembered.
 
 A third path, the Local Group Policy toggle (`gpedit.msc` -> Computer
 Configuration -> Administrative Templates -> Windows Components -> Widgets ->
 "Allow widgets" -> Disabled, which resolves to `HKLM:\SOFTWARE\Policies\
 Microsoft\Dsh\AllowNewsAndInterests=0`), was tested live on this machine
-(2026-09-13) and **also confirmed blocked**, not just untried: the `Dsh` key
-itself can be created by an elevated session, but writing the
-`AllowNewsAndInterests` value into it - via `Set-ItemProperty`, `New-
-ItemProperty`, and `reg.exe` directly, all three - fails `Attempted to
-perform an unauthorized operation` / `Access is denied`. This is despite
-`Get-Acl` showing `BUILTIN\Administrators: FullControl` on the key - a
-normal DACL check would allow this elevated session to write it, so
-something beyond the visible ACL is intercepting the write. Combined with
-the taskbar's `LockedStartLayout`/`StartLayoutFile` being actively wiped
-after being written (see above) and `TaskbarDa` failing outright, this reads
-as a genuine, broader enterprise anti-tamper protection over the Windows
-policy-registry surface on this specific machine (Azure AD-joined, real MDM
-enrollment confirmed via `PolicyManager\current\device`) - not merely UCPD's
-narrower, publicly-documented protection of `TaskbarDa` alone. Per AGENTS.md
-rule 3 (never weaken corporate/security controls), this was not pushed
-further (no attempt to disable whatever is enforcing this) - both remaining
-options above (Settings toggle, uninstalling the Widgets app) stay the
-actual answer.
+(2026-09-13) and **also confirmed blocked** - writing `AllowNewsAndInterests`
+into that key, via `Set-ItemProperty`, `New-ItemProperty`, and `reg.exe`
+directly, all three fail `Access is denied`, despite `Get-Acl` showing
+`BUILTIN\Administrators: FullControl` on the key.
+
+**Root cause identified precisely (2026-09-13), not just inferred from the
+symptom.** Collected this device's actual MDM diagnostic state rather than
+guessing further:
+
+```powershell
+dsregcmd /status                                          # Entra/MDM enrollment state
+gpresult /h "$env:TEMP\GPResult.html"                      # resultant Group Policy (traditional GP)
+mdmdiagnosticstool.exe -area "DeviceEnrollment;DeviceProvisioning;Autopilot" `
+    -zip "<a non-shared temp path>\MDMDiagReport.zip"      # MDM Policy CSP state
+```
+
+Findings:
+- `dsregcmd /status`: `AzureAdJoined: YES`, `EnterpriseJoined: NO`,
+  `DomainJoined: NO` - this device has **no traditional Active Directory
+  domain or Group Policy source at all**, only Entra ID + Intune MDM
+  enrollment (`DisplayNameUpdated: Managed by MDM` appears literally in the
+  output).
+- `gpresult /h`: **zero Applied GPOs**, both Computer and User ("No settings
+  defined") - conclusively rules out traditional Group Policy as the cause of
+  anything observed here. Whatever is enforcing these values, it isn't GP.
+- `mdmdiagnosticstool.exe`'s `MDMDiagReport.xml` contains the actual answer,
+  in Windows's own Policy CSP metadata:
+  ```xml
+  <PolicyAreaName>NewsAndInterests</PolicyAreaName>
+  <PolicyName>AllowNewsAndInterests</PolicyName>
+  <GPBlockingRegKeyPath>SOFTWARE\Policies\Microsoft\Dsh</GPBlockingRegKeyPath>
+  <GPBlockingRegValueName>AllowNewsAndInterests</GPBlockingRegValueName>
+  <value>1</value>
+  ```
+  (and the same `GPBlockingRegKeyPath`/`GPBlockingRegValueName` pattern for
+  `DisableWidgetsBoard`, `DisableWidgetsOnLockScreen`, and separately for the
+  taskbar's `LockedStartLayout` under the `Start` policy area). This is
+  Microsoft's own documented mechanism: when an MDM Policy CSP configuration
+  profile is active for a given area, Windows tracks the equivalent local/GP
+  registry location as "GP-blocking" and actively prevents writing it
+  directly - MDM wins over any equivalent local configuration by design, not
+  by an incidental permissions quirk. **`value: 1` for `AllowNewsAndInterests`
+  means WIOCC's own Intune tenant has deliberately configured Widgets as
+  *allowed*** - this isn't a platform default being defended, it's an actual
+  organizational policy choice being enforced.
+- By contrast, `HideRecommendedSection`/`HideCategoryView` (which DID work,
+  see above) have no `GPBlockingRegKeyPath` entry anywhere in the same
+  report - confirming why: no Intune configuration profile targets those
+  specific CSP areas, so the local write goes through cleanly. `TaskbarDa`
+  itself remains UCPD's separate, narrower protection (confirmed earlier),
+  not part of this MDM mechanism - two independent protections, over
+  different but overlapping registry surfaces, is what made this look like
+  one broad "anti-tamper layer" before this diagnostic pass.
+
+This machine's diagnostic dump was written to a temp/scratch location and
+deleted immediately after extracting the relevant findings above - it
+contains certificate thumbprints, hardware hashes, and other
+device-identifying data that shouldn't persist anywhere, let alone a shared
+location. Per AGENTS.md rule 3, none of this was used to attempt a bypass
+(no ACL/ownership changes, no disabling of whatever enforces MDM-wins-over-
+local) - both remaining options above (Settings toggle, uninstalling the
+Widgets app) stay the actual answer, and are the two paths Microsoft itself
+documents as unaffected by this MDM-vs-local precedence.
+
+**Automation rule going forward**: attempt the supported local configuration
+once; if it's denied outright or silently reverted after being written,
+stop - don't take ownership, change ACLs, or otherwise try to defeat
+whatever is enforcing it. Every script in this repo already follows this
+(plain `try`/`catch` around each write, report-and-continue, nothing more) -
+this session's diagnostic pass didn't change that behavior, it just replaced
+a correct-but-vague conclusion ("something blocks this") with the precise,
+Microsoft-documented mechanism actually responsible.
 
 ### Enforcement (drift detection)
 
@@ -337,3 +414,43 @@ no supported API), so it's handled the same way: enable it manually once via
 Settings, and it persists on its own from then on - no repeated configuration
 needed, so there's little value in automating it even if the format were reverse-
 engineered.
+
+### Bing Wallpaper's own in-app toggles are intentionally NOT automated
+
+Bing Wallpaper's widget has its own settings (AI images, "Top right" position,
+Visual Search, "Desktop click opens Bing") beyond what this repo configures
+(daily wallpaper rotation itself, and launching it - see above). Investigated
+live (2026-09-13) rather than guessed at:
+
+- `HKCU:\Software\Microsoft\BingWallpaperApp\OverrideWallpaper` - a
+  documented setting for an **older, classic Win32 build** of Bing Wallpaper -
+  **does not exist at all** on the version winget actually installs on this
+  machine (`1.1.463.0`, confirmed via `Test-Path`/`Get-ItemProperty`). That
+  build is MSIX-packaged (depends on `Microsoft.WindowsAppRuntime`) and uses a
+  completely different storage model - the registry path from an older
+  version doesn't carry over.
+- The real per-user config surface is `%LOCALAPPDATA%\Packages\
+  Microsoft.BingWallpaper_8wekyb3d8bbwe\LocalState\server_config.json` - but
+  this is a **server-synced feature-flag/experiment cache**, not a local
+  preference file: it contains MSIX download URLs, A/B-test bucket
+  assignments (`ExpAssignmentContext`), and promo-banner configuration
+  alongside flag-shaped keys like `TopRightIconEnabled`/
+  `VisualSearchGlowEffectEnabled` that look relevant but represent which
+  features are available for this build/experiment cohort, not whether the
+  user personally turned them on or off. Editing it would likely be silently
+  overwritten on the app's next sync with Microsoft's servers.
+- The widget's actual UI is rendered inside an **embedded Chromium WebView2
+  instance** (confirmed live - a full Chrome-profile folder structure under
+  `LocalState\BingWallpaper_Widget\1001\EBWebView\Default\`, including a
+  `Local Storage\leveldb\` directory). Per-user toggle state almost certainly
+  lives there, in Chromium's LevelDB key-value log format - not registry, not
+  a plain JSON file. This is a materially different, harder automation
+  problem than every other setting in this document: no PowerShell-native way
+  to read or write a LevelDB store reliably, and no supported alternative
+  (WebView2's DevTools protocol could read/write it live, but that's a much
+  larger automation surface for 4 cosmetic wallpaper-app toggles).
+
+**Decision (confirmed with Andrew): left as manual, one-time settings** - set
+them once via the widget's own settings gear, same category as taskbar
+pinning and Night Light above. Not worth LevelDB parsing or DevTools
+automation for this.

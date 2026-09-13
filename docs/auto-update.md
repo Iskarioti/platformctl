@@ -21,7 +21,37 @@ Controlled by `workstation.json`'s `autoUpdate` block:
 - `packages` re-runs the platform package installer (`windows/10-install-tools.ps1`'s
   `winget upgrade` step; `brew upgrade` for the curated formula/cask list on macOS;
   `apt/dnf/pacman` upgrade of the curated list on Linux) — the same curated tool list
-  bootstrap installs, never a blanket whole-system upgrade.
+  bootstrap installs, never a blanket whole-system upgrade. On Windows this loop
+  covers every package in `windows/10-install-tools.ps1`'s full list (LibreWolf,
+  Alacritty, Wireshark, WireGuard, Logi Options+, Microsoft Teams, Outlook, etc.
+  included) via `winget upgrade` per package. On macOS/Linux, `scripts/posix/
+  upgrade.sh` checks each of those same optional GUI apps is actually installed
+  (`dpkg -s`/`rpm -q`/`pacman -Qi`/`brew list --cask`) before including it in the
+  upgrade command - `apt-get install --only-upgrade`/`brew upgrade --cask` on a
+  package/cask that was never installed errors and fails the whole step, so this
+  can't be a static list the way the always-present baseline tools are.
+
+  Two Windows-side edge cases found live (2026-09-13) and handled in
+  `windows/10-install-tools.ps1`:
+  - **A package can't upgrade its own running process.** If a package
+    declares a `ProcessName` (currently just Claude Code, since a
+    `workstation upgrade` run is very often an agent session upgrading
+    itself), the upgrade is skipped while that process is running - `winget`
+    would otherwise fail every time trying to replace its own locked exe.
+    Upgrade it yourself when no session is open, or let it self-update.
+  - **A package's "newer" version can itself be broken.** Confirmed live:
+    Bing Wallpaper's winget manifest reports `2.0.0.1` as available but its
+    installer fails with MSI error 1603 unconditionally (every retry, every
+    `--scope`) - only the older `1.1.459` actually installs. When winget
+    reports "the install technology is different from the current version
+    installed" (a case the post-upgrade check would otherwise silently miss,
+    since the package stays present either way), the script uninstalls and
+    tries the "newer" version - but first remembers the currently-installed
+    version, and if the reinstall fails, falls back to reinstalling that
+    exact version rather than leaving the package uninstalled. Net effect on
+    a machine hitting this: harmlessly repeats the same uninstall/failed-
+    install/fallback dance on every future run (a few seconds of wasted
+    work), but never ends up worse off than before.
 - `vscodeExtensions` re-runs the existing `--force` extension install loop.
 - `fonts` re-runs the idempotent, version-pinned font installer.
 

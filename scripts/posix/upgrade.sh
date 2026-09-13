@@ -88,16 +88,40 @@ for item in "${SCOPE_ARG[@]}"; do
     packages)
       case "$(uname -s)" in
         Linux)
+          # These GUI apps are only conditionally installed (some need a
+          # display - alacritty/librewolf/wireshark; solaar/wireguard don't,
+          # but still aren't part of every machine's baseline) - check each is
+          # actually installed before including it, rather than assume. An
+          # `apt-get install --only-upgrade` on a package name that was never
+          # installed (e.g. librewolf's extrepo-added repo was never enabled)
+          # errors "Unable to locate package" and fails the whole step, so
+          # this can't just list them unconditionally the way the guaranteed-
+          # present baseline tools below are.
           if command -v apt-get >/dev/null 2>&1; then
+            EXTRA_PKGS=()
+            for pkg in alacritty librewolf wireshark wireguard solaar; do
+              dpkg -s "$pkg" >/dev/null 2>&1 && EXTRA_PKGS+=("$pkg")
+            done
             run_step "packages (apt update)" sudo apt-get update
             run_step "packages (apt upgrade curated list)" sudo apt-get install --only-upgrade -y \
-              git curl unzip ca-certificates jq fzf zoxide ripgrep fd-find bat tmux direnv shellcheck python3 python3-venv fontconfig
+              git curl unzip ca-certificates jq fzf zoxide ripgrep fd-find bat tmux direnv shellcheck python3 python3-venv fontconfig \
+              "${EXTRA_PKGS[@]}"
           elif command -v dnf >/dev/null 2>&1; then
+            EXTRA_PKGS=()
+            for pkg in alacritty librewolf wireshark wireguard-tools solaar; do
+              rpm -q "$pkg" >/dev/null 2>&1 && EXTRA_PKGS+=("$pkg")
+            done
             run_step "packages (dnf upgrade curated list)" sudo dnf upgrade -y \
-              git curl unzip ca-certificates jq fzf zoxide ripgrep fd-find bat tmux direnv ShellCheck python3 fontconfig
+              git curl unzip ca-certificates jq fzf zoxide ripgrep fd-find bat tmux direnv ShellCheck python3 fontconfig \
+              "${EXTRA_PKGS[@]}"
           elif command -v pacman >/dev/null 2>&1; then
+            EXTRA_PKGS=()
+            for pkg in alacritty librewolf wireshark-qt wireguard-tools solaar; do
+              pacman -Qi "$pkg" >/dev/null 2>&1 && EXTRA_PKGS+=("$pkg")
+            done
             run_step "packages (pacman upgrade curated list)" sudo pacman -Syu --needed --noconfirm \
-              git curl unzip ca-certificates jq fzf zoxide ripgrep fd bat tmux direnv shellcheck python fontconfig
+              git curl unzip ca-certificates jq fzf zoxide ripgrep fd bat tmux direnv shellcheck python fontconfig \
+              "${EXTRA_PKGS[@]}"
           else
             log "SKIP packages: unsupported Linux package manager."
           fi
@@ -106,7 +130,17 @@ for item in "${SCOPE_ARG[@]}"; do
           run_step "packages (brew update)" brew update
           run_step "packages (brew upgrade)" brew upgrade \
             git gh jq fzf zoxide ripgrep fd bat eza tmux direnv shellcheck powershell docker docker-compose colima oh-my-posh
-          run_step "packages (brew upgrade --cask)" brew upgrade --cask visual-studio-code
+          # `brew upgrade --cask <name>` errors on a cask that was never
+          # installed - same reasoning as the Linux EXTRA_PKGS check above,
+          # check presence first rather than assume every cask this repo can
+          # install is actually present on every machine.
+          EXTRA_CASKS=()
+          for cask in visual-studio-code librewolf alacritty bingpaper logi-options+ wireshark-app wireguard microsoft-teams microsoft-outlook; do
+            brew list --cask "$cask" >/dev/null 2>&1 && EXTRA_CASKS+=("$cask")
+          done
+          if [[ "${#EXTRA_CASKS[@]}" -gt 0 ]]; then
+            run_step "packages (brew upgrade --cask)" brew upgrade --cask "${EXTRA_CASKS[@]}"
+          fi
           ;;
         *)
           log "SKIP packages: unsupported platform $(uname -s)."

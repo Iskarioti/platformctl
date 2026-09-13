@@ -6,6 +6,27 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Ordinary per-user preference values (as opposed to TaskbarDa/HideRecommended-
+# Section-style settings, some of which are policy-namespaced or MDM-contested -
+# see docs/desktop-appearance.md) share this same idempotent Test-Path-then-
+# New-Item-then-Set-ItemProperty shape often enough to warrant one helper,
+# rather than repeating the pattern by hand for every new value.
+function Set-UserDword {
+    param(
+        [Parameter(Mandatory)] [string]$Path,
+        [Parameter(Mandatory)] [string]$Name,
+        [Parameter(Mandatory)] [int]$Value,
+        [Parameter(Mandatory)] [string]$Description
+    )
+    try {
+        if (-not (Test-Path $Path)) { New-Item -Path $Path -Force -ErrorAction Stop | Out-Null }
+        Set-ItemProperty -Path $Path -Name $Name -Type DWord -Value $Value -ErrorAction Stop
+        Write-Host "[OK]   $Description"
+    } catch {
+        Write-Warning "[FAIL] $Description : $($_.Exception.Message)"
+    }
+}
+
 # Managed Taskbar/theme appearance - the macOS-side equivalent of
 # platform/macos/configure-appearance.sh's Dock sizing. Values chosen to
 # mirror that script's compact/dark defaults (see docs/desktop-appearance.md
@@ -31,22 +52,39 @@ Set-ItemProperty -Path $AdvancedKey -Name "TaskbarSi" -Type DWord -Value 0
 # TaskbarAl: 0 = left-aligned (classic), 1 = centered (Windows 11 default).
 Set-ItemProperty -Path $AdvancedKey -Name "TaskbarAl" -Type DWord -Value 1
 # TaskbarDa: 0 = Widgets button hidden, 1 = shown. Confirmed (2026-09, live +
-# web research) this write returns "Access is denied" even via reg.exe directly on
-# ANY sufficiently-updated Windows 11 install, managed or not - it's UCPD (User
-# Choice Protection Driver), a Windows security component that blocks direct
-# registry changes to certain user-facing settings (originally anti-browser-
-# hijacking, extended to Widgets), NOT an MDM/Intune policy specific to this
-# machine as first assumed. Disabling UCPD itself would be weakening a real OS
-# security control (AGENTS.md rule 3), so this stays best-effort/non-fatal; see
-# docs/desktop-appearance.md for the two supported alternatives (Settings toggle,
-# or uninstalling the Widgets/WebExperience app) - neither is wired into this
-# script since both are irreversible-ish/disruptive enough to want Andrew's
-# explicit say-so rather than silent automation.
-$widgetsBlocked = $false
+# web research + mdmdiagnosticstool.exe) this write returns "Access is denied"
+# even via reg.exe directly - blocked by UCPD (a universal Windows 11 security
+# component) AND, independently, an active Intune Policy CSP for this device's
+# NewsAndInterests policy area (confirmed via its GPBlockingRegKeyPath/
+# GPBlockingRegValueName metadata - see docs/desktop-appearance.md). Disabling
+# either would be weakening a real security/management control (AGENTS.md
+# rule 3), so the registry route stays best-effort/non-fatal.
+#
+# The settled decision for this workstation (confirmed with Andrew) is instead
+# to uninstall the Widgets app outright, which sidesteps both protections -
+# no app installed means no Widgets board or button regardless of TaskbarDa's
+# value. Idempotent: a no-op if already removed. $widgetsResolved tracks
+# whether Widgets ends up actually gone by EITHER mechanism, so the summary
+# message doesn't claim an uninstall was attempted when the app was already
+# absent, or vice versa.
+$widgetsResolved = $false
 try {
     Set-ItemProperty -Path $AdvancedKey -Name "TaskbarDa" -Type DWord -Value 0 -ErrorAction Stop
+    $widgetsResolved = $true
 } catch {
-    $widgetsBlocked = $true
+    # Best-effort - the uninstall step below is the real fallback.
+}
+
+$widgetsPkg = Get-AppxPackage -Name "*WebExperience*" -ErrorAction SilentlyContinue
+if (-not $widgetsPkg) {
+    $widgetsResolved = $true
+} else {
+    try {
+        Remove-AppxPackage -Package $widgetsPkg.PackageFullName -ErrorAction Stop
+        $widgetsResolved = $true
+    } catch {
+        Write-Host "Could not uninstall the Widgets app (WebExperience pack): $($_.Exception.Message)" -ForegroundColor Yellow
+    }
 }
 # ShowTaskViewButton: 0 = Task View button hidden, 1 = shown. Same best-effort
 # pattern as TaskbarDa above (UCPD does NOT block this one on this machine -
@@ -91,15 +129,48 @@ Set-ItemProperty -Path $StartPolicyKey -Name "HideCategoryView" -Type DWord -Val
 # still confirmed to work live.
 Set-ItemProperty -Path $StartKey -Name "AllAppsViewMode" -Type DWord -Value 0
 
+# Further Start/taskbar/tray decluttering - plain per-user preferences, not the
+# policy-namespaced keys above, so no MDM/UCPD contention expected on any of
+# these (unlike TaskbarDa/HideRecommendedSection's siblings). Each is
+# independently best-effort via Set-UserDword rather than assumed to work
+# just because it's not under a Policies\ key.
+Set-UserDword -Path $StartKey -Name "ShowRecentList" -Value 0 `
+    -Description "Start: Show recently added apps = Off"
+Set-UserDword -Path $AdvancedKey -Name "Start_TrackDocs" -Value 0 `
+    -Description "Start: Recommended/recent files and Jump Lists = Off"
+Set-UserDword -Path $AdvancedKey -Name "Start_IrisRecommendations" -Value 0 `
+    -Description "Start: Tips, shortcuts and app recommendations = Off"
+Set-UserDword -Path $AdvancedKey -Name "Start_TrackProgs" -Value 0 `
+    -Description "Start: Show most used apps = Off"
+Set-UserDword -Path $AdvancedKey -Name "Start_AccountNotifications" -Value 0 `
+    -Description "Start: Account-related notifications = Off"
+
+# Resume (Windows 11's "pick up where you left off" taskbar feature).
+Set-UserDword -Path $AdvancedKey -Name "IsEnabled" -Value 0 `
+    -Description "Taskbar: Resume = Off"
+
+# System tray icons for pen/touch/emoji input - harmless to set even on
+# hardware without a pen/touchscreen (nothing to show either way then), and
+# keeps the tray clean on hardware that does have one.
+$TabletTipKey = "HKCU:\Software\Microsoft\TabletTip\1.7"
+$PenWorkspaceKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\PenWorkspace"
+# 0 = Never, 1 = While typing, 2 = Always.
+Set-UserDword -Path $TabletTipKey -Name "EmojiAndMoreIconVisibilityState" -Value 0 `
+    -Description "System tray: Emoji and more = Never"
+Set-UserDword -Path $PenWorkspaceKey -Name "PenWorkspaceButtonDesiredVisibility" -Value 0 `
+    -Description "System tray: Pen Menu = Off"
+# 0 = Never, 1 = Always, 2 = When no keyboard is attached.
+Set-UserDword -Path $TabletTipKey -Name "TipbandDesiredVisibility" -Value 0 `
+    -Description "System tray: Touch keyboard = Never"
+
 Write-Host "Taskbar alignment/search, Win+X menu, and app theme set" -NoNewline
 Write-Host " (centered, search hidden, PowerShell on Win+X, dark)."
 Write-Host "Start Menu: Recommended section hidden, All Apps set to Category view."
-if ($widgetsBlocked) {
-    Write-Host "Widgets: could not disable via registry (Access is denied) - blocked by" -ForegroundColor Yellow
-    Write-Host "Windows's own UCPD protection, not automatable per AGENTS.md rule 3. See" -ForegroundColor Yellow
-    Write-Host "docs/desktop-appearance.md for the two supported manual alternatives." -ForegroundColor Yellow
+if ($widgetsResolved) {
+    Write-Host "Widgets: resolved (app not installed - no board/button regardless of TaskbarDa)."
 } else {
-    Write-Host "Widgets disabled."
+    Write-Host "Widgets: registry write blocked AND app uninstall failed - see" -ForegroundColor Yellow
+    Write-Host "docs/desktop-appearance.md for the remaining manual alternative (Settings toggle)." -ForegroundColor Yellow
 }
 if ($taskViewBlocked) {
     Write-Host "Task View button: could not disable (Access is denied) - likely the same" -ForegroundColor Yellow

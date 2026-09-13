@@ -23,7 +23,13 @@ $packages = @(
     @{ Name = "Logi Options+";      Id = "Logitech.OptionsPlus" },
     @{ Name = "Microsoft Teams";    Id = "Microsoft.Teams" },
     @{ Name = "Outlook for Windows"; Id = "Microsoft.Outlook" },
-    @{ Name = "Claude Code"; Id = "Anthropic.ClaudeCode" }
+    # ProcessName: this script's own upgrade path can't replace a running
+    # exe (winget: "remove: Access is denied" - confirmed live, 2026-09-13).
+    # Claude Code is very often the process actually running this script
+    # (an agent session), so its own self-upgrade is always skipped here
+    # while it's running rather than guaranteed-fail every time - upgrade it
+    # via winget yourself when no session is open, or let it self-update.
+    @{ Name = "Claude Code"; Id = "Anthropic.ClaudeCode"; ProcessName = "claude" }
     @{ Name = "Codex CLI"; Id = "OpenAI.Codex" }
     # @{ Name = "Python 3.14"; Id = "Python.Python.3.14" }
 )
@@ -37,8 +43,50 @@ foreach ($pkg in $packages) {
     winget list --id $pkg.Id --exact --source winget 2>$null | Out-Null
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Already installed. Checking for upgrade..."
-        winget upgrade --id $pkg.Id --exact --source winget --silent `
-            --accept-package-agreements --accept-source-agreements
+
+        if ($pkg.ProcessName -and (Get-Process -Name $pkg.ProcessName -ErrorAction SilentlyContinue)) {
+            Write-Host "Skipping upgrade - $($pkg.ProcessName) is currently running and would fail to" -ForegroundColor Yellow
+            Write-Host "replace its own locked exe (confirmed live: winget reports Access is denied)." -ForegroundColor Yellow
+            continue
+        }
+
+        # Captured (not streamed) so a specific winget message can be detected
+        # below - some packages (confirmed live: Bing Wallpaper) report "the
+        # install technology is different from the current version installed"
+        # instead of actually upgrading, and would otherwise silently never
+        # update since the post-upgrade verification below only checks the
+        # package is STILL present, which it always is in this case.
+        $upgradeOutput = winget upgrade --id $pkg.Id --exact --source winget --silent `
+            --accept-package-agreements --accept-source-agreements 2>&1 | Out-String
+        Write-Host $upgradeOutput.Trim()
+
+        if ($upgradeOutput -match "install technology is different") {
+            # Remember the currently-installed version before touching anything -
+            # confirmed live (Bing Wallpaper) that the "newer" version winget
+            # offers here can itself be broken (installer fails with MSI 1603,
+            # every scope, every retry) while the version already installed
+            # works fine. If the reinstall below fails, falling back to
+            # reinstalling this exact version keeps the net result "app still
+            # installed" rather than "uninstalled and never recovered."
+            $listOutput = winget list --id $pkg.Id --exact --source winget | Out-String
+            $previousVersion = $null
+            if ($listOutput -match ([regex]::Escape($pkg.Id) + '\s+(\d+(?:\.\d+)+)')) {
+                $previousVersion = $Matches[1]
+            }
+
+            Write-Host "Upgrade blocked by differing install technology - uninstalling and" -ForegroundColor Yellow
+            Write-Host "reinstalling $($pkg.Name) instead (currently $previousVersion)..." -ForegroundColor Yellow
+            winget uninstall --id $pkg.Id --exact --source winget --silent | Out-Null
+            winget install --id $pkg.Id --exact --source winget --silent `
+                --accept-package-agreements --accept-source-agreements
+
+            winget list --id $pkg.Id --exact --source winget 2>$null | Out-Null
+            if ($LASTEXITCODE -ne 0 -and $previousVersion) {
+                Write-Warning "Reinstall failed - falling back to the previously-installed version ($previousVersion) rather than leaving $($pkg.Name) uninstalled."
+                winget install --id $pkg.Id --version $previousVersion --exact --source winget --silent `
+                    --accept-package-agreements --accept-source-agreements
+            }
+        }
 
         # winget legitimately returns non-zero here when there's simply no
         # upgrade available - only treat it as a real failure if the package

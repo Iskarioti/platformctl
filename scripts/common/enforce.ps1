@@ -112,6 +112,8 @@ if ($env:OS -eq "Windows_NT") {
     $SearchKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search"
     $StartPolicyKey = "HKCU:\Software\Policies\Microsoft\Windows\Explorer"
     $StartKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Start"
+    $TabletTipKey = "HKCU:\Software\Microsoft\TabletTip\1.7"
+    $PenWorkspaceKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\PenWorkspace"
 
     $DesiredAppearance = @(
         @{ Path = $AdvancedKey; Name = "TaskbarAl"; Value = 1; Label = "Taskbar centered" }
@@ -123,6 +125,15 @@ if ($env:OS -eq "Windows_NT") {
         @{ Path = $StartPolicyKey; Name = "HideRecommendedSection"; Value = 1; Label = "Start Recommended section hidden" }
         @{ Path = $StartPolicyKey; Name = "HideCategoryView"; Value = 0; Label = "Start Category view available" }
         @{ Path = $StartKey; Name = "AllAppsViewMode"; Value = 0; Label = "Start All Apps in Category view" }
+        @{ Path = $StartKey; Name = "ShowRecentList"; Value = 0; Label = "Start recently added apps hidden" }
+        @{ Path = $AdvancedKey; Name = "Start_TrackDocs"; Value = 0; Label = "Start recommended/recent files hidden" }
+        @{ Path = $AdvancedKey; Name = "Start_IrisRecommendations"; Value = 0; Label = "Start tips/shortcuts recommendations hidden" }
+        @{ Path = $AdvancedKey; Name = "Start_TrackProgs"; Value = 0; Label = "Start most-used apps hidden" }
+        @{ Path = $AdvancedKey; Name = "Start_AccountNotifications"; Value = 0; Label = "Start account notifications hidden" }
+        @{ Path = $AdvancedKey; Name = "IsEnabled"; Value = 0; Label = "Taskbar Resume hidden" }
+        @{ Path = $TabletTipKey; Name = "EmojiAndMoreIconVisibilityState"; Value = 0; Label = "Tray emoji icon hidden" }
+        @{ Path = $PenWorkspaceKey; Name = "PenWorkspaceButtonDesiredVisibility"; Value = 0; Label = "Tray pen menu hidden" }
+        @{ Path = $TabletTipKey; Name = "TipbandDesiredVisibility"; Value = 0; Label = "Tray touch keyboard hidden" }
     )
 
     $AppearanceDrift = $false
@@ -137,16 +148,21 @@ if ($env:OS -eq "Windows_NT") {
     }
 
     # TaskbarDa (Widgets) is checked separately: Windows's own UCPD (User Choice
-    # Protection Driver) blocks direct registry writes to this value on any
-    # sufficiently-updated Windows 11 install (confirmed - see
-    # docs/desktop-appearance.md), so a mismatch here is a WARN, never a FAIL, and
-    # does not by itself trigger --repair. See that doc for the two supported
-    # manual alternatives (Settings toggle, or uninstalling the Widgets app).
+    # Protection Driver) and, independently, an active Intune Policy CSP
+    # (confirmed via mdmdiagnosticstool.exe - see docs/desktop-appearance.md)
+    # both block direct registry writes to this value on this machine, so a
+    # mismatch here is a WARN, never a FAIL, and does not by itself trigger
+    # --repair. Uninstalling the Windows Web Experience Pack sidesteps both -
+    # no app installed means no Widgets board or button regardless of
+    # TaskbarDa's value, so that's checked as an equally valid resolved state.
     $WidgetsValue = Get-RegValue $AdvancedKey "TaskbarDa"
+    $WidgetsAppInstalled = [bool](Get-AppxPackage -Name "*WebExperience*" -ErrorAction SilentlyContinue)
     if ($WidgetsValue -eq 0) {
         Pass "Desktop appearance: Widgets hidden"
+    } elseif (-not $WidgetsAppInstalled) {
+        Pass "Desktop appearance: Widgets app uninstalled (TaskbarDa still $WidgetsValue, but no app means no board/button)"
     } else {
-        Warn "Desktop appearance: Widgets not hidden (current: $WidgetsValue) - blocked by UCPD, not fixable via registry; see docs/desktop-appearance.md for manual alternatives"
+        Warn "Desktop appearance: Widgets not hidden (current: $WidgetsValue) - blocked by UCPD/Intune, not fixable via registry; see docs/desktop-appearance.md for manual alternatives"
     }
 
     if (Get-Process -Name "BingWallpaper" -ErrorAction SilentlyContinue) {
