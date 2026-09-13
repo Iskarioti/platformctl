@@ -40,6 +40,59 @@ cd system-platform-architect-workstation
 Bootstrap installs platform prerequisites, fonts, prompt, editor configuration,
 Git hooks, global workstation command and background autosync.
 
+## Device naming
+
+Every machine this repo provisions should be named `LAP-<BIOS_SERIAL>` (laptop)
+or `DSK-<BIOS_SERIAL>` (desktop) - a fixed, deterministic convention based on
+real hardware identity, not a hostname anyone has to remember or pick.
+
+```text
+workstation rename-device            # check, and rename if it doesn't match
+workstation rename-device -WhatIf    # (Windows) report what would happen, change nothing
+workstation rename-device --what-if  # (macOS/Linux) same, POSIX flag spelling
+```
+
+Idempotent and safe to run any time, not just at provisioning: it reads the
+BIOS/hardware serial number and chassis type, computes the target name, compares
+it to the current one, and only acts on a real mismatch - a machine already
+named correctly gets a clean "nothing to do," not a no-op rename.
+
+- **Device kind** is detected from the DMTF chassis-type code (the same
+  numbering Windows, Linux, and SMBIOS all use), falling back to
+  `PCSystemType`/battery presence on Windows or a `MacBook*` model-name check
+  on macOS for anything the chassis-type list doesn't cleanly cover.
+- **A missing or generic-placeholder serial number** (`"0"`, `"To Be Filled By
+  O.E.M."`, an empty string, etc. - common on VMs and some consumer hardware
+  that never had a real serial programmed) makes the script refuse outright
+  rather than build a name from garbage input.
+- **Windows computer names are capped at 15 characters** (the NetBIOS limit) -
+  a serial number long enough to exceed that gets truncated to fit, with a
+  warning, rather than let `Rename-Computer` silently truncate or reject it.
+  macOS/Linux hostnames have far more headroom (63/64 characters) so this
+  rarely matters there.
+- **Never restarts automatically.** A rename needs a restart (Windows) or at
+  least a re-login (macOS/Linux) to take full effect everywhere, but that's
+  disruptive enough to want an explicit opt-in: pass `-Restart`/`--restart`,
+  or restart manually when convenient.
+- **Not run under WSL** - WSL2's DMI data reflects the lightweight Hyper-V VM
+  it runs in, not the physical laptop/desktop's real BIOS serial, and WSL
+  itself isn't a separate device to name. Rename the Windows host instead
+  (`workstation rename-device` from Windows PowerShell); WSL's own copy of the
+  command detects it's running under WSL and skips with an explanation rather
+  than computing a name from the VM's fake identity.
+- **macOS sets all three of Apple's separate name concepts** together
+  (`ComputerName`, `HostName`, `LocalHostName` via `scutil --set`) so they
+  don't drift apart from each other.
+- Live-verified on this machine's actual hardware (a real HP laptop):
+  correctly detected as `laptop` (chassis type 10, battery present), BIOS
+  serial `5CD5354RZ5`, and - since the machine was already named
+  `LAP-5CD5354RZ5` - correctly reported "already matches, nothing to do."
+  The mismatch/truncation/generic-serial code paths were each verified with
+  controlled test inputs (not a real rename) before shipping. **Not tested
+  on real macOS or non-WSL Linux hardware** - no such machine available this
+  session; the logic mirrors the Windows script closely but hasn't been run
+  for real there.
+
 ## What "ready to work" means
 
 After bootstrap completes on any of the three platforms, without any further manual

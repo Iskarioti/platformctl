@@ -44,6 +44,7 @@ workstation apply
 workstation doctor                        # real cross-domain status - security/capacity/drift/labs/templates
 workstation enforce [--repair]
 workstation drift-check                   # running dev-services vs. development/catalog.json
+workstation rename-device [-WhatIf]       # enforce LAP-<serial>/DSK-<serial> naming, idempotent
 
 # Start a project
 workstation project templates

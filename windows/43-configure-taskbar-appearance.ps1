@@ -69,8 +69,31 @@ Set-ItemProperty -Path $SearchKey -Name "SearchboxTaskbarMode" -Type DWord -Valu
 Set-ItemProperty -Path $PersonalizeKey -Name "AppsUseLightTheme" -Type DWord -Value 0
 Set-ItemProperty -Path $PersonalizeKey -Name "SystemUsesLightTheme" -Type DWord -Value 0
 
+# Start Menu: no Recommended section, All Apps in Category view. Unlike
+# ConfigureStartPins/LockedStartLayout (see docs/desktop-appearance.md -
+# those get silently ignored or wiped on this machine), these three values
+# under the SAME HKCU:\...\Policies\Microsoft\Windows\Explorer key were
+# confirmed live to actually take effect and survive an Explorer restart -
+# not every value under that key behaves the same way, so don't assume this
+# means the earlier-blocked ones would now work too.
+$StartPolicyKey = "HKCU:\Software\Policies\Microsoft\Windows\Explorer"
+$StartKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Start"
+if (-not (Test-Path $StartPolicyKey)) { New-Item -Path $StartPolicyKey -Force | Out-Null }
+if (-not (Test-Path $StartKey)) { New-Item -Path $StartKey -Force | Out-Null }
+
+# HideRecommendedSection: 1 = Recommended section removed from Start.
+Set-ItemProperty -Path $StartPolicyKey -Name "HideRecommendedSection" -Type DWord -Value 1
+# HideCategoryView: 0 = Category view available (and becomes the default);
+# 1 would remove it and force Grid - we want it available, so 0.
+Set-ItemProperty -Path $StartPolicyKey -Name "HideCategoryView" -Type DWord -Value 0
+# AllAppsViewMode: 0 = Category, 1 = Grid, 2 = List. Not a formally documented
+# policy (unlike the two above), just the plain per-user preference value -
+# still confirmed to work live.
+Set-ItemProperty -Path $StartKey -Name "AllAppsViewMode" -Type DWord -Value 0
+
 Write-Host "Taskbar alignment/search, Win+X menu, and app theme set" -NoNewline
 Write-Host " (centered, search hidden, PowerShell on Win+X, dark)."
+Write-Host "Start Menu: Recommended section hidden, All Apps set to Category view."
 if ($widgetsBlocked) {
     Write-Host "Widgets: could not disable via registry (Access is denied) - blocked by" -ForegroundColor Yellow
     Write-Host "Windows's own UCPD protection, not automatable per AGENTS.md rule 3. See" -ForegroundColor Yellow

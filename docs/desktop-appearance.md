@@ -103,6 +103,19 @@ as the existing `alacritty`/`librewolf` GUI installs):
   surfaces (the Win+X menu vs. Windows Terminal's profile list).
 - Dark mode via `HKCU:\...\Themes\Personalize`: `AppsUseLightTheme=0`,
   `SystemUsesLightTheme=0`.
+- Start Menu: no Recommended section, All Apps in Category view -
+  `HideRecommendedSection=1` and `HideCategoryView=0` under `HKCU:\Software\
+  Policies\Microsoft\Windows\Explorer` (the real, Microsoft-documented Start
+  Menu policies - "Remove Recommended section from Start Menu" and the
+  Category-view policy), plus `AllAppsViewMode=0` under `HKCU:\Software\
+  Microsoft\Windows\CurrentVersion\Start` (an undocumented but confirmed-
+  working per-user preference, not a formal policy). **Confirmed live
+  (2026-09-13) that these three specifically DO take effect and survive an
+  Explorer restart** - unlike `ConfigureStartPins`/`LockedStartLayout` under
+  that very same `Policies\Explorer` key, which get silently ignored or
+  wiped on this machine (see the pinning section below). Not every value
+  under a policy key behaves the same way; each needs its own live test,
+  not an assumption based on a sibling value's result.
 - Restarts Explorer to apply immediately (`-NoRestartExplorer` skips this - open
   File Explorer windows briefly close/reopen otherwise).
 - Wallpaper: `Microsoft.BingWallpaper` via winget (`windows/10-install-tools.ps1`).

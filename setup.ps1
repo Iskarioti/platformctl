@@ -217,6 +217,15 @@ switch ($Command.ToLowerInvariant()) {
         }
     }
 
+    "rename-device" {
+        if ($IsWindows -or $env:OS -eq "Windows_NT") {
+            Invoke-RepoScript -Path "scripts\common\rename-device.ps1" -Arguments $Rest
+        } else {
+            & bash (Join-Path $Root "scripts/posix/rename-device.sh") @Rest
+            exit $LASTEXITCODE
+        }
+    }
+
     "dry-run" { Invoke-RepoScript -Path "scripts\ci\dry-run.ps1" -Arguments $Rest }
 
     default {

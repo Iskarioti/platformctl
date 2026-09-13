@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.22.0
+
+New `workstation rename-device` command: enforces `LAP-<BIOS_SERIAL>` (laptop)
+/ `DSK-<BIOS_SERIAL>` (desktop) as the standing device-naming convention,
+idempotent (checks the current name first, only acts on a real mismatch).
+Windows side (`scripts/common/rename-device.ps1`) live-verified on this
+machine's real hardware - correctly detected as a laptop via chassis type,
+read the real BIOS serial, and correctly reported "already matches" since
+this machine (`LAP-5CD5354RZ5`) was already named per this exact convention.
+Mismatch, 15-character NetBIOS truncation, and generic/missing-serial
+refusal code paths each verified with controlled test inputs before
+shipping. macOS/Linux side (`scripts/posix/rename-device.sh`) mirrors the
+same logic via `scutil --set`/`hostnamectl set-hostname` - not tested on
+real hardware, no such machine available this session. Skips cleanly under
+WSL (its DMI data reflects the Hyper-V VM, not the real host). Never
+restarts automatically - a rename needs a restart/re-login to fully take
+effect, disruptive enough to require an explicit `-Restart`/`--restart`.
+
 ## 3.21.0
 
 Desktop appearance (Windows taskbar/Start Menu, cross-platform app installs)

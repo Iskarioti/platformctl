@@ -175,6 +175,7 @@ PY
   restore) exec "$ROOT/scripts/posix/restore.sh" "$@" ;;
   dr-drill) exec "$ROOT/scripts/posix/dr-drill.sh" "$@" ;;
   drift-check) exec "$ROOT/scripts/posix/drift-check.sh" "$@" ;;
+  rename-device) exec "$ROOT/scripts/posix/rename-device.sh" "$@" ;;
   changelog)
     if command -v pwsh >/dev/null 2>&1; then
       exec pwsh -NoLogo -NoProfile -File "$ROOT/scripts/common/changelog-preview.ps1" "$@"

@@ -110,6 +110,8 @@ if ($env:OS -eq "Windows_NT") {
     $AdvancedKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
     $PersonalizeKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
     $SearchKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search"
+    $StartPolicyKey = "HKCU:\Software\Policies\Microsoft\Windows\Explorer"
+    $StartKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Start"
 
     $DesiredAppearance = @(
         @{ Path = $AdvancedKey; Name = "TaskbarAl"; Value = 1; Label = "Taskbar centered" }
@@ -118,6 +120,9 @@ if ($env:OS -eq "Windows_NT") {
         @{ Path = $AdvancedKey; Name = "ShowTaskViewButton"; Value = 0; Label = "Task View button hidden" }
         @{ Path = $PersonalizeKey; Name = "AppsUseLightTheme"; Value = 0; Label = "Apps dark mode" }
         @{ Path = $PersonalizeKey; Name = "SystemUsesLightTheme"; Value = 0; Label = "System dark mode" }
+        @{ Path = $StartPolicyKey; Name = "HideRecommendedSection"; Value = 1; Label = "Start Recommended section hidden" }
+        @{ Path = $StartPolicyKey; Name = "HideCategoryView"; Value = 0; Label = "Start Category view available" }
+        @{ Path = $StartKey; Name = "AllAppsViewMode"; Value = 0; Label = "Start All Apps in Category view" }
     )
 
     $AppearanceDrift = $false
