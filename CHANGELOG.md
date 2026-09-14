@@ -1,5 +1,48 @@
 # Changelog
 
+## 3.23.7
+
+Andrew asked for Alacritty to also be centered on screen, like Windows
+Terminal's `centerOnLaunch`. Alacritty's config schema has no such option -
+`[window.position]` only sets fixed absolute pixel coordinates, which would
+be wrong on a different monitor/resolution. Added
+`scripts/windows/launch-alacritty-centered.ps1`: starts Alacritty normally,
+finds its real window, and repositions (never resizes) it to the center of
+whichever monitor it opened on. Wired in via a per-user Start Menu shortcut
+(`43-configure-taskbar-appearance.ps1` now creates/updates
+`Alacritty.lnk`, which silently shadows the vendor MSI's own all-users
+shortcut of the same name - confirmed live, Explorer shows only the
+per-user copy when both exist) launched hidden through the existing
+wscript.exe/run-hidden.vbs pattern, so only Alacritty's real window ever
+appears.
+
+**Two real bugs found and fixed while live-testing** (not just written and
+assumed correct - centering was actually verified against real on-screen
+window coordinates, repeatedly):
+1. A one-shot `GetWindowRect`+`SetWindowPos` right after the window handle
+   appeared centered the window against its initial ~16x16 stub size (winit
+   grows the real window to its configured grid on a later tick), leaving
+   it visibly off-center once it actually resized.
+2. Root cause turned out deeper: `[System.Diagnostics.Process].
+   MainWindowHandle` is unreliable for Alacritty specifically - confirmed
+   live it has two visible top-level windows under the same PID at once
+   (the real terminal, already full-size and stationary from the moment it
+   appears; and an unrelated ~16x16 helper window at 0,0, likely a winit/
+   DirectComposition implementation detail) - and `MainWindowHandle` would
+   inconsistently latch onto either one. Fixed by enumerating the process's
+   own windows directly (`EnumWindows`+`GetWindowThreadProcessId`) and
+   picking the one whose size is above a sane threshold, rather than
+   trusting `MainWindowHandle` at all.
+
+Verified live across 4 repeated fresh launches (`Get-Process | Stop-Process`
+then relaunch) via the actual Start Menu shortcut, not just the underlying
+script directly: window landed at the exact expected centered pixel
+coordinates every time (e.g. X=364/Y=136 on this machine's 1920x1200
+screen, matching the computed center to within 1px rounding).
+macOS/Linux have no equivalent launcher (X11's `wmctrl` could do the same
+trick, Wayland/WSLg cannot cleanly) - documented as out of scope until
+asked for, in the shared config file's own header.
+
 ## 3.23.6
 
 Matched Alacritty's window size/font to Windows Terminal's actual profile

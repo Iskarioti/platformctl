@@ -18,6 +18,17 @@
 # feel identical: 144x46 cells, "JetBrainsMono Nerd Font Mono" @ 11pt, 12/8
 # padding. This file is shared across Windows/macOS/Linux (no per-OS override
 # mechanism today), so the match applies everywhere, not just Windows.
+#
+# Window *position* (matching Windows Terminal's centerOnLaunch) has no
+# equivalent config key here - Alacritty's [window.position] only sets fixed
+# absolute pixel coordinates, wrong on any other monitor/resolution. On
+# Windows this is instead handled by scripts/windows/launch-alacritty-
+# centered.ps1, a launcher that starts Alacritty and repositions its real
+# window (found by size, not the unreliable Process.MainWindowHandle) to the
+# center of whichever monitor it opened on - wired in via the Start Menu
+# shortcut scripts/windows/43-configure-taskbar-appearance.ps1 manages.
+# macOS/Linux have no equivalent launcher yet (X11's `wmctrl` could do the
+# same trick, Wayland/WSLg cannot) - out of scope until asked for.
 
 [bell]
 animation = "EaseOutExpo"

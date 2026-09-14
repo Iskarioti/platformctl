@@ -195,6 +195,47 @@ if (-not (Get-Process -Name "BingWallpaper" -ErrorAction SilentlyContinue)) {
     Write-Host "Bing Wallpaper already running."
 }
 
+# Alacritty's own MSI-installed Start Menu shortcut launches alacritty.exe
+# directly with no way to center it (see scripts/windows/
+# launch-alacritty-centered.ps1's header for why that can't just be a config
+# value). A per-user Start Menu shortcut of the same name/relative path
+# silently shadows the all-users one Alacritty's installer creates (confirmed
+# live: Windows Explorer shows only the per-user copy when both exist), so
+# creating this one here - pointed at the centering launcher via the same
+# wscript.exe/run-hidden.vbs hidden-launch pattern used elsewhere in this repo
+# - replaces the vendor shortcut without touching or uninstalling it.
+# Idempotent: overwriting an identical .lnk is a no-op.
+#
+# This does NOT fix a taskbar pin created before this shortcut existed -
+# Windows taskbar pins snapshot whatever target the pinned shortcut had at
+# pin time, not a live reference. If Alacritty was already pinned to the
+# taskbar from an earlier session, unpin it and re-pin from this Start Menu
+# entry once to pick up centering.
+try {
+    $AlacrittyExeForShortcut = "C:\Program Files\Alacritty\alacritty.exe"
+    if (Test-Path -LiteralPath $AlacrittyExeForShortcut -PathType Leaf) {
+        $CenterLauncher = Join-Path $PSScriptRoot "..\scripts\windows\launch-alacritty-centered.ps1"
+        $HiddenRunnerForShortcut = Join-Path $PSScriptRoot "..\scripts\windows\run-hidden.vbs"
+        $PwshExe = (Get-Command "pwsh.exe" -ErrorAction SilentlyContinue).Source
+        if (-not $PwshExe) { $PwshExe = "pwsh.exe" }
+
+        $ShortcutPath = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Alacritty.lnk"
+        $WshShell = New-Object -ComObject WScript.Shell
+        $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
+        $Shortcut.TargetPath = "wscript.exe"
+        $Shortcut.Arguments = "//B `"$HiddenRunnerForShortcut`" `"$PwshExe`" -NoLogo -NoProfile -File `"$CenterLauncher`""
+        $Shortcut.WorkingDirectory = $env:USERPROFILE
+        $Shortcut.IconLocation = "$AlacrittyExeForShortcut,0"
+        $Shortcut.Description = "Alacritty (centered on launch)"
+        $Shortcut.Save()
+        Write-Host "[OK] Alacritty Start Menu shortcut now launches centered"
+    } else {
+        Write-Host "[SKIP] Alacritty not installed - centered-launch shortcut not created" -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "[FAIL] Could not create centered-launch shortcut for Alacritty - $($_.Exception.Message)" -ForegroundColor Red
+}
+
 if (-not $NoRestartExplorer) {
     Write-Host "Restarting Explorer to apply changes (open File Explorer windows will briefly close/reopen)..."
     Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
