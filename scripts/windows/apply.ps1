@@ -30,6 +30,17 @@ Copy-ManagedFile "shell\oh-my-posh\tokyonight-architect.omp.json" `
 
 Copy-ManagedFile "shell\powershell\Microsoft.PowerShell_profile.ps1" $PROFILE
 
+# Alacritty (installed on Windows via windows/10-install-tools.ps1 and pinned
+# to Start - see docs/desktop-appearance.md) reads its config from Roaming
+# AppData on Windows, unlike the POSIX side's ~/.config/alacritty/ - this was
+# a real gap (confirmed live, 2026-09-14): the config was already deployed to
+# WSL/macOS via scripts/posix/apply.sh but never to Windows's own Alacritty,
+# which was silently running on defaults instead of the ported .dotfiles
+# config (see shell/alacritty/architect.alacritty.toml's own header for the
+# porting details and the two deliberate deviations from the source).
+Copy-ManagedFile "shell\alacritty\architect.alacritty.toml" `
+    (Join-Path $env:APPDATA "alacritty\alacritty.toml")
+
 # VS Code
 $VsCodeSettings = Join-Path $env:APPDATA "Code\User\settings.json"
 Copy-ManagedFile "vscode\settings.json" $VsCodeSettings

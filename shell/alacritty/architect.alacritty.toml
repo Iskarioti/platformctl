@@ -11,6 +11,13 @@
 #     shell differs per OS (bash on Linux, zsh on macOS - workstation.json
 #     features.*.shell) - let Alacritty use the user's normal login shell
 #     instead of hardcoding one that may not even be installed.
+#
+# [font]/[window.dimensions]/[window.padding] are deliberately matched to this
+# repo's Windows Terminal profile (windows-terminal/settings.json's
+# profiles.defaults + root-level initialCols/initialRows) so both terminals
+# feel identical: 144x46 cells, "JetBrainsMono Nerd Font Mono" @ 11pt, 12/8
+# padding. This file is shared across Windows/macOS/Linux (no per-OS override
+# mechanism today), so the match applies everywhere, not just Windows.
 
 [bell]
 animation = "EaseOutExpo"
@@ -68,17 +75,17 @@ shape = "Block"
 TERM = "xterm-256color"
 
 [font]
-size = 14
+size = 11
 
 [font.bold]
-family = "JetBrainsMono Nerd Font"
+family = "JetBrainsMono Nerd Font Mono"
 style = "Bold"
 
 [font.italic]
-family = "JetBrainsMono Nerd Font"
+family = "JetBrainsMono Nerd Font Mono"
 
 [font.normal]
-family = "JetBrainsMono Nerd Font"
+family = "JetBrainsMono Nerd Font Mono"
 style = "Regular"
 
 [mouse]
@@ -95,14 +102,18 @@ semantic_escape_chars = ",│`|:\"' ()[]{}<>"
 decorations = "full"
 dynamic_title = true
 option_as_alt = "Both"
+# Windows Terminal's "centerOnLaunch" has no Alacritty config equivalent
+# (Alacritty's [window.position] sets fixed absolute pixel coordinates, not
+# "center on this monitor" - there's no boolean for that in its TOML schema).
+# Left unset so Alacritty falls back to normal OS/WM window placement.
 
 [window.dimensions]
 columns = 144
-lines = 48
+lines = 46
 
 [window.padding]
-x = 4
-y = 4
+x = 12
+y = 8
 
 [general]
 live_config_reload = true

@@ -125,12 +125,18 @@ switch to Powerlevel10k or another prompt framework:
 - `zsh-users/zsh-autosuggestions`
 - `zsh-users/zsh-syntax-highlighting`
 
-A managed Alacritty config (`shell/alacritty/architect.alacritty.toml` ->
-`~/.config/alacritty/alacritty.toml`, Tokyo Night colors, JetBrainsMono Nerd
-Font) is also deployed on macOS/Linux, installed via `brew install --cask
-alacritty` (macOS) or apt/dnf/pacman (Linux, best-effort - only useful with an
-actual display, e.g. WSLg). Windows still standardizes on Windows Terminal
-only - this doesn't change that.
+A managed Alacritty config (`shell/alacritty/architect.alacritty.toml`, Tokyo
+Night colors, JetBrainsMono Nerd Font - ported from `Iskarioti/.dotfiles`, see
+that file's own header for the two deliberate deviations from the source) is
+deployed on every platform: `~/.config/alacritty/alacritty.toml` on macOS/
+Linux (installed via `brew install --cask alacritty` on macOS, apt/dnf/pacman
+on Linux - best-effort there, only useful with an actual display e.g. WSLg),
+and `%APPDATA%\alacritty\alacritty.toml` on Windows (installed via
+`windows/10-install-tools.ps1`, pinned to the taskbar - see
+`docs/desktop-appearance.md`). Windows Terminal remains the *only* Windows
+Terminal profile (PowerShell 7, per AGENTS.md rule 6) - Alacritty is an
+additional, separately-pinned terminal application, not a replacement for
+Windows Terminal's own configuration.
 
 `scripts/posix/apply.sh` also deploys a managed tmux config
 (`shell/tmux/architect.tmux.conf` -> `~/.config/tmux/tmux.conf`: vim-style

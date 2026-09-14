@@ -68,7 +68,8 @@ $Failures = 0
 function Invoke-ScopeScript {
     param(
         [string]$Label,
-        [string]$RelativePath
+        [string]$RelativePath,
+        [string[]]$Arguments = @()
     )
     $Path = Join-Path $Root $RelativePath
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
@@ -76,7 +77,7 @@ function Invoke-ScopeScript {
         return
     }
     Write-Log "RUN $Label ($RelativePath)"
-    & pwsh.exe -NoLogo -NoProfile -File $Path 2>&1 | ForEach-Object { Write-Log "  $_" }
+    & pwsh.exe -NoLogo -NoProfile -File $Path @Arguments 2>&1 | ForEach-Object { Write-Log "  $_" }
     if ($LASTEXITCODE -ne 0) {
         Write-Log "FAIL $Label (exit $LASTEXITCODE)"
         $script:Failures++
@@ -96,6 +97,11 @@ foreach ($Item in $RequestedScope) {
                 Write-Log "SKIP packages: winget package upgrade requires an elevated session (windows/10-install-tools.ps1 requires admin)."
                 continue
             }
+            # windows\10-install-tools.ps1 itself now reinstates managed app
+            # configuration/state (e.g. relaunching Bing Wallpaper if a
+            # reinstall stopped it) at its own tail, unconditionally - moved
+            # there (2026-09-14) so it's self-contained for ANY caller, not
+            # just this one. No separate step needed here any more.
             Invoke-ScopeScript -Label "packages" -RelativePath "windows\10-install-tools.ps1"
         }
         "vscodeExtensions" {

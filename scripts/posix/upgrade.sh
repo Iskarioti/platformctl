@@ -141,6 +141,13 @@ for item in "${SCOPE_ARG[@]}"; do
           if [[ "${#EXTRA_CASKS[@]}" -gt 0 ]]; then
             run_step "packages (brew upgrade --cask)" brew upgrade --cask "${EXTRA_CASKS[@]}"
           fi
+          # Reinstate managed appearance/app config after packages update -
+          # same reasoning as the Windows side (scripts/common/upgrade.ps1):
+          # a cask upgrade/reinstall can silently reset state this repo
+          # manages (e.g. Bing Wallpaper needing relaunching). Best-effort -
+          # a bootstrap run doesn't fail over this cosmetic step, matching
+          # how platform/macos/bootstrap.sh itself calls this script.
+          run_step "reinstate-config" "$ROOT/platform/macos/configure-appearance.sh"
           ;;
         *)
           log "SKIP packages: unsupported platform $(uname -s)."

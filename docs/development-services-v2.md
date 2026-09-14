@@ -57,6 +57,12 @@ Two parts, mirroring `workstation dashboard enable`/`docs/control-plane.md`:
   services autostart enable` on Windows installs both parts (WSL-side +
   logon task) in one command; run from inside WSL directly, it only does the
   WSL-side half and expects the Windows-side command to be run once too.
+  Runs fully silently - routed through `wscript.exe`/`run-hidden.vbs` like
+  every other scheduled task this repo installs, so no terminal window
+  appears at login (confirmed live 2026-09-14: the task originally launched
+  `wsl.exe` directly and flashed a visible console window every logon -
+  Task Scheduler's own "Hidden" task setting does not suppress the window a
+  directly-launched .exe opens; fixed, re-registered, and verified quiet).
 
 Add `restart: unless-stopped` to any other dev-service's `compose.yaml` to
 make it eligible, then include its id in the `autostart enable`/Scheduled

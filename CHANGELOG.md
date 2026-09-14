@@ -1,5 +1,108 @@
 # Changelog
 
+## 3.23.6
+
+Matched Alacritty's window size/font to Windows Terminal's actual profile
+(`windows-terminal/settings.json`), per Andrew's request. Windows Terminal
+uses `initialCols=144`/`initialRows=46`, `font.face="JetBrainsMono Nerd Font
+Mono"` @ 11pt, and `padding="12, 8, 12, 8"`; Alacritty
+(`shell/alacritty/architect.alacritty.toml`) was previously 144x48,
+`"JetBrainsMono Nerd Font"` (no "Mono" suffix, contradicting AGENTS.md rule
+5's exact-name requirement) @ 14pt, with 4/4 padding. Updated
+`[window.dimensions]` to 144x46, `[font]`/`[font.normal]`/`[font.bold]`/
+`[font.italic]` to `"JetBrainsMono Nerd Font Mono"` @ 11, and
+`[window.padding]` to x=12/y=8. Window *position* has no equivalent: Windows
+Terminal's `centerOnLaunch` is a boolean with no Alacritty counterpart -
+Alacritty's `[window.position]` only sets fixed absolute pixel coordinates,
+not "center on this monitor" - documented as a real schema gap rather than
+faked. Since this is one shared TOML file across Windows/macOS/Linux (no
+per-OS override mechanism), the match applies identically on all three.
+Verified live: `workstation apply` (Windows) and `scripts/posix/apply.sh`
+(WSL) both redeployed, byte-identical to the repo source.
+
+## 3.23.5
+
+Audited all three points where managed app configuration (Bing Wallpaper's
+running state, etc.) needs to be reinstated - initial setup (bootstrap),
+upgrade, and a standalone re-run of `windows/10-install-tools.ps1` alone.
+The first two were already covered (bootstrap chains to
+`43-configure-taskbar-appearance.ps1` as its own step; `workstation upgrade`
+had a dedicated `reinstate-config` step) but the third wasn't - a standalone
+run of `10-install-tools.ps1` would install/upgrade packages without ever
+reinstating anything. Moved the reinstatement call into
+`10-install-tools.ps1`'s own tail instead, so it's self-contained for any
+caller; removed the now-redundant explicit step from
+`scripts/common/upgrade.ps1` (would otherwise double-run in that flow).
+Verified live: a standalone run of `10-install-tools.ps1` now correctly
+reinstates on its own, and `workstation upgrade` still runs it exactly once.
+
+## 3.23.4
+
+The Alacritty config ported from `Iskarioti/.dotfiles` back in v3.11.0
+(`shell/alacritty/architect.alacritty.toml`) was already deployed on WSL/
+macOS via `scripts/posix/apply.sh`, but `scripts/windows/apply.ps1` never
+deployed it on Windows at all - confirmed live: Alacritty is installed and
+pinned on this machine, but was silently running on Alacritty's own
+defaults instead of the ported config. Fixed: Windows's `apply.ps1` now
+copies it to `%APPDATA%\alacritty\alacritty.toml` too (Alacritty's actual
+Windows config path, different from the POSIX `~/.config/alacritty/` one).
+Verified live via `workstation apply` - deployed, byte-identical to the
+repo source. Also attempted to re-check the live upstream `.dotfiles` repo
+for drift since the original port; it now returns 404 at the repo level
+(likely made private, a good outcome given that repo was already flagged
+with two real exposed SSH private keys) - the existing, already-verified
+port stands as the source of truth going forward.
+
+## 3.23.3
+
+Two follow-ups on the Bing Wallpaper upgrade saga: (1) it's now confirmed
+*durably* broken (2.0.0.1 fails identically every retry), not just flaky, so
+`windows/10-install-tools.ps1` skips its upgrade attempt entirely via a new
+`SkipUpgrade` package flag instead of repeating the same pointless
+uninstall/reinstall dance (which also stopped the running app) every run
+for zero gain. (2) New general requirement: managed app configuration/state
+now gets reinstated automatically after `workstation upgrade`'s `packages`
+step, since a package reinstall can silently undo it - `windows\43-
+configure-taskbar-appearance.ps1 -NoRestartExplorer` (macOS: `platform/
+macos/configure-appearance.sh`) now runs right after `packages`, idempotent.
+Verified live end-to-end via a real `workstation upgrade` run: Bing
+Wallpaper's upgrade was correctly skipped and it stayed running throughout.
+
+## 3.23.2
+
+Fixed a real, user-visible bug: `WorkstationDevServicesAutostart` (and the
+same latent bug in `WorkstationDashboardAutostart`) launched `wsl.exe`
+directly via `schtasks.exe`, which opens a visible console window at every
+logon - Task Scheduler's own "Hidden" task setting only hides the task from
+Task Scheduler's UI, it does not suppress a directly-launched .exe's window.
+Both now route through `wscript.exe`/`run-hidden.vbs`, the same pattern
+already used by `WorkstationSetupAutoSync`/`WorkstationAutoUpgrade` - just
+never applied here when these two tasks were added. Re-registered the
+dev-services task on this machine and confirmed: manually triggered it,
+redis + redisinsight came up, no window appeared. Swept every other
+`Workstation*` scheduled task on this machine - all three registered tasks
+now correctly hidden-wrapped.
+
+Also did a full re-verification pass across everything from this session's
+work (`workstation validate`/`enforce`/`doctor` on Windows, `rename-device
+-WhatIf`, Bing Wallpaper running, Claude Code version) - all confirmed
+clean: 0 failures, 0 warnings.
+
+## 3.23.1
+
+Fixed a real regression in last version's Bing Wallpaper fallback: it
+reinstalled whichever version was *currently installed* if the "newer"
+winget version failed - but Bing Wallpaper self-updates via its own
+internal updater independent of winget, so the installed version
+(confirmed live: `1.1.463.0`) can drift to something winget's own catalog
+has never heard of. `winget install --version 1.1.463.0` then fails "No
+version found matching," leaving the app completely uninstalled - the exact
+failure mode this fallback was supposed to prevent. Fixed to fall back to
+winget's own catalog (`winget show --versions`), not the locally-installed
+version - confirmed live, now correctly falls back to `1.1.459` (the
+catalog's real second entry) and reinstalls successfully. Bing Wallpaper
+restored on this machine and running again.
+
 ## 3.23.0
 
 Checked WSL/Linux-side status for real (`workstation doctor`/`enforce` from

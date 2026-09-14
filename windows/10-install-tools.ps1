@@ -7,7 +7,16 @@ $packages = @(
     @{ Name = "Visual Studio Code"; Id = "Microsoft.VisualStudioCode" },
     @{ Name = "LibreWolf";          Id = "LibreWolf.LibreWolf" },
     @{ Name = "Alacritty";          Id = "Alacritty.Alacritty" },
-    @{ Name = "Bing Wallpaper";     Id = "Microsoft.BingWallpaper" },
+    # SkipUpgrade: Bing Wallpaper's winget-advertised "newer" version
+    # (2.0.0.1) is durably broken on this class of machine - confirmed live,
+    # repeatedly (2026-09-13/14), every retry and every --scope fails with
+    # MSI 1603, and the uninstall/reinstall dance to work around it kills the
+    # running app every single run for no actual gain (it always falls back
+    # to the same 1.1.459 anyway). Skipping the upgrade attempt entirely
+    # avoids that pointless churn; the fallback-version logic above stays in
+    # the codebase for any OTHER package that hits the same "install
+    # technology is different" message for real.
+    @{ Name = "Bing Wallpaper";     Id = "Microsoft.BingWallpaper"; SkipUpgrade = "2.0.0.1 is a known-broken winget package (MSI 1603, confirmed repeatedly) - see docs/desktop-appearance.md" },
     @{ Name = "MiKTeX";             Id = "MiKTeX.MiKTeX" },
     @{ Name = "Pandoc";             Id = "JohnMacFarlane.Pandoc" },
     @{ Name = "Quarto";             Id = "Posit.Quarto" },
@@ -50,6 +59,11 @@ foreach ($pkg in $packages) {
             continue
         }
 
+        if ($pkg.SkipUpgrade) {
+            Write-Host "Skipping upgrade - $($pkg.SkipUpgrade)" -ForegroundColor Yellow
+            continue
+        }
+
         # Captured (not streamed) so a specific winget message can be detected
         # below - some packages (confirmed live: Bing Wallpaper) report "the
         # install technology is different from the current version installed"
@@ -61,30 +75,39 @@ foreach ($pkg in $packages) {
         Write-Host $upgradeOutput.Trim()
 
         if ($upgradeOutput -match "install technology is different") {
-            # Remember the currently-installed version before touching anything -
-            # confirmed live (Bing Wallpaper) that the "newer" version winget
-            # offers here can itself be broken (installer fails with MSI 1603,
-            # every scope, every retry) while the version already installed
-            # works fine. If the reinstall below fails, falling back to
-            # reinstalling this exact version keeps the net result "app still
-            # installed" rather than "uninstalled and never recovered."
-            $listOutput = winget list --id $pkg.Id --exact --source winget | Out-String
-            $previousVersion = $null
-            if ($listOutput -match ([regex]::Escape($pkg.Id) + '\s+(\d+(?:\.\d+)+)')) {
-                $previousVersion = $Matches[1]
-            }
+            # Fallback target must come from WINGET'S OWN CATALOG (`winget show
+            # --versions`), NOT the currently-installed version - confirmed live
+            # (2026-09-14) that these can diverge: Bing Wallpaper self-updates
+            # via its own internal updater independent of winget (observed
+            # installed version 1.1.463.0, which winget's catalog has never
+            # heard of - only 2.0.0.1 and 1.1.459 are real install targets).
+            # The first version reinstall attempt used that drifted version as
+            # a fallback, got "No version found matching," and left Bing
+            # Wallpaper completely uninstalled with no recovery - a real
+            # regression this replaces. The catalog's second-newest entry
+            # (skipping whichever "latest" just failed) is what's actually
+            # guaranteed installable.
+            $versionsOutput = winget show --id $pkg.Id --versions --source winget | Out-String
+            $availableVersions = [regex]::Matches($versionsOutput, '(?m)^\s*(\d+(?:\.\d+)+)\s*$') |
+                ForEach-Object { $_.Groups[1].Value }
+            $fallbackVersion = $availableVersions | Select-Object -Skip 1 -First 1
 
             Write-Host "Upgrade blocked by differing install technology - uninstalling and" -ForegroundColor Yellow
-            Write-Host "reinstalling $($pkg.Name) instead (currently $previousVersion)..." -ForegroundColor Yellow
+            Write-Host "reinstalling $($pkg.Name) instead..." -ForegroundColor Yellow
             winget uninstall --id $pkg.Id --exact --source winget --silent | Out-Null
             winget install --id $pkg.Id --exact --source winget --silent `
                 --accept-package-agreements --accept-source-agreements
 
             winget list --id $pkg.Id --exact --source winget 2>$null | Out-Null
-            if ($LASTEXITCODE -ne 0 -and $previousVersion) {
-                Write-Warning "Reinstall failed - falling back to the previously-installed version ($previousVersion) rather than leaving $($pkg.Name) uninstalled."
-                winget install --id $pkg.Id --version $previousVersion --exact --source winget --silent `
+            if ($LASTEXITCODE -ne 0 -and $fallbackVersion) {
+                Write-Warning "Reinstall failed - falling back to winget's previous catalog version ($fallbackVersion) rather than leaving $($pkg.Name) uninstalled."
+                winget install --id $pkg.Id --version $fallbackVersion --exact --source winget --silent `
                     --accept-package-agreements --accept-source-agreements
+
+                winget list --id $pkg.Id --exact --source winget 2>$null | Out-Null
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Warning "Fallback install also failed - $($pkg.Name) may now be uninstalled. Install it manually: winget install --id $($pkg.Id) --version $fallbackVersion --source winget"
+                }
             }
         }
 
@@ -200,3 +223,20 @@ if ($failed.Count -gt 0) {
 }
 
 Write-Host "All baseline Windows tools are installed and verified." -ForegroundColor Green
+
+# Reinstate managed app configuration/state right here too, not just in the
+# two callers that already chain to this (platform/windows/bootstrap.ps1 runs
+# it as a separate later step; scripts/common/upgrade.ps1 runs it right after
+# this script as its own "reinstate-config" step) - confirmed live (2026-09-13/
+# 14) that a package reinstall (Bing Wallpaper, specifically) can leave an app
+# installed but not running, and this makes that self-healing regardless of
+# how/when this script gets invoked, rather than depending on every current
+# and future caller remembering to chain it. Idempotent and cheap either way -
+# a harmless no-op if nothing actually needed restoring, and if a caller also
+# runs it again right after (bootstrap does), that second run is a no-op too.
+$AppearanceScript = Join-Path $PSScriptRoot "43-configure-taskbar-appearance.ps1"
+if (Test-Path -LiteralPath $AppearanceScript -PathType Leaf) {
+    Write-Host ""
+    Write-Host "Reinstating managed app configuration/state..." -ForegroundColor Cyan
+    & pwsh.exe -NoLogo -NoProfile -File $AppearanceScript -NoRestartExplorer
+}

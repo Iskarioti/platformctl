@@ -26,10 +26,32 @@ $ErrorActionPreference = "Stop"
 
 $Distro = "Ubuntu-24.04"
 $ServiceArgs = $Services -join " "
-$TaskCommand = "wsl.exe -d $Distro -- bash -lc `"workstation services up $ServiceArgs`""
+$HiddenRunner = Join-Path $PSScriptRoot "run-hidden.vbs"
 
-schtasks.exe /Create /F /SC ONLOGON /TN "WorkstationDevServicesAutostart" /TR $TaskCommand /RL LIMITED
-if ($LASTEXITCODE -ne 0) { throw "Could not create dev-services autostart scheduled task." }
+# Route through wscript.exe + run-hidden.vbs, and use the ScheduledTasks
+# module rather than schtasks.exe - confirmed live (2026-09-14) this task, as
+# originally written with a plain `schtasks.exe /TR "wsl.exe ..."`, opened a
+# visible console window at every logon: Task Scheduler's own task-level
+# "Hidden" setting only hides the task from Task Scheduler's UI, it does NOT
+# suppress the window a directly-launched wsl.exe allocates (see
+# run-hidden.vbs for the full explanation) - matching the exact same gotcha
+# already fixed for WorkstationSetupAutoSync/WorkstationAutoUpgrade
+# (install-autosync.ps1/install-autoupgrade.ps1), just never applied here
+# when this task was first added.
+$Action = New-ScheduledTaskAction `
+    -Execute "wscript.exe" `
+    -Argument "//B `"$HiddenRunner`" `"wsl.exe`" -d $Distro -- bash -lc `"workstation services up $ServiceArgs`""
+
+$Trigger = New-ScheduledTaskTrigger -AtLogOn
+$Settings = New-ScheduledTaskSettingsSet -StartWhenAvailable
+
+Register-ScheduledTask `
+    -TaskName "WorkstationDevServicesAutostart" `
+    -Action $Action `
+    -Trigger $Trigger `
+    -Settings $Settings `
+    -Force |
+    Out-Null
 
 Write-Host "Dev-services autostart-at-logon task installed for: $ServiceArgs"
 Write-Host "This only wakes WSL/starts the containers - the actual restart:unless-stopped"

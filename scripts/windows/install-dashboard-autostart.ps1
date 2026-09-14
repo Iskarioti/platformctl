@@ -11,10 +11,28 @@ $ErrorActionPreference = "Stop"
 # case elsewhere in this repo), so a bare name is fine here.
 
 $Distro = "Ubuntu-24.04"
-$TaskCommand = "wsl.exe -d $Distro -- bash -lc `"systemctl --user start workstation-dashboard.service`""
+$HiddenRunner = Join-Path $PSScriptRoot "run-hidden.vbs"
 
-schtasks.exe /Create /F /SC ONLOGON /TN "WorkstationDashboardAutostart" /TR $TaskCommand /RL LIMITED
-if ($LASTEXITCODE -ne 0) { throw "Could not create dashboard autostart scheduled task." }
+# Route through wscript.exe + run-hidden.vbs, and use the ScheduledTasks
+# module rather than schtasks.exe - same fix as
+# install-dev-services-autostart.ps1, for the same reason: a plain
+# `schtasks.exe /TR "wsl.exe ..."` task opens a visible console window at
+# every logon regardless of the task's own "Hidden" setting (see
+# run-hidden.vbs).
+$Action = New-ScheduledTaskAction `
+    -Execute "wscript.exe" `
+    -Argument "//B `"$HiddenRunner`" `"wsl.exe`" -d $Distro -- bash -lc `"systemctl --user start workstation-dashboard.service`""
+
+$Trigger = New-ScheduledTaskTrigger -AtLogOn
+$Settings = New-ScheduledTaskSettingsSet -StartWhenAvailable
+
+Register-ScheduledTask `
+    -TaskName "WorkstationDashboardAutostart" `
+    -Action $Action `
+    -Trigger $Trigger `
+    -Settings $Settings `
+    -Force |
+    Out-Null
 
 Write-Host "Dashboard autostart-at-logon task installed."
 Write-Host "This only wakes WSL/starts the service - install the systemd unit first with:"

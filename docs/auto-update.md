@@ -39,19 +39,42 @@ Controlled by `workstation.json`'s `autoUpdate` block:
     itself), the upgrade is skipped while that process is running - `winget`
     would otherwise fail every time trying to replace its own locked exe.
     Upgrade it yourself when no session is open, or let it self-update.
-  - **A package's "newer" version can itself be broken.** Confirmed live:
-    Bing Wallpaper's winget manifest reports `2.0.0.1` as available but its
-    installer fails with MSI error 1603 unconditionally (every retry, every
-    `--scope`) - only the older `1.1.459` actually installs. When winget
-    reports "the install technology is different from the current version
-    installed" (a case the post-upgrade check would otherwise silently miss,
-    since the package stays present either way), the script uninstalls and
-    tries the "newer" version - but first remembers the currently-installed
-    version, and if the reinstall fails, falls back to reinstalling that
-    exact version rather than leaving the package uninstalled. Net effect on
-    a machine hitting this: harmlessly repeats the same uninstall/failed-
-    install/fallback dance on every future run (a few seconds of wasted
-    work), but never ends up worse off than before.
+  - **A package's "newer" version can itself be broken.** Confirmed live,
+    repeatedly (2026-09-13/14): Bing Wallpaper's winget manifest reports
+    `2.0.0.1` as available but its installer fails with MSI error 1603
+    unconditionally (every retry, every `--scope`) - only the older
+    `1.1.459` actually installs. When winget reports "the install technology
+    is different from the current version installed" (a case the
+    post-upgrade check would otherwise silently miss, since the package
+    stays present either way), the general-purpose fix is: uninstall, try
+    the "newer" version, and if that fails, fall back to reinstalling
+    winget's own previous catalog version (**from winget's catalog via
+    `winget show --versions`, never the locally-installed version** - Bing
+    Wallpaper self-updates independent of winget, so those two can diverge;
+    an earlier version of this fix used the locally-installed version as the
+    fallback target and it had drifted to something winget's catalog had
+    never heard of, leaving the app completely uninstalled with no
+    recovery). That general fallback logic stays in the codebase for any
+    *other* package that hits this message for real. For Bing Wallpaper
+    specifically, since `2.0.0.1` is now confirmed durably broken (not a
+    transient issue - it fails identically every single time), a package can
+    declare `SkipUpgrade` with an explanation to skip the upgrade attempt
+    entirely rather than repeat the same pointless uninstall/reinstall dance
+    (which also stops the running app) on every future run for zero gain.
+  - **Managed app configuration/state gets reinstated after `packages`
+    runs.** A package upgrade or reinstall can silently reset state this
+    repo manages - confirmed live: a Bing Wallpaper reinstall leaves it
+    installed but not *running*, undoing "always have wallpaper set to Bing
+    Wallpaper" until someone notices. `windows/10-install-tools.ps1` itself
+    now calls `43-configure-taskbar-appearance.ps1 -NoRestartExplorer`
+    (macOS: `platform/macos/configure-appearance.sh` from
+    `scripts/posix/upgrade.sh`) at its own tail, unconditionally - moved
+    there (not left as a separate step only `workstation upgrade` remembers
+    to chain) so this is self-contained for *any* caller: bootstrap, `workstation
+    upgrade`, or a standalone re-run of `10-install-tools.ps1` alone. Fully
+    idempotent, so a no-op when nothing actually needed restoring, and
+    harmless even when something else (bootstrap.ps1's own later step 43)
+    also runs the same script again right after.
 - `vscodeExtensions` re-runs the existing `--force` extension install loop.
 - `fonts` re-runs the idempotent, version-pinned font installer.
 
