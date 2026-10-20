@@ -15,7 +15,11 @@ if command -v wireshark >/dev/null 2>&1; then
 fi
 
 if command -v apt-get >/dev/null 2>&1; then
-  sudo apt-get update
+  # Skip when platform/linux/bootstrap.sh already just refreshed the index -
+  # see install-gh.sh for the full rationale. Still self-sufficient standalone.
+  if [[ -z "${PLATFORMCTL_APT_UPDATED:-}" ]]; then
+    sudo apt-get update
+  fi
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y wireshark
 elif command -v dnf >/dev/null 2>&1; then
   sudo dnf install -y wireshark

@@ -6,7 +6,12 @@ if command -v librewolf >/dev/null 2>&1; then
 fi
 
 if command -v apt-get >/dev/null 2>&1; then
-  sudo apt-get update
+  # Skip when the caller already just refreshed the index - see
+  # install-gh.sh for the full rationale. The SECOND update below, after
+  # extrepo adds LibreWolf's own source, always runs regardless.
+  if [[ -z "${PLATFORMCTL_APT_UPDATED:-}" ]]; then
+    sudo apt-get update
+  fi
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y extrepo
   sudo extrepo enable librewolf
   sudo extrepo update librewolf

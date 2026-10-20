@@ -1,5 +1,234 @@
 # Changelog
 
+## 3.27.1 (no code changes - two investigations closed out)
+
+Closed out the last two items deferred from the principal-engineer
+improvement pass (v3.26.0/3.27.0), both concluding the existing design is
+already correct - recording that conclusion explicitly rather than letting
+the open question linger or silently dropping it.
+
+**Template overlap (`fastapi-service`/`python-service`,
+`terraform`/`infra`)**: the repo's own README already documents this as a
+deliberate, acknowledged tradeoff - "works fine for discoverability at this
+size... doesn't have a concrete fix yet because there isn't one worth
+building preemptively," with `workstation catalog stats`'s real usage data
+as the explicit signal to watch for before consolidating. Checked that
+signal for real: `fastapi-service` has 3 real uses, `python-service` has 2
+- both actively, healthily used, no decay. The existing decision to leave
+this alone remains correct and evidence-backed. Forcing a consolidation now
+would have overridden a good prior call with no new evidence to justify it.
+
+**Cross-platform baseline-tool "duplication"**: turned out to be more
+nuanced than the original audit characterized it. Confirmed by actually
+reading every list: `ripgrep`/`bat`/`direnv`/`shellcheck`/`tmux` are
+genuinely absent from every Windows install script (`windows/10-install-
+tools.ps1` and `windows/45-shell-experience.ps1` both checked) - not a gap,
+a deliberate two-tier design matching this repo's own `developmentInWSL:
+true` policy invariant: Windows carries only a minimal host toolset
+(zoxide/fzf/jq/git/gh, enough for the PowerShell shell experience itself),
+because real development work - and the full CLI toolset - lives inside
+WSL, installed by the same `platform/linux/bootstrap.sh` a native Linux
+machine uses. macOS and native Linux need the full set directly on the
+host since neither has a separate inner layer the way Windows+WSL does.
+The specific per-distro naming differences the audit flagged as "drift"
+(`fd` vs `fd-find`, `ShellCheck` vs `shellcheck`) are legitimate, correct
+package names for each distro, not errors - verified `ShellCheck`'s
+capitalization directly against Fedora's own package registry rather than
+assuming it was a typo. Building a unified manifest to "fix" this would
+have either misrepresented the real, sound architecture or required
+forcing an artificial cross-platform parity that doesn't actually make
+sense given the policy. No code change - the existing design already
+reflects the right tradeoff.
+
+## 3.27.0
+
+Continuation of the principal-engineer improvement pass (see v3.26.0):
+a plugin/drop-in command mechanism, the first real command shipped through
+it (`workstation scratch` - the one persona gap found last time), and along
+the way, a genuinely critical, previously-undiscovered bug in how every
+Windows-routed-into-WSL command passes its arguments through.
+
+**New: `scripts/posix/commands/` plugin mechanism.** Every one of this
+repo's ~35 commands used to be a hardcoded branch duplicated across TWO
+dispatchers (`scripts/posix/workstation.sh` and `setup.ps1`) that had to be
+kept in sync by hand - a real drift already happened once this session
+(`project adopt` missing from one dispatcher's help text). A script dropped
+into `scripts/posix/commands/<name>.sh` is now picked up automatically by
+`workstation.sh`'s own fallback case and exec'd directly - no dispatcher
+edit needed for a new command. Windows routes into WSL for these the same
+way it already does for `editor`/`dashboard`/`backup`/etc. See
+`scripts/posix/commands/README.md` for the convention.
+
+**New: `workstation scratch` - a low-ceremony experimentation space**, the
+one real gap a cross-domain persona audit found last session (every
+project, however trivial, had to clear `project-check.sh`'s full governed-
+project bar). `workstation scratch <name>` creates `~/scratch/<name>` -
+deliberately outside every `policy/development.json` projectRoots entry, so
+it's invisible to `project-check`/doctor/the dashboard's governed-projects
+panel by design: no devcontainer, no CI workflow files, no lockfile, no
+policy compliance required. `scratch list` shows every space and its age;
+`scratch clean [--older-than Nd]` prunes old ones (default 30 days) so
+scratch space doesn't become permanent clutter; `scratch promote <name>
+<template> <project-name> [--area ...]` graduates one into a real governed
+project - scaffolds the template via `project init`, then copies the
+scratch files in without overwriting the template's own scaffolding, and
+leaves the original scratch space in place until you've verified the copy.
+Verified live end-to-end: create, idempotent re-create, invalid-name
+rejection, list, clean, and a full promote into a real `fastapi-service`
+project that then passes `project check` as COMPLIANT.
+
+**A third, previously-unnoticed dispatcher found and fixed while shipping
+the above**: the bare `setup` file at the repo root (the actual target of
+the globally-installed `workstation` shim) has its own exhaustive,
+hand-maintained whitelist of command names that gatekeeps BEFORE
+`workstation.sh` is ever reached - a real command (and the new plugin
+mechanism) could be fully correct in `workstation.sh` and still never run,
+because this third list rejected the name first. Confirmed live:
+`workstation scratch ...` printed "Unknown command: scratch" from `setup`
+itself before my fix. Replaced the whitelist with a universal forward
+(except the two platform-routing special cases, `bootstrap`/`apply`, which
+`workstation.sh` doesn't handle itself) - one less place to keep in sync,
+and the actual bug is gone.
+
+**A genuinely critical, previously-undiscovered bug: every Windows-routed
+WSL command silently lost its arguments.** Found while testing
+`.\setup.ps1 scratch <name>` end-to-end: it printed help instead of
+creating a scratch space. Root-caused via a controlled `wsl.exe` round-trip
+(reproduced identically from PowerShell AND from a plain bash shell,
+confirming it's a `wsl.exe`/WSL-interop behavior on this machine, not a
+PowerShell quoting artifact): `wsl.exe -d Ubuntu-24.04 -- bash -lc 'SCRIPT'
+arg0 arg1 arg2` does NOT pass `arg1 arg2` through to bash's own positional
+parameters - `$#` reported 0 regardless of how many arguments were passed
+or whether they came from a literal, a variable, or an array splat. This
+exact pattern was used by every one of `setup.ps1`'s 8 WSL-routing call
+sites (`editor`, `dashboard`'s serve-fallback, `backup`, `ssh-import`,
+`restore`, `dr-drill`, `drift-check`, and the new plugin fallback) -
+meaning **`workstation restore <backup-file>` run from Windows has never
+actually passed the backup-file argument through at all**, and
+`workstation editor install/doctor/apply/etc` always silently ran bare
+`editor` with no subcommand, the entire time this repo has had Windows-to-
+WSL command routing. Fixed by building the whole command as one
+interpolated string instead of relying on `wsl.exe`'s argv passthrough
+(confirmed this form works) via a new shared `Invoke-WslCommand` helper -
+every argument is individually single-quoted (correctly escaping an
+embedded literal quote) before being interpolated, since this switches
+from "argv passed to a subprocess" to "text embedded in a shell command
+line," and skipping that step would turn a project/backup/scratch name
+containing a shell metacharacter into a command-injection vector. Verified
+the quoting function directly: a deliberate injection payload
+(`; rm -rf /tmp/pwned; echo`) round-tripped through `wsl.exe` as an inert
+literal string, not executed. Verified live, post-fix: `.\setup.ps1
+scratch <name>` creates the scratch space correctly; `.\setup.ps1 editor
+doctor` now correctly runs the real `doctor` subcommand (confirmed via its
+actual tool-presence output) instead of silently falling back to bare
+`editor`.
+
+## 3.26.0
+
+Andrew asked, as a principal-engineer-level directive, for advanced
+improvements to make the repo more efficient, scalable, fast, simple enough
+for a junior engineer to adopt across learning/experimentation/development/
+labs/ML/DevSecOps/platform engineering, and more dynamic/extensible. Grounded
+this in four parallel research passes (onboarding friction, performance,
+extensibility, and a persona-by-persona reality check) before touching
+anything - consistent with this session's own earlier lesson that trusting
+old "fully shipped" claims without re-verifying is dangerous. This is the
+first landed slice; bigger architectural items (a cross-platform baseline-
+tool manifest, a plugin command mechanism, a low-ceremony experimentation
+path, template consolidation) are sized but deliberately not rushed into the
+same commit - see the follow-up conversation for that scoping.
+
+**A dangerous, fully dead script removed**: `scripts/create-project.sh` was
+a second, completely separate project-creation path that bypassed every
+compliance guarantee `project-init.sh` provides (no policy check, no
+`.platformctl/project.json`, no devcontainer validation) - and was already
+broken regardless (pointed at `templates/$TEMPLATE`, a path that hasn't
+existed since the repo's `templates/projects/` restructuring). Confirmed
+zero callers anywhere; dead since the very first commit.
+
+**A real, already-landed data-drift bug fixed, with a permanent guard
+added**: `development/catalog.json`'s `profiles.all` is a hand-maintained
+list, not a computed union of every service - `mlflow`, a real actively-used
+service, had silently gone missing from it. Fixed the immediate bug and
+added a check to `scripts/ci/validate.ps1` that fails the build if any
+service is ever missing from `profiles.all` again - verified live by
+deliberately reintroducing the exact drift and confirming the new check
+catches it, then restoring the fix.
+
+**Repo-root cleanup - three more one-time migration artifacts found dead and
+removed**, all from the same "governed development environment enforcement"
+rollout months ago, their jobs long since permanently baked into the live
+codebase: `repair-platformctl-editor-dispatch.sh` (+ its leftover
+`.state/editor-dispatch-repair-20260829-192247/` backup - confirmed `editor`
+is already wired into both dispatchers, has been for months), and
+`apply-to-platformctl.ps1`/`.sh` + `README-APPLY.md` (a v3.5.1 external
+"repair package" meant to be extracted as a separate zip - both scripts were
+already broken, referencing a `overlay/` directory that was never part of
+this repo). `SETUP-V2.md` (already self-labeled "legacy" at its own top)
+moved to `docs/legacy/` rather than sitting at the repo root next to the
+actually-current docs. A newcomer's first `ls` of the repo root is
+meaningfully less confusing now.
+
+**Performance: Windows package install/upgrade, confirmed ~19x faster for
+the "is this already installed" check.** `windows/10-install-tools.ps1`
+called `winget list --id X` once per package (22 packages) just to answer
+"is this installed" - winget's own process-activation overhead made this
+the single biggest time cost in the whole script. Replaced with one
+unfiltered `winget list` call, matched in-memory per package. Verified live
+on this real machine's actual 23 installed packages: 20.9s -> 1.1s for this
+check, zero mismatches against the old per-package approach, and confirmed
+no false positive for a genuinely-uninstalled package. Post-install/upgrade
+verification (which needs a fresh read after a mutating operation) is
+untouched.
+
+**Performance: redundant `apt-get update` calls removed from Linux/WSL
+bootstrap.** `platform/linux/bootstrap.sh` already refreshes the apt index
+once up front, but `install-gh.sh`, `install-wireshark.sh`,
+`install-librewolf.sh`, `install-research-tools.sh`, `install-solaar.sh`,
+and `install-wireguard.sh` each ran their own redundant `apt-get update`
+again when called from it - a real, repeated network round-trip every
+single bootstrap run. Fixed via a `PLATFORMCTL_APT_UPDATED` env var
+bootstrap.sh now sets after its own update; each sub-script skips its own
+when already set, but still updates correctly when run standalone.
+`install-gh.sh`/`install-librewolf.sh`'s SECOND update (after adding their
+own third-party apt repo) is untouched - that one is genuinely required
+regardless, a freshly-added source needs its own re-index.
+
+**Considered, deliberately not changed**: the audit also flagged
+`platform/windows/bootstrap.ps1`'s unconditional full-repo `Unblock-File
+-Recurse` as a scaling risk. Measured it directly on this repo's real 849
+files: 0.32 seconds. Adding a "skip after first run" marker would add real
+complexity and a genuine correctness risk (a later file that actually needs
+unblocking could be silently missed) for a problem that isn't actually
+causing measurable pain at current scale - left alone rather than
+over-engineering a fix with no payoff.
+
+**Extensibility: the project "area" enum (`company|platform|automation|
+labs|tooling`) was hardcoded independently in `project-init.sh` and
+`project-adopt.sh`, each with its own validation case statement - a 6th
+area would have needed both edited by hand, with nothing to keep them in
+sync.** Every area value is already exactly the basename of one of
+`policy/development.json`'s own `projectRoots` entries (confirmed:
+`project-adopt.sh`'s own path-inference logic already computed it this
+way) - so that was already the real source of truth, just duplicated
+instead of reused. Added `is_valid_project_area`/`valid_project_areas`
+helpers to the already-shared `scripts/posix/resolve-project.sh`; both
+scripts now derive their validation and error messages from
+`policy/development.json` directly. Verified live: valid/invalid areas
+behave identically to before through both `project init` and `project
+adopt`, and the error message now lists the real configured areas rather
+than a hardcoded string that could drift from the actual policy file.
+
+**Onboarding: fixed two real doc/reality gaps in `docs/getting-started.md`**,
+the repo's own designated single-entry-point onboarding doc. It claimed
+Windows's `.\bootstrap.ps1` "installs everything" including the DevSecOps
+and research-computing toolchains - false, matching this session's earlier
+`docs/new-machine.md` fix: that's a separate, required, manual WSL step on
+Windows (Linux/macOS's own `./bootstrap` has no such gap). Also clarified
+why `platformctl doctor` and `workstation doctor` both exist, which was
+previously distinguished only by a one-line trailing comment - now explains
+what each actually checks and which to run first.
+
 ## 3.25.1
 
 Two small `project adopt` gaps, found while Andrew asked whether adopting an

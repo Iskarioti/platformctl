@@ -17,6 +17,8 @@ POLICY="$ROOT/policy/development.json"
 
 command -v jq >/dev/null 2>&1 || { echo "jq is required." >&2; exit 2; }
 
+source "$ROOT/scripts/posix/resolve-project.sh"
+
 TARGET_ARG=""
 AREA_OVERRIDE=""
 while [[ $# -gt 0 ]]; do
@@ -25,7 +27,7 @@ while [[ $# -gt 0 ]]; do
     *)
       if [[ -n "$TARGET_ARG" ]]; then
         echo "Unknown argument: $1" >&2
-        echo "Usage: workstation project adopt [path|name] [--area company|platform|automation|labs|tooling]" >&2
+        echo "Usage: workstation project adopt [path|name] [--area $(valid_project_areas "$ROOT" | tr ' ' '|')]" >&2
         exit 2
       fi
       TARGET_ARG="$1"
@@ -35,13 +37,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -n "$AREA_OVERRIDE" ]]; then
-  case "$AREA_OVERRIDE" in
-    company|platform|automation|labs|tooling) ;;
-    *) echo "Unsupported project area: $AREA_OVERRIDE" >&2; exit 2 ;;
-  esac
+  is_valid_project_area "$ROOT" "$AREA_OVERRIDE" || {
+    echo "Unsupported project area: $AREA_OVERRIDE" >&2
+    echo "Valid areas (from policy/development.json's projectRoots): $(valid_project_areas "$ROOT")" >&2
+    exit 2
+  }
 fi
 
-source "$ROOT/scripts/posix/resolve-project.sh"
 TARGET="$(resolve_project_target "$ROOT" "${TARGET_ARG:-$PWD}")" || exit 2
 
 if git -C "$TARGET" rev-parse --is-inside-work-tree >/dev/null 2>&1; then

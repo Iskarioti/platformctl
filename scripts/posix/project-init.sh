@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 POLICY="$ROOT/policy/development.json"
+source "$ROOT/scripts/posix/resolve-project.sh"
 
 TEMPLATE="${1:-}"
 NAME="${2:-}"
@@ -22,7 +23,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$TEMPLATE" || -z "$NAME" ]]; then
-  echo "Usage: workstation project init <template> <name> [--area company|platform|automation|labs|tooling] [--services postgres,redis,kafka]" >&2
+  echo "Usage: workstation project init <template> <name> [--area $(valid_project_areas "$ROOT" | tr ' ' '|')] [--services postgres,redis,kafka]" >&2
   exit 2
 fi
 
@@ -34,7 +35,11 @@ jq -e --arg t "$TEMPLATE" '.projects.allowedTemplates | index($t) != null' "$POL
   exit 2
 }
 
-case "$AREA" in company|platform|automation|labs|tooling) ;; *) echo "Unsupported project area: $AREA" >&2; exit 2 ;; esac
+is_valid_project_area "$ROOT" "$AREA" || {
+  echo "Unsupported project area: $AREA" >&2
+  echo "Valid areas (from policy/development.json's projectRoots): $(valid_project_areas "$ROOT")" >&2
+  exit 2
+}
 
 services_json='[]'
 if [[ -n "$DECLARED_SERVICES" ]]; then

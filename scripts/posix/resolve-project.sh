@@ -43,3 +43,26 @@ resolve_project_target() {
   jq -r '.projectRoots[] | "  " + .' "$policy" >&2
   return 1
 }
+
+# The set of valid "area" values (company/platform/automation/labs/tooling)
+# used to be hardcoded as a literal `case "$AREA" in company|platform|...)`
+# pattern independently in project-init.sh AND project-adopt.sh - two
+# separate sources of truth for the exact same list, with nothing enforcing
+# they stay in sync, and a 6th area would need both edited by hand. Every
+# area IS already exactly the basename of one of policy/development.json's
+# own projectRoots entries (confirmed: project-adopt.sh's own path-inference
+# logic already does `basename "$expanded"` to get an area from a path) - so
+# that list is already the real source of truth, this just stops duplicating
+# it. Usage: `is_valid_project_area "$ROOT" "$AREA"` (exit 0/1).
+is_valid_project_area() {
+  local root="$1" area="$2" policy="$1/policy/development.json"
+  jq -e --arg a "$area" '[.projectRoots[] | sub(".*/";"")] | index($a) != null' "$policy" >/dev/null
+}
+
+# Space-separated list of valid areas, for usage/help text and error messages
+# - e.g. "company platform automation labs tooling". Usage:
+# `valid_project_areas "$ROOT"`.
+valid_project_areas() {
+  local root="$1" policy="$1/policy/development.json"
+  jq -r '[.projectRoots[] | sub(".*/";"")] | join(" ")' "$policy"
+}

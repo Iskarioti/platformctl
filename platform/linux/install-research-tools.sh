@@ -18,7 +18,11 @@ SHARE_DIR="$HOME/.local/share"
 mkdir -p "$BIN_DIR" "$SHARE_DIR"
 
 if command -v apt-get >/dev/null 2>&1; then
-  sudo apt-get update
+  # Skip when the caller already just refreshed the index - see
+  # install-gh.sh for the full rationale.
+  if [[ -z "${PLATFORMCTL_APT_UPDATED:-}" ]]; then
+    sudo apt-get update
+  fi
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
     texlive-latex-base texlive-latex-recommended texlive-latex-extra \
     texlive-fonts-recommended texlive-bibtex-extra biber latexmk pandoc

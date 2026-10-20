@@ -14,7 +14,16 @@ if command -v gh >/dev/null 2>&1; then
 fi
 
 if command -v apt-get >/dev/null 2>&1; then
-  sudo apt-get update
+  # Skip this update when the caller (platform/linux/bootstrap.sh) already
+  # just refreshed the index moments ago - confirmed redundant, a real
+  # network round-trip repeated for no reason on every bootstrap run. Still
+  # self-sufficient when this script is run standalone (the var is unset
+  # then). The SECOND update below, after adding GitHub's own apt repo, is
+  # NOT redundant with this one regardless - a newly-added source is
+  # invisible to apt until its own re-index, so that one always runs.
+  if [[ -z "${PLATFORMCTL_APT_UPDATED:-}" ]]; then
+    sudo apt-get update
+  fi
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y curl gpg
   sudo mkdir -p -m 755 /etc/apt/keyrings
   curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |

@@ -73,6 +73,7 @@
       "qdrant",
       "open-webui",
       "langfuse",
+      "mlflow",
       "clickhouse",
       "garage"
     ]

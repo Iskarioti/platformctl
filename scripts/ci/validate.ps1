@@ -177,6 +177,19 @@ foreach ($ProfileProperty in $Catalog.profiles.PSObject.Properties) {
     }
 }
 
+# profiles.all is a hand-maintained list, not a computed union of every
+# service name - confirmed drifted for real (mlflow was a genuine, actively
+# running service entirely missing from it, found 2026-10-20). The check
+# above only catches a profile referencing a service that doesn't exist;
+# it can never catch the opposite direction (a real service silently
+# missing from "all"). This closes that specific gap permanently.
+if ($Catalog.profiles.all) {
+    $MissingFromAll = @($CatalogServiceNames | Where-Object { $Catalog.profiles.all -notcontains $_ })
+    if ($MissingFromAll.Count -gt 0) {
+        throw "Service(s) missing from profiles.all in development/catalog.json: $($MissingFromAll -join ', ')"
+    }
+}
+
 foreach ($Script in @("scripts\posix\services.sh","scripts\common\services.ps1")) {
     Assert-File -Path (Join-Path $Root $Script) -Message "Development service dispatcher is missing: $Script"
 }

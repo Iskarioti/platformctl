@@ -12,7 +12,11 @@ if command -v solaar >/dev/null 2>&1; then
 fi
 
 if command -v apt-get >/dev/null 2>&1; then
-  sudo apt-get update
+  # Skip when the caller already just refreshed the index - see
+  # install-gh.sh for the full rationale.
+  if [[ -z "${PLATFORMCTL_APT_UPDATED:-}" ]]; then
+    sudo apt-get update
+  fi
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y solaar
 elif command -v dnf >/dev/null 2>&1; then
   sudo dnf install -y solaar

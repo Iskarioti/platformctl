@@ -22,20 +22,42 @@ cd platformctl
 ./bootstrap
 ```
 
-This installs everything: fonts, shell/prompt, editor profiles, the DevSecOps
-toolchain, the research-computing toolchain, Docker, WSL (Windows only), and
-the `workstation` command itself. It ends by running `doctor` and `enforce`
+This installs fonts, shell/prompt, editor profiles, the `workstation` command
+itself, and (Windows only) WSL. It ends by running `doctor` and `enforce`
 automatically - if `enforce` reports `NON-COMPLIANT`, read its summary before
 doing anything else.
 
+**Windows: one more required step.** `.\bootstrap.ps1` sets up WSL itself but
+deliberately does NOT reach into it to install the DevSecOps/research
+toolchains unattended (that needs an interactive sudo password, and a
+distro's very first launch can itself block on a username/password prompt -
+not something to fire silently from a Windows script). It prints the exact
+command to run once it finishes - also here for reference:
+```bash
+wsl
+cd <this repo's path, e.g. /mnt/c/Users/you/platformctl>
+./wsl/bootstrap.sh
+```
+Linux/macOS's own `./bootstrap` has no such gap - it installs the DevSecOps
+toolchain, the research-computing toolchain, and everything else in the one
+command, no second step required.
+
 ## 2. Every normal morning
+
+Two different `doctor` commands exist here on purpose, not by accident - they
+check different things:
 
 ```bash
 wsl                  # Windows only - everything below runs inside WSL/Linux/macOS
-platformctl doctor   # separate diagnostics CLI (net/tls/docker/incident tooling)
-workstation doctor   # real cross-domain status: security-scan freshness, capacity,
-                     # dev-service drift, lab state, template lifecycle - not just
-                     # whether a binary is installed
+workstation doctor   # START HERE. This repo's own health check: tool presence,
+                     # security-scan freshness, dev-service drift, lab state,
+                     # template lifecycle - "is my workstation itself OK."
+platformctl doctor   # A separate, narrower CLI: checks basic engineering-tool
+                     # presence (git/docker/ssh/az/openssl), Azure login status,
+                     # and system resources. The wider `platformctl` CLI also has
+                     # `net`/`tls`/`docker`/`incident` subcommands for deeper
+                     # network/TLS/container/incident-response diagnostics -
+                     # reach for those when something's broken at that level.
 ```
 
 Don't start any dev-services, models, or labs until you actually need them -

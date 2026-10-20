@@ -14,11 +14,23 @@ case "$CMD" in
     esac
     ;;
   apply) exec "$ROOT/scripts/posix/apply.sh" "$@" ;;
-  validate|doctor|enforce|project|services|security|research|catalog|models|lab|editor|sync|publish|autosync|upgrade|autoupgrade|dashboard|backup|restore|dr-drill|drift-check|changelog|ssh-import|update|dry-run|help)
-    exec "$ROOT/scripts/posix/workstation.sh" "$CMD" "$@"
-    ;;
   *)
-    echo "Unknown command: $CMD" >&2
-    exec "$ROOT/scripts/posix/workstation.sh" help
+    # Used to be an exhaustive, hand-maintained whitelist of every command
+    # name workstation.sh supports - a THIRD place (alongside workstation.sh
+    # itself and setup.ps1) that had to be kept in sync by hand, and the
+    # real bug that caused: a genuinely unknown command here NEVER reached
+    # workstation.sh's own dispatch at all (it printed its own "Unknown
+    # command" and forced workstation.sh straight to its help text,
+    # bypassing workstation.sh's plugin-command check entirely) - found
+    # live, 2026-10-20, testing a new scripts/posix/commands/ plugin script
+    # that workstation.sh itself correctly dispatches to, but which never
+    # got the chance to run because THIS file's whitelist rejected the
+    # command name first. workstation.sh already correctly handles every
+    # real command (its own case statement), every plugin command (the
+    # scripts/posix/commands/ check), "help", and anything truly unknown
+    # (falls through to printing help) - this just forwards everything
+    # except the two platform-routing special cases above straight to it,
+    # with no whitelist left to drift out of sync.
+    exec "$ROOT/scripts/posix/workstation.sh" "$CMD" "$@"
     ;;
 esac

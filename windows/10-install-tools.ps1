@@ -45,12 +45,30 @@ $packages = @(
 
 $failed = @()
 
+# Confirmed live (2026-10-20): calling `winget list --id X` once per package
+# just to answer "is this already installed" was the single biggest
+# bootstrap/upgrade time cost in this script - winget's own process
+# activation overhead (COM/MSIX cold-start, roughly 1-3s per invocation) paid
+# 22 separate times for a question one unfiltered `winget list` already
+# answers for every package at once. Captured here once and matched against
+# in-memory below instead. Post-install/upgrade verification further down
+# still calls `winget list --id X` individually each time - that genuinely
+# needs a fresh read after a mutating operation, this cached snapshot can't
+# answer that.
+$InstalledListOutput = winget list --source winget 2>$null | Out-String
+
 foreach ($pkg in $packages) {
     Write-Host ""
     Write-Host "=== $($pkg.Name) [$($pkg.Id)] ===" -ForegroundColor Cyan
 
-    winget list --id $pkg.Id --exact --source winget 2>$null | Out-Null
-    if ($LASTEXITCODE -eq 0) {
+    # Matches the Id column specifically (Id followed by whitespace) rather
+    # than a bare substring search, same conservative idiom already used
+    # elsewhere in this file for version-parsing - a package's winget Id is
+    # a globally unique dotted identifier, not realistically a substring of
+    # an unrelated package's Name column, but matching it as a bare
+    # substring would still risk a false positive for a short Id.
+    $AlreadyInstalled = $InstalledListOutput -match ([regex]::Escape($pkg.Id) + '\s')
+    if ($AlreadyInstalled) {
         Write-Host "Already installed. Checking for upgrade..."
 
         if ($pkg.ProcessName -and (Get-Process -Name $pkg.ProcessName -ErrorAction SilentlyContinue)) {

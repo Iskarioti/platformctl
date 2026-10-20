@@ -28,6 +28,51 @@ function Invoke-RepoScript {
     exit $LASTEXITCODE
 }
 
+# Real bug found live, 2026-10-20: every one of this file's "run this
+# command inside WSL" call sites used `wsl.exe -d Ubuntu-24.04 -- bash -lc
+# 'workstation "$@"' workstation <name> @Arguments` - passing extra
+# arguments as SEPARATE argv entries after the bash -c script string, on
+# the assumption bash would see them as $1/$2/... via "$@". Confirmed via a
+# controlled wsl.exe round-trip (direct argc/arg dump, reproduced
+# identically from PowerShell AND from a plain bash shell, so this is a
+# wsl.exe/WSL-interop behavior on this machine, not a PowerShell quoting
+# artifact) that those extra argv entries never actually reach bash's
+# positional parameters at all - $# was 0 every time, regardless of how
+# many arguments were passed or whether they came from literals, a
+# variable, or an array splat. This silently broke every argument to EVERY
+# WSL-routed command that takes one: `workstation restore <file>` lost the
+# backup-file argument entirely; `workstation editor install/doctor/apply`
+# always ran bare `editor` with no subcommand; `workstation backup
+# <output-path>` lost its path. Fixed by building the ENTIRE command as one
+# interpolated string instead of relying on wsl.exe's argv passthrough -
+# verified this form actually works. Each argument is individually
+# single-quoted (correctly escaping any literal single quote) before being
+# interpolated, since this switches from "argv passed to a subprocess" to
+# "text embedded in a shell command line" - without this, a project/backup/
+# scratch name containing a shell metacharacter would be a command
+# injection, not just a quoting bug.
+function ConvertTo-ShellQuoted {
+    param([string]$Value)
+    "'" + ($Value -replace "'", "'\''") + "'"
+}
+
+function Invoke-WslCommand {
+    param(
+        # The base command and its fixed subcommand, e.g. @("workstation",
+        # "backup") or @("platformctl", "serve") - kept separate from
+        # $Arguments only so call sites read clearly; every token here is
+        # quoted the same as a real argument, so a literal is exactly as
+        # safe passed here as hardcoded directly into the script string.
+        [Parameter(Mandatory)]
+        [string[]]$CommandParts,
+        [string[]]$Arguments = @()
+    )
+
+    $Script = (($CommandParts + $Arguments) | ForEach-Object { ConvertTo-ShellQuoted $_ }) -join ' '
+    & wsl.exe -d Ubuntu-24.04 -- bash -lc $Script
+    exit $LASTEXITCODE
+}
+
 switch ($Command.ToLowerInvariant()) {
     "bootstrap" {
         if ($IsWindows -or $env:OS -eq "Windows_NT") {
@@ -126,8 +171,7 @@ switch ($Command.ToLowerInvariant()) {
 
     "editor" {
         if ($IsWindows -or $env:OS -eq "Windows_NT") {
-            & wsl.exe -d Ubuntu-24.04 -- bash -lc 'workstation "$@"' workstation editor @Rest
-            exit $LASTEXITCODE
+            Invoke-WslCommand -CommandParts @("workstation", "editor") -Arguments $Rest
         } else {
             & bash (Join-Path $Root "scripts/posix/editor.sh") @Rest
             exit $LASTEXITCODE
@@ -157,8 +201,7 @@ switch ($Command.ToLowerInvariant()) {
         if ($SubAction -in @("enable", "disable", "status")) {
             Invoke-RepoScript -Path "scripts\common\dashboard-control.ps1" -Arguments $Rest
         } elseif ($IsWindows -or $env:OS -eq "Windows_NT") {
-            & wsl.exe -d Ubuntu-24.04 -- bash -lc 'platformctl serve "$@"' platformctl-serve @Rest
-            exit $LASTEXITCODE
+            Invoke-WslCommand -CommandParts @("platformctl", "serve") -Arguments $Rest
         } else {
             & platformctl serve @Rest
             exit $LASTEXITCODE
@@ -167,8 +210,7 @@ switch ($Command.ToLowerInvariant()) {
 
     "backup" {
         if ($IsWindows -or $env:OS -eq "Windows_NT") {
-            & wsl.exe -d Ubuntu-24.04 -- bash -lc 'workstation backup "$@"' workstation-backup @Rest
-            exit $LASTEXITCODE
+            Invoke-WslCommand -CommandParts @("workstation", "backup") -Arguments $Rest
         } else {
             & bash (Join-Path $Root "scripts/posix/backup.sh") @Rest
             exit $LASTEXITCODE
@@ -179,8 +221,7 @@ switch ($Command.ToLowerInvariant()) {
 
     "ssh-import" {
         if ($IsWindows -or $env:OS -eq "Windows_NT") {
-            & wsl.exe -d Ubuntu-24.04 -- bash -lc 'workstation ssh-import "$@"' workstation-ssh-import @Rest
-            exit $LASTEXITCODE
+            Invoke-WslCommand -CommandParts @("workstation", "ssh-import") -Arguments $Rest
         } else {
             & bash (Join-Path $Root "wsl/import-windows-ssh-keys.sh") @Rest
             exit $LASTEXITCODE
@@ -189,8 +230,7 @@ switch ($Command.ToLowerInvariant()) {
 
     "restore" {
         if ($IsWindows -or $env:OS -eq "Windows_NT") {
-            & wsl.exe -d Ubuntu-24.04 -- bash -lc 'workstation restore "$@"' workstation-restore @Rest
-            exit $LASTEXITCODE
+            Invoke-WslCommand -CommandParts @("workstation", "restore") -Arguments $Rest
         } else {
             & bash (Join-Path $Root "scripts/posix/restore.sh") @Rest
             exit $LASTEXITCODE
@@ -199,8 +239,7 @@ switch ($Command.ToLowerInvariant()) {
 
     "dr-drill" {
         if ($IsWindows -or $env:OS -eq "Windows_NT") {
-            & wsl.exe -d Ubuntu-24.04 -- bash -lc 'workstation dr-drill "$@"' workstation-dr-drill @Rest
-            exit $LASTEXITCODE
+            Invoke-WslCommand -CommandParts @("workstation", "dr-drill") -Arguments $Rest
         } else {
             & bash (Join-Path $Root "scripts/posix/dr-drill.sh") @Rest
             exit $LASTEXITCODE
@@ -209,8 +248,7 @@ switch ($Command.ToLowerInvariant()) {
 
     "drift-check" {
         if ($IsWindows -or $env:OS -eq "Windows_NT") {
-            & wsl.exe -d Ubuntu-24.04 -- bash -lc 'workstation drift-check "$@"' workstation-drift-check @Rest
-            exit $LASTEXITCODE
+            Invoke-WslCommand -CommandParts @("workstation", "drift-check") -Arguments $Rest
         } else {
             & bash (Join-Path $Root "scripts/posix/drift-check.sh") @Rest
             exit $LASTEXITCODE
@@ -229,6 +267,19 @@ switch ($Command.ToLowerInvariant()) {
     "dry-run" { Invoke-RepoScript -Path "scripts\ci\dry-run.ps1" -Arguments $Rest }
 
     default {
+        # Plugin/drop-in commands: a script in scripts/posix/commands/<name>.sh
+        # is picked up by scripts/posix/workstation.sh (see its own comment
+        # for the full rationale) without either dispatcher needing an edit -
+        # new commands no longer require touching BOTH this switch and that
+        # one by hand. Windows routes into WSL for this the same way it
+        # already does for "editor"/"dashboard"/"backup"/etc - plugin
+        # commands are POSIX scripts, same as those. Falls through to the
+        # help text below for the literal "help" command, a genuinely
+        # unknown command, or when WSL isn't set up at all.
+        if (($Command -ne "help") -and ($IsWindows -or $env:OS -eq "Windows_NT") -and
+            (Get-Command wsl.exe -ErrorAction SilentlyContinue)) {
+            Invoke-WslCommand -CommandParts @("workstation", $Command) -Arguments $Rest
+        }
         @"
 workstation setup commands  (new here? see docs/getting-started.md)
 
@@ -242,6 +293,11 @@ Workstation health:
   enforce [--repair]                verify development-policy compliance
 
 Start a project:
+  scratch <name>                    low-ceremony experimentation space at ~/scratch
+                                     (WSL) - no devcontainer/CI/policy required. Not
+                                     sure yet if this is a real project? Start here.
+  scratch list|clean|promote        list/prune scratch spaces, or graduate one into
+                                     a real governed project (see: workstation scratch help)
   project templates                 list approved project templates
   project init <template> <name>    create a governed project
   project adopt [path|name] [--area ...]  register an existing/cloned project (--area to set/correct it)

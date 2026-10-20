@@ -51,8 +51,8 @@ if (-not $NoWSL) {
     # null" prompt for a value, silently turning what looks like an
     # unattended bootstrap into one that hangs waiting for console input the
     # user has no reason to expect. "default" is the base profile every other
-    # real caller in this repo passes (see docs/getting-started.md,
-    # SETUP-V2.md) - "ai-lab" is an opt-in the user runs by hand afterward
+    # real caller in this repo passes (see docs/getting-started.md) -
+    # "ai-lab" is an opt-in the user runs by hand afterward
     # when they actually need it (ai-runtime/README.md), not a bootstrap default.
     Run "windows\25-set-wsl-profile.ps1" -Arguments @("-Profile", "default")
 }

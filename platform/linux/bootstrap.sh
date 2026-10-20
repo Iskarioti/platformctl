@@ -11,6 +11,13 @@ done
 
 if command -v apt-get >/dev/null 2>&1; then
   sudo apt-get update
+  # install-gh.sh/install-wireshark.sh each ran their own apt-get update
+  # unconditionally too, even when called right here moments after the index
+  # was already refreshed above - a real, confirmed-redundant network round
+  # trip every single bootstrap run. This signals "the index is already
+  # fresh" to them; they still do their own update when run standalone
+  # (this var won't be set then).
+  export PLATFORMCTL_APT_UPDATED=1
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
     git curl unzip ca-certificates jq fzf zoxide ripgrep fd-find bat tmux \
     direnv shellcheck python3 python3-venv fontconfig

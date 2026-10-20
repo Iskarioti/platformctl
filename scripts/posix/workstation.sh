@@ -203,6 +203,21 @@ PY
     "$ROOT/scripts/posix/workstation.sh" validate
     ;;
   *)
+    # Plugin/drop-in commands: every one of the ~35 commands above is a
+    # hardcoded branch in this one file (and duplicated again in setup.ps1 -
+    # confirmed this session that the two can drift, e.g. `project adopt`
+    # was missing from setup.ps1's help text). Adding a NEW command used to
+    # mean editing both dispatchers by hand. A script dropped into
+    # scripts/posix/commands/<name>.sh is now picked up automatically with
+    # no edit to this file at all - `workstation <name> [args...]` execs it
+    # directly, same invocation shape as every other command here. Existing
+    # commands are untouched (this only fires for a name that matched
+    # nothing above), so this adds a capability without touching any
+    # working code's behavior.
+    PLUGIN="$ROOT/scripts/posix/commands/$CMD.sh"
+    if [[ -f "$PLUGIN" ]]; then
+      exec bash "$PLUGIN" "$@"
+    fi
     cat <<'EOF_HELP'
 workstation commands  (new here? see docs/getting-started.md)
 
@@ -215,6 +230,11 @@ Workstation health:
   enforce [--repair]                  check/repair development-policy compliance
 
 Start a project:
+  scratch <name>                       low-ceremony experimentation space at ~/scratch -
+                                        no devcontainer/CI/policy required. Not sure yet
+                                        if this is a real project? Start here.
+  scratch list|clean|promote           list/prune scratch spaces, or graduate one into
+                                        a real governed project (see: workstation scratch help)
   project templates                   list approved project templates
   project init <template> <name> [--area company|platform|automation|labs|tooling]
   project adopt [path|name] [--area ...]  register an existing/cloned project (--area to set/correct it)
