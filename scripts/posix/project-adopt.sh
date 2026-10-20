@@ -44,6 +44,47 @@ if [[ -n "$AREA_OVERRIDE" ]]; then
   }
 fi
 
+# A git remote URL (SSH scp-like "git@host:path", or any "scheme://" form -
+# ssh://, https://, git://) is accepted directly: clone it into the chosen
+# area's root, then adopt the freshly-cloned directory exactly as if it had
+# already existed. Added 2026-10-21 after a real attempt to adopt straight
+# from a git@ssh.dev.azure.com URL failed with "could not find project" -
+# `adopt`'s own name and the natural workflow ("I have a URL, I want this
+# governed") both invite trying this; it just never worked before.
+if [[ "$TARGET_ARG" =~ ^([A-Za-z][A-Za-z0-9+.-]*://|[A-Za-z0-9_.-]+@[A-Za-z0-9_.-]+:) ]]; then
+  [[ -n "$AREA_OVERRIDE" ]] || {
+    echo "Cloning from a URL needs --area (no existing path to infer one from): $TARGET_ARG" >&2
+    echo "Usage: workstation project adopt <git-url> --area $(valid_project_areas "$ROOT" | tr ' ' '|')" >&2
+    exit 2
+  }
+
+  AreaRoot=""
+  while IFS= read -r configured; do
+    if [[ "$(basename "$configured")" == "$AREA_OVERRIDE" ]]; then
+      AreaRoot="${configured/#\~/$HOME}"
+      break
+    fi
+  done < <(jq -r '.projectRoots[]' "$POLICY")
+  [[ -n "$AreaRoot" ]] || { echo "Could not resolve projectRoots entry for area: $AREA_OVERRIDE" >&2; exit 2; }
+
+  # basename also correctly handles Azure DevOps's URL shape, which has no
+  # trailing .git and an extra org/project path segment before the repo name
+  # (git@ssh.dev.azure.com:v3/<org>/<project>/<repo>) - it's just "take the
+  # last path segment, then strip a trailing .git if present" either way.
+  RepoName="$(basename "$TARGET_ARG" .git)"
+  CloneDest="$AreaRoot/$RepoName"
+  if [[ -e "$CloneDest" ]]; then
+    echo "Already exists, not cloning again: $CloneDest" >&2
+    echo "(delete it first, or adopt it directly if it's already the right clone: workstation project adopt $RepoName)" >&2
+    exit 2
+  fi
+
+  mkdir -p "$AreaRoot"
+  echo "Cloning $TARGET_ARG into $CloneDest..."
+  git clone "$TARGET_ARG" "$CloneDest"
+  TARGET_ARG="$CloneDest"
+fi
+
 TARGET="$(resolve_project_target "$ROOT" "${TARGET_ARG:-$PWD}")" || exit 2
 
 if git -C "$TARGET" rev-parse --is-inside-work-tree >/dev/null 2>&1; then

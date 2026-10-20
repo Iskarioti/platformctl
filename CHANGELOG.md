@@ -1,5 +1,36 @@
 # Changelog
 
+## 3.28.0
+
+A real attempt - `workstation project adopt git@ssh.dev.azure.com:v3/
+wioccsystems/DevOps/netsuite-odbc-image --area company` - failed with
+"Could not find project ... as a path, or by name under any configured
+project root." `adopt` only ever registered an *existing* directory; the
+command's own name and the natural workflow ("I have a URL, I want this
+governed") both invite trying a URL directly, and it just never worked.
+
+`project-adopt.sh` now detects a git remote URL (an SSH scp-like
+`git@host:path` form - including Azure DevOps's unusual `git@ssh.dev.azure.
+com:v3/<org>/<project>/<repo>` shape, no trailing `.git` and an extra path
+segment versus GitHub's - or any `scheme://` URL) and clones it into the
+chosen `--area`'s configured root before adopting the freshly-cloned
+directory exactly as if it had already existed. `--area` is required in
+this form, since there's no existing path to infer one from. The
+destination directory name is derived from the URL's last path segment
+with a trailing `.git` stripped if present - verified this correctly
+produces `netsuite-odbc-image` for the exact URL that failed, and `some-
+repo` for both `git@github.com:org/some-repo.git` and `https://github.com/
+org/some-repo.git`. A destination that already exists is left untouched
+with a clear message, rather than silently overwritten.
+
+Verified live end-to-end using a local throwaway git remote (not the real
+Azure DevOps repo): cloning without `--area` is rejected with a clear
+error; cloning with `--area labs` correctly creates the clone under
+`~/src/labs/<name>`, registers it, and runs the normal `project check`
+against it. Also verified the URL-detection regex doesn't misfire on a
+plain local path or a bare project name (both must keep resolving via the
+existing path/name lookup, unchanged).
+
 ## 3.27.1 (no code changes - two investigations closed out)
 
 Closed out the last two items deferred from the principal-engineer

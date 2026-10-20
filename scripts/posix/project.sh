@@ -46,9 +46,12 @@ PY
 workstation project commands:
   project templates
   project init <template> <name> [--area company|platform|automation|labs|tooling]
-  project adopt [path|name] [--area company|platform|automation|labs|tooling]
+  project adopt [path|name|git-url] [--area company|platform|automation|labs|tooling]
                               register an existing/cloned project (.platformctl/project.json only -
-                              nothing else is touched); --area also corrects an already-adopted
+                              nothing else is touched); a git URL (git@host:path, or any
+                              scheme:// form) is cloned into the chosen --area's root first
+                              (--area is then required, since there's no existing path to
+                              infer one from); --area also corrects an already-adopted
                               project's area without hand-editing project.json
   project check [path|name]
   project doctor [path|name]

@@ -300,7 +300,8 @@ Start a project:
                                      a real governed project (see: workstation scratch help)
   project templates                 list approved project templates
   project init <template> <name>    create a governed project
-  project adopt [path|name] [--area ...]  register an existing/cloned project (--area to set/correct it)
+  project adopt [path|name|git-url] [--area ...]  register an existing/cloned project, or clone a
+                                        git URL into --area's root first (then register it)
   project check [path]              validate a project against policy
   project doctor [path]             show project/toolchain health
   project open [path]               validate and open project in VS Code

@@ -70,6 +70,21 @@ already exists — pre-existing, or freshly `git clone`d — and registers it by
 own structure and conventions, managed independently — `adopt` does not force it to
 match a template's scaffolding.
 
+`adopt` also accepts a git remote URL directly instead of a path - an SSH scp-like
+form (`git@host:path`, including Azure DevOps's `git@ssh.dev.azure.com:v3/<org>/
+<project>/<repo>` shape) or any `scheme://` URL (`https://`, `ssh://`, `git://`):
+
+```text
+workstation project adopt git@ssh.dev.azure.com:v3/wioccsystems/DevOps/netsuite-odbc-image --area company
+```
+
+`--area` is required in this form (there's no existing path to infer one from) - the
+repo is cloned into that area's configured root first (the destination directory name
+is the URL's last path segment with a trailing `.git` stripped, same result whether the
+URL has a `.git` suffix or not), then adopted exactly as if it had already existed. A
+destination that already exists is left untouched - adopt it directly instead, or
+remove it first if you actually want a fresh clone.
+
 Unlike `init`, `adopt`'s `area` is inferred by default from whichever configured
 `projectRoots` entry the project already lives under — it doesn't relocate anything, so
 there's nothing to choose. Pass `--area company|platform|automation|labs|tooling`
