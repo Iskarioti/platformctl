@@ -20,4 +20,4 @@ if (Get-Command code.cmd -ErrorAction SilentlyContinue) {
     }
 }
 
-Write-Host "VS Code configured with official JetBrains Mono editor font and JetBrainsMono Nerd Font terminal font."
+Write-Host "VS Code configured with JetBrains Mono editor font and JetBrainsMono Nerd Font Mono terminal font."

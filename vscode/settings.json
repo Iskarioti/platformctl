@@ -73,7 +73,7 @@
   "explorer.confirmDragAndDrop": false,
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.expand": false,
-  "terminal.integrated.fontFamily": "JetBrains Mono Nerd Font",
+  "terminal.integrated.fontFamily": "JetBrainsMono Nerd Font Mono",
   "terminal.integrated.fontSize": 14,
   "terminal.integrated.cursorWidth": 2,
   "terminal.integrated.lineHeight": 1.2,

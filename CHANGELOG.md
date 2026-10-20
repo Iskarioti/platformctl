@@ -1,5 +1,107 @@
 # Changelog
 
+## 3.29.1
+
+Andrew reported VS Code's integrated terminal (bash/zsh) rendering a
+distorted prompt - the Oh My Posh prompt's Nerd Font glyphs/icons showing
+as broken/missing. Root cause: `vscode/settings.json`'s
+`terminal.integrated.fontFamily` was set to `"JetBrains Mono Nerd Font"` -
+a font name that doesn't exist on this system at all (confirmed by listing
+every installed "JetBrains"-matching font family). Every other terminal
+surface this repo configures (`shell/alacritty/architect.alacritty.toml`,
+`windows-terminal/settings.json`, `windows/41-install-fonts.ps1`) uses the
+exact name AGENTS.md rule 5 requires: `"JetBrainsMono Nerd Font Mono"` -
+one word "JetBrainsMono," trailing "Mono" for the fixed-width icon variant.
+VS Code's terminal setting had neither right: a space in "JetBrains Mono"
+and no trailing "Mono" - falling back to a generic font with no Nerd Font
+glyphs at all, exactly matching the reported symptom.
+
+Fixed `vscode/settings.json` and redeployed via both
+`scripts/windows/configure-vscode.ps1` and `scripts/posix/configure-
+vscode.sh` (same shared source file, both call sites actually re-run, not
+just the source fixed) - confirmed live on both the Windows-side
+`%APPDATA%\Code\User\settings.json` and the WSL-side `~/.config/Code/
+User/settings.json` (VS Code Remote-WSL/Dev Containers keep their own
+separate copy) now read the corrected font name. Restart VS Code's
+integrated terminal (or reload the window) to pick up the change - a
+setting change alone doesn't retroactively re-render an already-open
+terminal pane.
+
+## 3.29.0
+
+Andrew asked to install Claude, Claude Code, and Codex "with native
+installers not winget so as to get the best out of the applications."
+Verified each vendor's own official documentation directly before touching
+anything (never guessed an install command or URL):
+
+- Claude Code's own docs (code.claude.com/docs/en/setup) state outright:
+  "Native installations automatically update in the background... WinGet
+  installations do not auto-update by default... On WinGet the upgrade may
+  fail while Claude Code is running because Windows locks the executable."
+  That's exactly the friction `windows/10-install-tools.ps1`'s `ProcessName`
+  skip flag was built to work around - the native installer sidesteps the
+  problem at the root instead.
+- Codex CLI's own `install.ps1` (read directly after confirming
+  `chatgpt.com/codex/install.ps1` 302-redirects to the real
+  `releases.openai.com`, not a spoofed domain) has its own auto-update-
+  version tracking and background-daemon references - the same
+  self-managed update story.
+- The Claude desktop app is the one exception: its official direct download
+  (`claude.ai/api/desktop/.../redirect`) sits behind a Cloudflare "managed"
+  bot challenge that a plain scripted download can't pass - confirmed live,
+  directly, including with a realistic browser User-Agent header (still a
+  403). Andrew chose the Microsoft Store listing instead (id
+  `9P6K58THS811`, Anthropic's own first-party packaging, confirmed via
+  `winget search Claude --source msstore`) over a manual one-time browser
+  download or leaving it unmanaged - a different distribution channel than
+  the community winget catalog this migration moves away from, and it
+  self-updates through Windows' own Store mechanism.
+
+New `windows/11-install-native-ai-tools.ps1` (no admin elevation required,
+unlike `10-install-tools.ps1` - these all install per-user), wired into
+`platform/windows/bootstrap.ps1` right after the main package list, and
+into `scripts/common/upgrade.ps1`'s "packages" scope unconditionally (not
+gated behind the admin check that only exists for winget). Removed Claude
+Code and Codex CLI from `windows/10-install-tools.ps1`'s winget-managed
+list entirely, including the now-unnecessary `ProcessName` skip flag.
+
+**Both Claude Code and Codex CLI are guarded against uninstalling their own
+currently-running executable** (the same self-lock risk the old
+`ProcessName` flag existed for) - skip the migration entirely while
+running, rather than fail outright. **Found and fixed a real detection bug
+while building this, not after**: the Claude DESKTOP app's Electron
+processes (main plus several renderer/GPU/utility processes) all share the
+literal image name "claude.exe" with the Claude Code CLI shim - a bare
+`Get-Process -Name "claude"` matched nine separate processes at once with
+only the desktop app open, meaning a name-only guard for either tool would
+wrongly skip every time the *other* one happened to be running. Fixed by
+filtering on the actual executable path (`WinGet\Links`/`.local\bin` for
+the CLI vs. `WindowsApps\Claude_` for the desktop app) - confirmed directly
+against this machine's real process list that the two are now correctly
+distinguished.
+
+**Also found and fixed, live**: `irm <url> | iex` run via `powershell.exe
+-Command "..."` fails on this machine with a ConstrainedLanguage Mode
+error ("Cannot convert value to type ... Only core types are supported") -
+the same restriction this repo has hit repeatedly for other inline
+PowerShell invocations elsewhere (ad-hoc commands run restricted; a
+trusted script file run via `-File` does not). Fixed by downloading the
+installer to a temp file first and running it via `-File`, matching the
+established pattern used everywhere else in this repo.
+
+**Verified live, with real limits documented honestly**: Codex CLI's
+migration ran for real on this machine - winget's `OpenAI.Codex` entry was
+uninstalled, the native installer ran successfully (installed 0.163.0,
+newer than winget's own 0.161.0), and `codex --version` confirmed working
+on PATH afterward. Claude Code's and the Claude desktop app's migrations
+were deliberately NOT run live: a real winget-installed `claude.exe`
+process was confirmed genuinely running during this session (this session
+itself, or another concurrent one - impossible to rule out, and the
+downside of being wrong is severe), and the real desktop app was also
+genuinely open. Both guards correctly skipped as designed; actually
+applying those two migrations needs a closed Claude Code session and a
+closed desktop app, which is for Andrew to trigger himself.
+
 ## 3.28.0
 
 A real attempt - `workstation project adopt git@ssh.dev.azure.com:v3/

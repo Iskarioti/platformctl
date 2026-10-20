@@ -107,6 +107,15 @@ function Invoke-ScopeScript {
 foreach ($Item in $RequestedScope) {
     switch ($Item) {
         "packages" {
+            # windows\11-install-native-ai-tools.ps1 (Claude Code, Codex CLI,
+            # Claude desktop) deliberately needs no elevation - unlike
+            # winget's package list below, run it unconditionally rather
+            # than gating it behind the same admin check that's only there
+            # because 10-install-tools.ps1 itself requires admin. A
+            # non-elevated `workstation upgrade` run should still be able to
+            # keep these current/self-healing.
+            Invoke-ScopeScript -Label "packages (native AI tools)" -RelativePath "windows\11-install-native-ai-tools.ps1"
+
             $IsAdmin = ([Security.Principal.WindowsPrincipal] `
                 [Security.Principal.WindowsIdentity]::GetCurrent()
             ).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)

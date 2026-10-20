@@ -39,6 +39,7 @@ Get-ChildItem $Root -Recurse -File -ErrorAction SilentlyContinue |
     Unblock-File -ErrorAction SilentlyContinue
 
 Run "windows\10-install-tools.ps1"
+Run "windows\11-install-native-ai-tools.ps1"
 Run "windows\41-install-fonts.ps1"
 Run "windows\42-configure-windows-terminal.ps1"
 Run "windows\43-configure-taskbar-appearance.ps1"

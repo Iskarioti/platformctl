@@ -31,16 +31,19 @@ $packages = @(
     @{ Name = "WireGuard";          Id = "WireGuard.WireGuard" },
     @{ Name = "Logi Options+";      Id = "Logitech.OptionsPlus" },
     @{ Name = "Microsoft Teams";    Id = "Microsoft.Teams" },
-    @{ Name = "Outlook for Windows"; Id = "Microsoft.Outlook" },
-    # ProcessName: this script's own upgrade path can't replace a running
-    # exe (winget: "remove: Access is denied" - confirmed live, 2026-09-13).
-    # Claude Code is very often the process actually running this script
-    # (an agent session), so its own self-upgrade is always skipped here
-    # while it's running rather than guaranteed-fail every time - upgrade it
-    # via winget yourself when no session is open, or let it self-update.
-    @{ Name = "Claude Code"; Id = "Anthropic.ClaudeCode"; ProcessName = "claude" }
-    @{ Name = "Codex CLI"; Id = "OpenAI.Codex" }
+    @{ Name = "Outlook for Windows"; Id = "Microsoft.Outlook" }
     # @{ Name = "Python 3.14"; Id = "Python.Python.3.14" }
+
+    # Claude Code and Codex CLI moved OFF winget entirely (2026-10-21, "to
+    # get the best out of the applications") - see
+    # windows/11-install-native-ai-tools.ps1 for the real reasons (confirmed
+    # via each vendor's own docs, not guessed): winget installs of these
+    # don't auto-update by default, and winget's own upgrade attempt
+    # genuinely fails while the tool is running (the "remove: Access is
+    # denied" friction the old ProcessName flag here used to work around -
+    # removed along with the packages, since there's nothing left for it to
+    # guard). The Claude desktop app (Anthropic.Claude) was never managed by
+    # this list in the first place and is also now handled by that script.
 )
 
 $failed = @()
