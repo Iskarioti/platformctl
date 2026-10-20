@@ -46,7 +46,10 @@ PY
 workstation project commands:
   project templates
   project init <template> <name> [--area company|platform|automation|labs|tooling]
-  project adopt [path|name]   register an existing/cloned project (.platformctl/project.json only - nothing else is touched)
+  project adopt [path|name] [--area company|platform|automation|labs|tooling]
+                              register an existing/cloned project (.platformctl/project.json only -
+                              nothing else is touched); --area also corrects an already-adopted
+                              project's area without hand-editing project.json
   project check [path|name]
   project doctor [path|name]
   project open [path|name]

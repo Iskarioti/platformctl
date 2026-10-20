@@ -95,8 +95,7 @@ named correctly gets a clean "nothing to do," not a no-op rename.
 
 ## What "ready to work" means
 
-After bootstrap completes on any of the three platforms, without any further manual
-setup, you can immediately:
+After bootstrap completes, you can immediately:
 
 ```bash
 workstation project init fastapi-service my-api --area company
@@ -112,7 +111,8 @@ Bootstrap installs the Dev Container CLI (`devcontainer`) on every platform so
 `policy/development.json`'s `requireDevContainer` project check passes without an extra
 step.
 
-Bootstrap (WSL/Linux and macOS) also installs a DevSecOps toolchain (Semgrep,
+Bootstrap (native Linux/macOS's own single `./bootstrap`, or WSL's separate
+`wsl/bootstrap.sh` below) also installs a DevSecOps toolchain (Semgrep,
 Gitleaks, TruffleHog, Trivy, Grype, Syft, Checkov, Cosign, Conftest - see
 `docs/security-scanning.md`) and a research-computing toolchain (TeX Live/
 Pandoc/Quarto/pixi - see `docs/research-computing.md`), plus Alacritty and a
@@ -120,8 +120,23 @@ managed tmux/ripgrep config (`docs/shell-experience.md`). Verify all of it in
 one place with `workstation doctor`, or per-domain with `workstation
 security doctor` / `workstation research doctor`.
 
-On WSL, `wsl/bootstrap.sh` also generates a company SSH key (`~/.ssh/id_ed25519_company`)
-and prompts once for your git identity (name/email) if not already set — idempotent,
+**This is a separate, required, manual step from the Windows-side bootstrap above -
+nothing auto-invokes it.** `windows\bootstrap.ps1` sets up WSL itself (installs the
+distro, applies its resource-limit profile) but deliberately does not reach into WSL
+to run its toolchain setup unattended: `wsl/bootstrap.sh` runs `sudo apt update &&
+apt full-upgrade`, which needs an interactive sudo password every time, and a truly
+first-ever launch of the distro can itself block on an interactive username/password
+prompt - not something to fire silently from a Windows script. `bootstrap.ps1` prints
+the exact command to run once it finishes; it's also here for reference:
+
+```bash
+wsl
+cd <this repo's path, e.g. /mnt/c/Users/you/platformctl>
+./wsl/bootstrap.sh
+```
+
+`wsl/bootstrap.sh` generates a company SSH key (`~/.ssh/id_ed25519_company`) and
+prompts once for your git identity (name/email) if not already set — idempotent,
 safe to re-run. **A key working on one Git host does not mean it's registered on
 another** — add the printed public key separately to each host you use (GitHub, Azure
 DevOps, etc.) under that host's own SSH-keys settings. See `wsl/configure-git.sh`.

@@ -217,7 +217,7 @@ Workstation health:
 Start a project:
   project templates                   list approved project templates
   project init <template> <name> [--area company|platform|automation|labs|tooling]
-  project adopt [path|name]           register an existing/cloned project
+  project adopt [path|name] [--area ...]  register an existing/cloned project (--area to set/correct it)
   project check|doctor|open [path|name]
 
 Local infrastructure:

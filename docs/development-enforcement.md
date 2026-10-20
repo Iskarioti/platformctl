@@ -68,7 +68,25 @@ already exists — pre-existing, or freshly `git clone`d — and registers it by
 `.platformctl/project.json` only; it never touches any other file, never runs
 `git init`, never stages or commits anything. A pre-existing/cloned codebase keeps its
 own structure and conventions, managed independently — `adopt` does not force it to
-match a template's scaffolding. Without adopting it, a cloned project has no
+match a template's scaffolding.
+
+Unlike `init`, `adopt`'s `area` is inferred by default from whichever configured
+`projectRoots` entry the project already lives under — it doesn't relocate anything, so
+there's nothing to choose. Pass `--area company|platform|automation|labs|tooling`
+explicitly when the project isn't under any configured root yet (it would otherwise be
+recorded as `"unknown"`), or to file it under a different area than wherever it happens
+to sit:
+
+```text
+workstation project adopt ~/src/company/already-cloned-repo --area company
+```
+
+Running `adopt --area <value>` again on an already-registered project updates just the
+`area` field in place (every other field — `template`, `developmentServices`,
+`adoptedAtUtc`, etc. — is preserved) rather than requiring a hand-edit of
+`project.json`.
+
+Without adopting it, a cloned project has no
 `.platformctl/project.json` and is invisible to `project check`'s compliance model and
 the dashboard's governed-projects panel alike — it still shows up there now (flagged as
 untracked), but closing that gap for real means running `adopt`.

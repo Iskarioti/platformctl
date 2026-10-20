@@ -244,6 +244,7 @@ Workstation health:
 Start a project:
   project templates                 list approved project templates
   project init <template> <name>    create a governed project
+  project adopt [path|name] [--area ...]  register an existing/cloned project (--area to set/correct it)
   project check [path]              validate a project against policy
   project doctor [path]             show project/toolchain health
   project open [path]               validate and open project in VS Code

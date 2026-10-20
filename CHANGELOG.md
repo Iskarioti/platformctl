@@ -1,5 +1,207 @@
 # Changelog
 
+## 3.25.1
+
+Two small `project adopt` gaps, found while Andrew asked whether adopting an
+existing git repo into platformctl's governance was supported at all (it
+was, already in real use for `wiocchub-api`/`hub-worker`/`to-africa-gnmi`):
+
+- `setup.ps1`'s own built-in help text (shown running `.\setup.ps1` with no
+  args on Windows) never listed `project adopt` at all - only the POSIX
+  `workstation` CLI's help text did, despite the command working identically
+  on both (Windows is a thin pass-through into WSL's `project.sh`). Added it.
+- `adopt`, unlike `init`, had no `--area` flag - its area was always inferred
+  from whichever configured `projectRoots` entry the project happened to
+  already live under, with no way to override it, and no way to set a
+  sensible value at all for a project not yet under any configured root
+  (recorded as the literal string `"unknown"`). Added `--area
+  company|platform|automation|labs|tooling` to `scripts/posix/project-
+  adopt.sh`, matching `project-init.sh`'s existing flag exactly. Also wired
+  it to update an already-registered project's `area` in place (preserving
+  every other field - `template`, `developmentServices`, `adoptedAtUtc`)
+  rather than requiring a hand-edit of `project.json`, since the same need
+  ("I adopted this under the wrong/no area, fix it") applies after the fact
+  just as much as at adoption time. Verified live end-to-end: fresh adopt
+  with `--area` outside any configured root, re-adopt with a different
+  `--area` updating in place (confirmed `adoptedAtUtc` untouched), re-adopt
+  with no `--area` leaving it alone with a hint, and an invalid `--area`
+  value rejected cleanly.
+
+## 3.25.0
+
+A month after the last session, Andrew asked for another critical pass:
+"check what needs updates, security issues, degradations." Found and fixed
+real, significant problems - this was not a clean-slate check.
+
+**CI has been red on every single push to `main` for over 5 weeks, unnoticed
+(the headline finding)**: confirmed via the GitHub Actions API that
+`validate`'s "Dry-run setup engine" step has failed on macOS/Linux on every
+run since 2026-09-12 (through the current HEAD, `096690e`, pushed
+2026-09-14) - the whole time, `workstation validate`/`enforce` kept passing
+*locally* on this Windows machine, creating false confidence. Root cause:
+`scripts/ci/dry-run.ps1` and `windows/41-install-global-nerd-font.ps1`
+(a legacy compatibility wrapper) both invoked another `.ps1` file via the
+bare `& (Join-Path ...)` call-operator pattern instead of the `pwsh.exe
+-File` subprocess pattern used everywhere else in this repo. That bare
+pattern does not reliably resolve a `.ps1` by path string - confirmed to
+fail identically on a real Windows machine (even `Get-Command <path>.ps1`
+fails) AND on GitHub's own ubuntu-latest/macos-latest runners (ruling out
+any single-OS or single-machine cause). **Corrects a wrong conclusion from
+last session**: the same symptom was seen then and dismissed as "almost
+certainly a local WDAC/AppLocker artifact, a non-issue in CI" - that was
+wrong; it was a real, repo-wide, CI-breaking bug the whole time. Fixed both
+files to use the subprocess pattern; verified live that `./setup.ps1
+dry-run` now runs clean end-to-end for the first time.
+
+**All 4 pinned GitHub Actions in this repo were on Node 20, which GitHub
+fully removed from hosted runners on 2026-09-16** - over a month before
+this session (today: 2026-10-20). Confirmed via each action's own
+`action.yml`: `actions/checkout@v4`, `actions/setup-python@v5`,
+`actions/setup-node@v4`, `hashicorp/setup-terraform@v3` all declare
+`using: node20`; their respective v7.0.1/v7.0.0/v7.1.0/v4.0.1 releases all
+declare `node24`. Dependabot had already opened PRs for exactly these 4
+bumps (confirmed via the GitHub API) but they'd never been merged. Applied
+the same version bumps directly (matching Dependabot's own proposed commit
+SHAs exactly) across `validate.yml`, `behavioral-tests.yml`, and
+`rag-quality-eval.yml` - including the `secret-scan`/`shellcheck`/
+`macos-brew-packages` jobs added last session but not yet committed, which
+would otherwise have shipped with an already-stale pin.
+
+**`workstation autoupgrade`'s off-hours safety checks had quietly made the
+entire feature dead for about a month, on both Windows and POSIX**:
+`workstation doctor` showed `WorkstationAutoUpgrade` "last run" as recent
+(the scheduled task fires fine), but a real `winget upgrade` check showed
+10 packages this repo explicitly manages (Windows Terminal, LibreWolf,
+Pandoc, Quarto, pixi, PowerToys, GitHub CLI, Azure CLI, Codex CLI, plus
+Claude Code which has its own documented `ProcessName` skip) genuinely
+outdated. Read a month of real `.state/upgrade-*.log` history: every single
+run skipped, citing either "outside configured update window" or
+"containers currently running." Root-caused the containers check precisely:
+`dev-redis`/`dev-redisinsight` are `workstation services autostart`'s
+*default* services and run 24/7 by this repo's own design (confirmed
+working, see [[silent_background_tasks]]) - so a blanket "any container
+running = someone's doing active work, don't disturb it" check has been
+true continuously since that feature started working, defeating its own
+purpose. Fixed on both `scripts/common/upgrade.ps1` and
+`scripts/posix/upgrade.sh`: the check now excludes exactly those two
+baseline container names, so it only skips for genuinely ad-hoc active work
+(a lab, a dev container someone is using right now) rather than this
+repo's own always-on infrastructure. Verified the filtering logic directly
+against today's real `docker ps` output (11 containers, correctly reduces
+to 9 after excluding the 2 baseline names; a mock "only the 2 baseline
+containers running" case correctly reduces to 0, meaning upgrade would now
+proceed in that case).
+
+**A second, separate contributor to the same dead-autoupgrade problem,
+flagged but NOT fixed** (a policy/design tradeoff, not a clear bug): the
+22:00-06:00 overnight window assumes a machine that's awake overnight. This
+is a laptop Andrew closes/sleeps outside work hours - its
+`WorkstationAutoUpgrade` scheduled task is a single daily trigger at 22:00
+with no repetition, so when the laptop is asleep at that moment, Windows'
+"run ASAP after a missed scheduled start" behavior fires it at whatever
+time the laptop next wakes - almost always during the day, outside the
+window, hence constant "outside window" skips even after the containers-
+check fix above. Needs an actual decision (widen the window, add a
+"force-run if N days since last success" fallback, rely on manual
+`workstation upgrade` instead, etc.) rather than a unilateral change.
+
+**Other real gaps found, flagged, not fixed this session** (each needs
+either interactive sudo this environment can't provide non-interactively,
+or touches a different repo/scope):
+- WSL still has no `gh` CLI installed (`command -v gh` → not found) despite
+  a committed "add GitHub CLI to Linux bootstrap" change - the install step
+  itself is real, it just hasn't actually been re-run on this WSL instance
+  since landing.
+- WSL's research toolchain is half-installed: `quarto`/`pixi` present,
+  `pdflatex`/`biber`/`latexmk`/`pandoc` all MISS - `docs/new-machine.md`
+  currently reads as if this is all installed.
+- `workstation security scan` is 37 days stale (`workstation doctor`'s own
+  WARN).
+- A real company repo, `~/src/company/wiocchub-api` (actively modified as
+  recently as today), is 1 of 3 governed projects on an outdated/unrecorded
+  template version (`.platformctl/project.json` has no `templateVersion` at
+  all - it predates that field, from an `adopt`, not a fresh `project
+  init`). Different repo/scope from platformctl itself - noted, not acted
+  on.
+
+## 3.24.0
+
+Andrew asked for a critical self-review of the repo and then to act on all of
+it. Four real, independently-verified improvements landed:
+
+- **Secret-scanning CI gate**: `scripts/posix/security.sh` already had real
+  gitleaks/trufflehog integration (`workstation security scan`), but nothing
+  ran it against platformctl's own history automatically - a real gap given
+  a dependent company repo already had one real exposed secret flagged
+  (never remediated) in an earlier session. Added a `secret-scan` job to
+  `.github/workflows/validate.yml` using `gitleaks/gitleaks-action` (pinned
+  by commit SHA, matching this repo's existing `actions/checkout` pinning
+  convention) with a full-history checkout, on every push/PR. No
+  `GITLEAKS_LICENSE` needed - that's an Organizations-only requirement, this
+  repo is under a personal account.
+- **shellcheck + Homebrew catalog verification in CI**: the existing
+  `validate` job's dry-run only checks PowerShell syntax - none of this
+  repo's 94 POSIX `.sh` scripts were ever actually linted, and macOS is the
+  least-verified platform (no real Mac has ever run these scripts). Added a
+  `shellcheck` job (error-severity - confirmed clean across all 94 scripts
+  before adding it as a gate; a handful of pre-existing warning-only false
+  positives are left alone) and a `macos-brew-packages` job
+  (`scripts/ci/check-brew-packages.py`, new) that runs `brew info` against
+  every formula/cask `platform/macos/*.sh` references on a real
+  `macos-latest` runner - installs nothing, just confirms each of the 42
+  referenced names still resolves in Homebrew's live catalog. Verified the
+  extraction logic's parsing (multi-line continuations, `--cask` blocks,
+  the `logi-options+` name, the custom `jandedobbeleer/oh-my-posh/oh-my-posh`
+  tap formula) against the real files via its own `--dry-run` flag - could
+  not verify the `brew info` calls themselves resolve, since there's no
+  Homebrew on this machine; that part only runs for real on the CI runner.
+- **`wsl/bootstrap.sh` doc/reality mismatch fixed**: `docs/new-machine.md`
+  described WSL's SSH-key/git-identity/DevSecOps-toolchain setup as if it
+  already ran as part of Windows bootstrap - confirmed live via grep that
+  nothing actually invokes `wsl/bootstrap.sh` anywhere outside itself; a
+  CHANGELOG entry shows this exact gap was flagged once before and never
+  resolved. Deliberately did NOT auto-chain it from `bootstrap.ps1` -
+  `wsl/bootstrap.sh` needs an interactive sudo password every run (this repo
+  has hit "sudo hangs non-interactively" before), and a distro's true first
+  launch can itself block on an interactive username/password prompt.
+  Instead: `platform/windows/bootstrap.ps1` now prints the exact manual
+  command (with the correct WSL-mounted path, resolved live via `wslpath`,
+  not just a Windows path pasted into a Linux shell) once it finishes, and
+  `docs/new-machine.md` is now explicit that this is a separate required
+  step. **Also fixed a real, separate bug found along the way**:
+  `bootstrap.ps1` called `windows\25-set-wsl-profile.ps1` with no
+  arguments, but that script's `-Profile` parameter is mandatory - every
+  other real caller in this repo passes `-Profile default`/`-Profile
+  ai-lab` explicitly, so a full (non-`-NoWSL`) bootstrap run would have hit
+  an unexpected interactive prompt for a missing value. Fixed to pass
+  `-Profile default`.
+- **Untracked 8.3MB `"Dashbord ui inspiration.md"`** (Andrew's personal
+  scratch notes, sitting at the repo root for several sessions) added to
+  `.gitignore` - left on disk untouched, just excluded from ever being
+  swept into a future `git add -A` by accident.
+
+**One item from the review deliberately NOT implemented**: extending
+Alacritty's new Windows-only centering launcher (v3.23.7) to Linux via
+`wmctrl`. Checked live on this machine's WSL instance first - Alacritty
+itself isn't even installed there yet (a pre-existing gap, see
+[[wsl_linux_status_check]]) and `wmctrl` is absent too, so there was no way
+to build AND verify a real equivalent rather than shipping speculative,
+untested code. Left as a documented decision, not a silent drop.
+
+**One more thing found, not fixed - a local machine artifact, not a repo
+bug**: `scripts/ci/dry-run.ps1`'s `& (Join-Path $Root ...)` pattern fails on
+this machine specifically with `CommandNotFoundException`, even though the
+target path definitively exists (`Test-Path` confirms it) - isolated to
+this being a WDAC/AppLocker-style local execution-policy restriction on
+directly `&`-invoking a `.ps1` file by a path held in a variable (an `.exe`
+invoked the same way works fine; wrapping the exact same call in
+`Invoke-Expression` also works fine). Confirmed this is NOT a regression
+from anything in this session - reproduces identically on a clean checkout
+of the prior commit. Not something to "fix" by rewriting the script through
+`Invoke-Expression` just to dodge a legitimate local security control
+(AGENTS.md rule 3) - almost certainly a non-issue in actual CI, since
+GitHub-hosted runners carry no such policy.
+
 ## 3.23.7
 
 Andrew asked for Alacritty to also be centered on screen, like Windows

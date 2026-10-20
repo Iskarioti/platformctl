@@ -44,3 +44,8 @@ __pycache__/
 .claude/
 .codex/
 .kimi/
+
+# Andrew's personal scratch notes - not a repo asset, but large enough (8MB+)
+# and long-lived enough at the repo root that it risked being swept into a
+# future `git add -A` by accident. Left on disk untouched, just excluded.
+Dashbord ui inspiration.md

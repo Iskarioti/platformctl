@@ -61,7 +61,13 @@ if [[ "$UNATTENDED" -eq 1 ]]; then
 
   SKIP_IF_RUNNING="$(jq -r '.autoUpdate.skipIfContainersRunning // false' "$ROOT/workstation.json")"
   if [[ "$SKIP_IF_RUNNING" == "true" ]] && command -v docker >/dev/null 2>&1; then
-    RUNNING="$(docker ps --format '{{.Names}}' 2>/dev/null || true)"
+    # Same fix as scripts/common/upgrade.ps1 (2026-10-20): dev-redis/
+    # dev-redisinsight are the default `workstation services autostart`
+    # services and run 24/7 by this repo's own design, so a blanket
+    # "any container running = skip" check was always true once that
+    # feature actually worked - confirmed via a month of real upgrade logs
+    # on the Windows side, nearly all skips citing exactly these two names.
+    RUNNING="$(docker ps --format '{{.Names}}' 2>/dev/null | grep -vE '^(dev-redis|dev-redisinsight)$' || true)"
     if [[ -n "$RUNNING" ]]; then
       log "SKIP: containers currently running ($(echo "$RUNNING" | tr '\n' ' ')); not disturbing active work."
       exit 0

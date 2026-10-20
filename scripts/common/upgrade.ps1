@@ -54,9 +54,27 @@ if ($Unattended) {
     }
 
     if ($Config.autoUpdate.skipIfContainersRunning) {
+        # Real bug found live, 2026-10-20: `dev-redis`/`dev-redisinsight` are
+        # the DEFAULT `workstation services autostart` services (see
+        # scripts/common/services-autostart-control.ps1) - by this repo's own
+        # design they run continuously, 24/7, surviving reboots. Once that
+        # feature actually works (it does, confirmed this session), this
+        # check's blanket "any container running at all = someone's doing
+        # active work, don't disturb it" was ALWAYS true from then on,
+        # because those two containers are never NOT running - silently
+        # neutering autoupgrade entirely. Confirmed from a month of real
+        # .state/upgrade-*.log history: every single run since roughly
+        # late September skipped, nearly all citing exactly these two
+        # container names as the reason. Excluding the specific baseline
+        # autostart containers restores the check's actual intent (skip for
+        # genuinely active, ad-hoc work - a lab, a dev container someone is
+        # using right now - not for a service this repo itself keeps
+        # permanently running).
+        $BaselineAutostartContainers = @("dev-redis", "dev-redisinsight")
         $Containers = & docker ps --format "{{.Names}}" 2>$null
-        if ($LASTEXITCODE -eq 0 -and $Containers) {
-            Write-Log "SKIP: containers currently running ($($Containers -join ', ')); not disturbing active work."
+        $ActiveContainers = @($Containers | Where-Object { $BaselineAutostartContainers -notcontains $_ })
+        if ($LASTEXITCODE -eq 0 -and $ActiveContainers.Count -gt 0) {
+            Write-Log "SKIP: containers currently running ($($ActiveContainers -join ', ')); not disturbing active work."
             exit 0
         }
     }

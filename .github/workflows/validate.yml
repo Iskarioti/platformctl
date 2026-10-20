@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Validate repository
         shell: pwsh
@@ -25,3 +25,64 @@ jobs:
       - name: Dry-run setup engine
         shell: pwsh
         run: ./setup.ps1 dry-run
+
+  # scripts/posix/security.sh already has real gitleaks/trufflehog integration
+  # (`workstation security scan`) but it was only ever on-demand - nothing
+  # actually ran it against this repo's own history automatically, despite a
+  # real secret exposure already being flagged once in a dependent company
+  # repo (see memory: wiocchub-app's .yarnrc.yml). This closes that gap for
+  # platformctl itself: a dedicated job (not per-OS - one history scan is
+  # enough) using gitleaks directly, separate from the `validate` job above
+  # so its full-history checkout (fetch-depth: 0, needed to scan every past
+  # commit, not just the current tree) doesn't slow down that job's shallow
+  # clone.
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITLEAKS_LICENSE is only required for GitHub Organizations, not
+          # personal accounts (this repo is under a personal account) - see
+          # https://github.com/gitleaks/gitleaks-action#environment-variables.
+
+  # The `validate` job's dry-run only checks PowerShell syntax/structure - it
+  # never executes any of the 94 POSIX (.sh) scripts this repo also ships, so
+  # a real bug in one of those (unquoted expansion, a genuinely broken
+  # reference, not just a style nit) could ship unnoticed. shellcheck at
+  # error-severity is a real, non-cosmetic gate: confirmed clean across every
+  # .sh file in this repo before adding it here (a few pre-existing
+  # warning-severity-only findings remain, e.g. a couple of SC2034 "unused
+  # variable" false positives - not worth blocking on those to add this gate).
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: shellcheck (error severity)
+        run: |
+          find . -name "*.sh" -not -path "./.git/*" -print0 \
+            | xargs -0 shellcheck -S error
+
+  # macOS is the least-verified platform this repo supports - no real Mac has
+  # ever run these scripts (see docs/new-machine.md's own device-naming
+  # section for the same caveat elsewhere). `setup.ps1 dry-run` on macos-latest
+  # only checks syntax, so a renamed/discontinued Homebrew cask or formula
+  # (a real, fairly common class of drift - Homebrew casks get renamed or
+  # pulled) would never surface until someone actually ran bootstrap on a
+  # real Mac. This is a genuinely-executed check, not just another syntax
+  # pass: `brew info` against Homebrew's live catalog, for every formula/cask
+  # platform/macos/*.sh references - installs nothing, just confirms each
+  # name still resolves.
+  macos-brew-packages:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Verify referenced Homebrew formulae/casks still resolve
+        run: python3 scripts/ci/check-brew-packages.py
